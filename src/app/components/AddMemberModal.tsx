@@ -177,7 +177,7 @@ export function AddMemberModal({
                     <p className="text-[13px] font-medium text-foreground truncate">{u.username}</p>
                     <p className="text-[11px] text-muted-foreground truncate">{u.email}</p>
                     <p className="text-[10px] text-muted-foreground truncate mt-0.5">
-                      {getSystemRoleLabel(u.system_role, u.system_role_name)}
+                      {getSystemRoleLabel(u.system_role ?? 0, u.system_role_name)}
                     </p>
                   </div>
                 </button>
@@ -191,7 +191,7 @@ export function AddMemberModal({
             <div className="rounded-[4px] border border-border bg-surface-secondary/40 px-3 py-2 text-[11px] text-muted-foreground space-y-1">
               <p>
                 <span className="font-medium text-foreground">Rol del sistema:</span>{' '}
-                {getSystemRoleLabel(selectedUser.system_role, selectedUser.system_role_name)}
+                {getSystemRoleLabel(selectedUser.system_role ?? 0, selectedUser.system_role_name)}
               </p>
               {isStakeholderSystemUser(selectedUser) ? (
                 <p>El rol del proyecto queda fijado en Stakeholder para este usuario.</p>

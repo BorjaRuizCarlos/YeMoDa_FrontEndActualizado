@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import {
   X, Calendar, User, MessageSquare, AlertTriangle,
   GitCommit, Send, Loader2, Pencil, Trash2, Plus,
-  GitBranch, Copy, Check, ExternalLink, Info, ShieldAlert,
+  GitBranch, Copy, Check, Info, ShieldAlert,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
@@ -899,7 +899,7 @@ export function TaskDetailPanel({
                 <h2 className="text-[13px] font-semibold text-foreground flex items-center gap-1.5">
                   <GitBranch className="w-3.5 h-3.5 text-primary" /> Crear branch
                 </h2>
-                <p className="text-[11px] text-muted-foreground mt-0.5">Se creará una branch vinculada a la tarea #{task.id_task}</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">Se creará una branch vinculada a la tarea #{task?.id_task}</p>
               </div>
               <button
                 type="button"
@@ -963,7 +963,7 @@ export function TaskDetailPanel({
                         >
                           <option value="">Seleccionar repositorio…</option>
                           {branchRepos.map((r) => (
-                            <option key={r.id} value={r.full_name}>{r.full_name}</option>
+                            <option key={r.id_repo} value={r.full_name}>{r.full_name}</option>
                           ))}
                         </select>
                       </div>

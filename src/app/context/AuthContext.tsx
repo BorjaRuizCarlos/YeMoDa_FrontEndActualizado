@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Clock3, LogOut } from 'lucide-react';
-import { authService, tokenStore, usersService, AUTH_SESSION_EXPIRED_EVENT, ApiRequestError } from '../../services';
+import { authService, tokenStore, AUTH_SESSION_EXPIRED_EVENT, ApiRequestError } from '../../services';
 import type { ApiUserAccount } from '../../services';
 import { mapUserRole } from '../utils/roles';
 import type { UserRole } from '../utils/roles';
