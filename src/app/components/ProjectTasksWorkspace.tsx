@@ -1086,6 +1086,7 @@ export function ProjectTasksWorkspace({
           <div className="rounded-[4px] border border-border bg-card p-3 overflow-auto">
             <h3 className="text-[12px] font-medium text-foreground mb-2">{selectedBoard ? selectedBoard.name : 'Selecciona un board'}</h3>
             {selectedBoard && (
+              <>
               <div className="space-y-2">
                 {(boardColumnsByBoard.get(selectedBoard.id_board) ?? []).map((column) => (
                   <div key={column.id_column} className="flex items-center justify-between rounded-[3px] border border-border bg-surface-secondary/40 px-2 py-1.5 text-[11px]">
@@ -1240,6 +1241,7 @@ export function ProjectTasksWorkspace({
                   </button>
                 </div>
               </div>
+              </>
             )}
           </div>
         </div>
