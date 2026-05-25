@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router';
-import { Check, Crown, Loader2, ArrowRight, Sparkles, BadgeDollarSign } from 'lucide-react';
+import { Check, Crown, Loader2, ArrowRight, Sparkles, BadgeDollarSign, CheckCircle2, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
-import { paymentsService } from '../../services';
+import { paymentsService, usersService } from '../../services';
 import type { PremiumPlan } from '../../services/payments.service';
 
 type PlanCard = {
@@ -45,6 +45,15 @@ const plans: PlanCard[] = [
 
 export default function Plans() {
   const [loadingPlan, setLoadingPlan] = useState<PremiumPlan | null>(null);
+  const [currentPlan, setCurrentPlan] = useState<'monthly' | 'annual' | null>(null);
+  const [isPremium, setIsPremium] = useState(false);
+
+  useEffect(() => {
+    usersService.me().then((account) => {
+      setIsPremium(Boolean(account.is_premium));
+      setCurrentPlan(account.subscription_plan ?? null);
+    }).catch(() => {});
+  }, []);
 
   const startCheckout = async (plan: PremiumPlan) => {
     setLoadingPlan(plan);
@@ -80,6 +89,11 @@ export default function Plans() {
         {plans.map((plan) => {
           const isLoading = loadingPlan === plan.id;
           const isAnnual = plan.id === 'annual';
+          const isCurrent = isPremium && currentPlan === plan.id;
+          // Upgrade: user is on monthly and this card is annual
+          const isUpgrade = isPremium && currentPlan === 'monthly' && plan.id === 'annual';
+          // Downgrade: user is on annual and this card is monthly — block it
+          const isDowngrade = isPremium && currentPlan === 'annual' && plan.id === 'monthly';
 
           return (
             <div
@@ -124,15 +138,32 @@ export default function Plans() {
                 </ul>
               </div>
 
-              <button
-                type="button"
-                onClick={() => startCheckout(plan.id)}
-                disabled={isLoading}
-                className="mt-5 inline-flex h-9 w-full items-center justify-center gap-2 rounded-[5px] bg-primary px-4 text-[11px] font-medium text-primary-foreground transition-colors hover:bg-primary-hover disabled:opacity-60"
-              >
-                {isLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ArrowRight className="h-3.5 w-3.5" />}
-                {isLoading ? 'Redirigiendo a Stripe…' : 'Elegir plan'}
-              </button>
+              {isCurrent ? (
+                <div className="mt-5 inline-flex h-9 w-full items-center justify-center gap-2 rounded-[5px] border border-success/30 bg-success/10 px-4 text-[11px] font-medium text-success cursor-default">
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  Tu plan actual
+                </div>
+              ) : isDowngrade ? (
+                <div className="mt-5 inline-flex h-9 w-full items-center justify-center gap-2 rounded-[5px] border border-border bg-surface-secondary/40 px-4 text-[11px] font-medium text-muted-foreground cursor-not-allowed">
+                  Disponible al renovar
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => startCheckout(plan.id)}
+                  disabled={isLoading}
+                  className="mt-5 inline-flex h-9 w-full items-center justify-center gap-2 rounded-[5px] bg-primary px-4 text-[11px] font-medium text-primary-foreground transition-colors hover:bg-primary-hover disabled:opacity-60"
+                >
+                  {isLoading ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : isUpgrade ? (
+                    <TrendingUp className="h-3.5 w-3.5" />
+                  ) : (
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  )}
+                  {isLoading ? 'Redirigiendo a Stripe…' : isUpgrade ? 'Upgrade a Anual' : 'Elegir plan'}
+                </button>
+              )}
             </div>
           );
         })}

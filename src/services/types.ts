@@ -8,6 +8,7 @@ export interface ApiUserAccount {
   system_role?: number | null;
   system_role_name?: string | null;
   is_premium?: boolean;
+  subscription_plan?: 'monthly' | 'annual' | null;
   github_connected?: boolean;
   is_github_connected?: boolean;
   github_login?: string | null;
