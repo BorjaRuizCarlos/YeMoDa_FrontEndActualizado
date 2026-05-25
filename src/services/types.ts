@@ -5,8 +5,8 @@ export interface ApiUserAccount {
   email: string;
   username: string;
   created_at: string;
-  system_role: number;
-  system_role_name: string;
+  system_role?: number | null;
+  system_role_name?: string | null;
   is_premium?: boolean;
   github_connected?: boolean;
   is_github_connected?: boolean;
@@ -29,6 +29,7 @@ export interface ApiProject {
   status: string | null;     // free-text e.g. "active", "on_hold", "completed"
   created_by: number | null;
   github_repo_full_name: string | null;
+  review_branches: string;   // comma-separated branch names, empty = all branches
 }
 
 export interface ApiRole {
@@ -51,6 +52,13 @@ export interface ApiBoard {
   name: string;
   description: string | null;
   created_at: string;
+  // AI agent configuration
+  coding_style: 'standard' | 'clean_code' | 'tdd' | 'security' | 'performance';
+  review_focus: 'strict' | 'general';
+  tech_stack: 'mixed' | 'python' | 'nodejs' | 'typescript' | 'java' | 'go' | 'dotnet' | 'react' | 'nextjs' | 'angular' | 'vue' | 'vite';
+  naming_convention: 'default' | 'camel_case' | 'pascal_case' | 'snake_case' | 'kebab_case' | 'mixed';
+  response_language: 'es' | 'en';
+  custom_instructions: string | null;
 }
 
 export interface ApiTaskStatus {
@@ -123,6 +131,7 @@ export interface ApiBoardColumn {
   name: string;
   order: number;
   is_final: boolean;
+  is_review: boolean;
   board: number;
 }
 
@@ -170,7 +179,9 @@ export interface RefreshResponse {
   expires_at: string;
 }
 
-export interface RegisterResponse extends ApiUserAccount {}
+export interface RegisterResponse {
+  detail: string;
+}
 
 // ─── DRF paginated list (optional — DRF returns plain arrays by default) ────
 
@@ -253,6 +264,7 @@ export interface ApiTaskWarning {
   id_warning: number;
   message: string;
   status: 'active' | 'resolved';
+  severity: 'critical' | 'warning' | 'info';
   created_at: string;
   resolved_at: string | null;
   task: number;
@@ -298,6 +310,43 @@ export interface ApiGithubContent {
   download_url?: string;
 }
 
+// ─── Branch creation ─────────────────────────────────────────────────────────
+
+export interface CreateBranchPayload {
+  base_branch: string;
+  repo_full_name?: string;
+}
+
+export interface CreateBranchResponse {
+  branch_name: string;
+  checkout_command: string;
+}
+
+// ─── Pull Requests ────────────────────────────────────────────────────────────
+
+export interface ApiPullRequest {
+  id: number;
+  number: number;
+  title: string;
+  state: 'open' | 'closed' | 'merged';
+  html_url: string;
+  head_ref: string;
+  base_ref: string;
+  created_at: string;
+  merged_at: string | null;
+  user: string;
+}
+
+export interface ApiPRFile {
+  filename: string;
+  status: 'added' | 'modified' | 'removed' | 'renamed';
+  additions: number;
+  deletions: number;
+  patch?: string;
+  blob_url: string;
+  previous_filename?: string | null;
+}
+
 // ─── Azure DevOps integration ────────────────────────────────────────────────
 
 export interface DevOpsOAuthStartResponse {
@@ -328,5 +377,6 @@ export interface DevOpsStory {
 
 export interface ApiError {
   detail?: string;
+  code?: string;
   [field: string]: string | string[] | undefined;
 }

@@ -11,6 +11,8 @@ import {
 // Eager: lightweight public pages
 import Landing from './pages/Landing';
 import Login from './pages/Login';
+import Register from './pages/Register';
+import EmailVerified from './pages/EmailVerified';
 import NotFound from './pages/NotFound';
 
 // Lazy: heavier authenticated pages
@@ -45,6 +47,14 @@ export const router = createBrowserRouter([
   {
     path: '/login',
     element: <Login />,
+  },
+  {
+    path: '/register',
+    element: <Register />,
+  },
+  {
+    path: '/auth/verified',
+    element: <EmailVerified />,
   },
   {
     path: '/auth/google/callback',

@@ -10,6 +10,10 @@ import type {
   GitHubRepo,
   ApiGithubPushEvent,
   ApiGithubCommitDiff,
+  CreateBranchPayload,
+  CreateBranchResponse,
+  ApiPullRequest,
+  ApiPRFile,
 } from './types';
 
 // Per-user localStorage key for repos cache only
@@ -110,10 +114,28 @@ export const githubService = {
     return api.get<GitHubRepo[]>(`/github/repos/${qs ? `?${qs}` : ''}`);
   },
 
+  // ─── Branch creation ──────────────────────────────────────────────────────
+
+  /** POST /api/tasks/{task_id}/branch/ → creates {task_id}-{slug} branch and returns name + checkout command */
+  async createBranch(taskId: number, payload: CreateBranchPayload): Promise<CreateBranchResponse> {
+    return api.post<CreateBranchResponse>(`/tasks/${taskId}/branch/`, payload);
+  },
+
+  // ─── Pull Requests ─────────────────────────────────────────────────────────
+
+  /** GET /api/tasks/{task_id}/pull-requests/ → lists PRs whose head branch starts with "{task_id}-" */
+  async listTaskPullRequests(taskId: number): Promise<ApiPullRequest[]> {
+    return api.get<ApiPullRequest[]>(`/tasks/${taskId}/pull-requests/`);
+  },
+
+  /** GET /api/reviews/pr/files/ → files changed in a PR with unified diffs */
+  async getPRFiles(repo: string, prNumber: number): Promise<ApiPRFile[]> {
+    return api.get<ApiPRFile[]>(`/reviews/pr/files/?repo=${encodeURIComponent(repo)}&pr=${prNumber}`);
+  },
+
   // ─── Admin check (decode JWT without verification) ─────────────────────────
 
-  isAdmin(): boolean {
-    const token = tokenStore.getAccess();
+  isAdmin(): boolean {    const token = tokenStore.getAccess();
     if (!token) return false;
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));

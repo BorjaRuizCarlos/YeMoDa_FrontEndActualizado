@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Clock3, LogOut } from 'lucide-react';
-import { authService, tokenStore, usersService, AUTH_SESSION_EXPIRED_EVENT } from '../../services';
+import { authService, tokenStore, usersService, AUTH_SESSION_EXPIRED_EVENT, ApiRequestError } from '../../services';
 import type { ApiUserAccount } from '../../services';
 import { mapUserRole } from '../utils/roles';
 import type { UserRole } from '../utils/roles';
@@ -29,7 +29,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string, role?: UserRole) => Promise<void>;
-  register: (name: string, email: string, password: string, systemRoleId?: number) => Promise<void>;
+  register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   syncUser: (apiUser: ApiUserAccount) => void;
   isAuthenticated: boolean;
@@ -105,23 +105,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSessionExpired(false);
       persistUser(u);
     } catch (err) {
-      // Always return generic message for security
-      throw new Error('Correo o contraseña incorrectos.');
+      // Preserve email_not_verified so Login page can show the resend flow
+      if (err instanceof ApiRequestError && err.body?.code === 'email_not_verified') {
+        throw err;
+      }
+      throw new Error('Incorrect email or password.');
     }
   };
 
-  const register = async (name: string, email: string, password: string, systemRoleId?: number) => {
+  const register = async (name: string, email: string, password: string) => {
     try {
-      const apiUser = await authService.register(email, name, password);
-      // Auto-login after register
-      await login(email, password);
-      // Assign system role if provided
-      if (systemRoleId) {
-        await usersService.update(apiUser.id_user, { system_role: systemRoleId });
-      }
+      await authService.register(email, name, password);
     } catch (err) {
-      // Always return generic message for security
-      throw new Error('No se pudo completar el registro. Intenta más tarde.');
+      throw new Error('Registration failed. Please try again.');
     }
   };
 

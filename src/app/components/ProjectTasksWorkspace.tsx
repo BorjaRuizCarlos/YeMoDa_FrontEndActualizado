@@ -12,7 +12,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Calendar, Check, Filter, GripVertical, LayoutDashboard, LayoutList, Loader2, Pencil, Plus, Search } from 'lucide-react';
+import { Bot, Calendar, Check, Filter, GripVertical, LayoutDashboard, LayoutList, Loader2, Pencil, Plus, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   useApiBoardColumns,
@@ -24,7 +24,7 @@ import {
   useApiTasks,
 } from '../hooks/useProjectData';
 import { tasksService } from '../../services';
-import type { ApiBoardColumn, ApiTask, ApiTaskPriority } from '../../services';
+import type { ApiBoard, ApiBoardColumn, ApiTask, ApiTaskPriority } from '../../services';
 import { TaskDetailPanel } from './TaskDetailPanel';
 import { DatePickerField } from './DatePickerField';
 import { TaskAssigneePicker } from './TaskAssigneePicker';
@@ -153,7 +153,7 @@ export function ProjectTasksWorkspace({
     sprint: null as number | null,
   });
   const [newBoard, setNewBoard] = useState({ name: '', description: '' });
-  const [newColumn, setNewColumn] = useState({ name: '', is_final: false });
+  const [newColumn, setNewColumn] = useState({ name: '', is_final: false, is_review: false });
   const [newSprint, setNewSprint] = useState({ name: '', start_date: '', end_date: '', status: 'planned' as 'planned' | 'active' | 'closed' });
   const [newMilestone, setNewMilestone] = useState({ name: '', description: '', due_date: '' });
   const [newTag, setNewTag] = useState({ name: '', color: '#56697f' });
@@ -307,6 +307,32 @@ export function ProjectTasksWorkspace({
     }
   }, [forcedTab]);
 
+  // ── Board AI settings draft state ─────────────────────────────────────────
+  const [draftBoard, setDraftBoard] = useState<{
+    coding_style: ApiBoard['coding_style'];
+    review_focus: ApiBoard['review_focus'];
+    tech_stack: ApiBoard['tech_stack'];
+    naming_convention: ApiBoard['naming_convention'];
+    response_language: ApiBoard['response_language'];
+    custom_instructions: string;
+  }>({ coding_style: 'standard', review_focus: 'general', tech_stack: 'mixed', naming_convention: 'default', response_language: 'es', custom_instructions: '' });
+  const [boardSettingsSaving, setBoardSettingsSaving] = useState(false);
+
+  const selectedBoard = (boards ?? []).find((board) => board.id_board === selectedBoardId) ?? null;
+
+  useEffect(() => {
+    if (!selectedBoard) return;
+    setDraftBoard({
+      coding_style: selectedBoard.coding_style ?? 'standard',
+      review_focus: selectedBoard.review_focus ?? 'general',
+      tech_stack: selectedBoard.tech_stack ?? 'mixed',
+      naming_convention: selectedBoard.naming_convention ?? 'default',
+      response_language: selectedBoard.response_language ?? 'es',
+      custom_instructions: selectedBoard.custom_instructions ?? '',
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedBoard?.id_board]);
+
   const selectedTaskAssignments = useMemo(() => taskAssignments ?? [], [taskAssignments]);
 
   const createTask = async (e: React.FormEvent) => {
@@ -387,13 +413,35 @@ export function ProjectTasksWorkspace({
         name: newColumn.name.trim(),
         order: nextOrder,
         is_final: newColumn.is_final,
+        is_review: newColumn.is_review,
       });
-      setNewColumn({ name: '', is_final: false });
+      setNewColumn({ name: '', is_final: false, is_review: false });
       setShowColumnModal(false);
       refetchColumns();
       toast.success('Columna creada.');
     } catch {
       toast.error('No se pudo crear la columna.');
+    }
+  };
+
+  const handleSaveBoardSettings = async () => {
+    if (!selectedBoard) return;
+    setBoardSettingsSaving(true);
+    try {
+      await tasksService.updateBoard(selectedBoard.id_board, {
+        coding_style: draftBoard.coding_style,
+        review_focus: draftBoard.review_focus,
+        tech_stack: draftBoard.tech_stack,
+        naming_convention: draftBoard.naming_convention,
+        response_language: draftBoard.response_language,
+        custom_instructions: draftBoard.custom_instructions.trim() || null,
+      });
+      refetchBoards();
+      toast.success('Configuración del board guardada.');
+    } catch {
+      toast.error('No se pudo guardar la configuración.');
+    } finally {
+      setBoardSettingsSaving(false);
     }
   };
 
@@ -515,8 +563,6 @@ export function ProjectTasksWorkspace({
       toast.error('No se pudo crear el tag.');
     }
   };
-
-  const selectedBoard = (boards ?? []).find((board) => board.id_board === selectedBoardId) ?? null;
 
   const handleDragEnd = async (event: DragEndEvent) => {
     setActiveDragId(null);
@@ -1066,10 +1112,133 @@ export function ProjectTasksWorkspace({
                         {column.is_final && <Check className="w-3 h-3" />}
                         {column.is_final ? 'Final' : 'Marcar final'}
                       </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const boardCols = boardColumnsByBoard.get(column.board) ?? [];
+                          const currentReview = boardCols.find((c) => c.is_review && c.id_column !== column.id_column);
+                          const ops: Promise<unknown>[] = [];
+                          if (!column.is_review && currentReview) {
+                            ops.push(tasksService.updateBoardColumn(currentReview.id_column, { is_review: false }));
+                          }
+                          ops.push(tasksService.updateBoardColumn(column.id_column, { is_review: !column.is_review }));
+                          void Promise.all(ops).then(() => refetchColumns());
+                        }}
+                        className={`h-6 px-2.5 rounded-full border text-[10px] inline-flex items-center gap-1 transition-colors ${
+                          column.is_review
+                            ? 'border-info/30 bg-info/10 text-info'
+                            : 'border-border text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        {column.is_review && <Bot className="w-3 h-3" />}
+                        {column.is_review ? 'Revisión IA' : 'Marcar revisión'}
+                      </button>
                       <button type="button" onClick={() => { void tasksService.deleteBoardColumn(column.id_column).then(() => refetchColumns()); }} className="h-6 px-2 rounded-[3px] border border-destructive/30 text-destructive text-[10px]">Eliminar</button>
                     </div>
                   </div>
                 ))}
+              </div>
+
+              {/* ── Board AI settings ── */}
+              <div className="mt-4 pt-4 border-t border-border space-y-3">
+                <p className="text-[10px] font-medium uppercase tracking-[0.06em] text-muted-foreground flex items-center gap-1.5">
+                  <Bot className="w-3 h-3" /> Configuración del agente IA
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-medium text-muted-foreground">Estilo de código</label>
+                    <select
+                      value={draftBoard.coding_style}
+                      onChange={(e) => setDraftBoard((prev) => ({ ...prev, coding_style: e.target.value as ApiBoard['coding_style'] }))}
+                      className="w-full h-8 rounded-[3px] border border-border bg-surface-secondary px-2 text-[11px]"
+                    >
+                      <option value="standard">Standard</option>
+                      <option value="clean_code">Clean Code</option>
+                      <option value="tdd">TDD</option>
+                      <option value="security">Security</option>
+                      <option value="performance">Performance</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-medium text-muted-foreground">Modo de revisión</label>
+                    <select
+                      value={draftBoard.review_focus}
+                      onChange={(e) => setDraftBoard((prev) => ({ ...prev, review_focus: e.target.value as ApiBoard['review_focus'] }))}
+                      className="w-full h-8 rounded-[3px] border border-border bg-surface-secondary px-2 text-[11px]"
+                    >
+                      <option value="general">General</option>
+                      <option value="strict">Strict</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-medium text-muted-foreground">Tech stack</label>
+                    <select
+                      value={draftBoard.tech_stack}
+                      onChange={(e) => setDraftBoard((prev) => ({ ...prev, tech_stack: e.target.value as ApiBoard['tech_stack'] }))}
+                      className="w-full h-8 rounded-[3px] border border-border bg-surface-secondary px-2 text-[11px]"
+                    >
+                      <option value="mixed">Mixed / Full-Stack</option>
+                      <option value="python">Python</option>
+                      <option value="nodejs">Node.js / JavaScript</option>
+                      <option value="typescript">TypeScript / Node.js</option>
+                      <option value="java">Java / Spring</option>
+                      <option value="go">Go</option>
+                      <option value="dotnet">C# / .NET</option>
+                      <option value="react">React</option>
+                      <option value="nextjs">Next.js</option>
+                      <option value="angular">Angular</option>
+                      <option value="vue">Vue.js</option>
+                      <option value="vite">Vite / Vanilla JS</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-medium text-muted-foreground">Convención de nombres</label>
+                    <select
+                      value={draftBoard.naming_convention}
+                      onChange={(e) => setDraftBoard((prev) => ({ ...prev, naming_convention: e.target.value as ApiBoard['naming_convention'] }))}
+                      className="w-full h-8 rounded-[3px] border border-border bg-surface-secondary px-2 text-[11px]"
+                    >
+                      <option value="default">Language defaults</option>
+                      <option value="camel_case">camelCase</option>
+                      <option value="pascal_case">PascalCase</option>
+                      <option value="snake_case">snake_case</option>
+                      <option value="kebab_case">kebab-case</option>
+                      <option value="mixed">Mixed</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-medium text-muted-foreground">Idioma de respuesta</label>
+                  <select
+                    value={draftBoard.response_language}
+                    onChange={(e) => setDraftBoard((prev) => ({ ...prev, response_language: e.target.value as ApiBoard['response_language'] }))}
+                    className="w-full h-8 rounded-[3px] border border-border bg-surface-secondary px-2 text-[11px]"
+                  >
+                    <option value="es">Español</option>
+                    <option value="en">English</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-medium text-muted-foreground">Instrucciones personalizadas</label>
+                  <textarea
+                    value={draftBoard.custom_instructions}
+                    onChange={(e) => setDraftBoard((prev) => ({ ...prev, custom_instructions: e.target.value }))}
+                    placeholder="Ej. Este proyecto usa Flutter, ignora warnings de Dart null safety…"
+                    rows={3}
+                    className="w-full rounded-[3px] border border-border bg-surface-secondary px-2 py-1.5 text-[11px] resize-none placeholder:text-muted-foreground/60 focus:outline-none"
+                  />
+                </div>
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    disabled={boardSettingsSaving}
+                    onClick={() => void handleSaveBoardSettings()}
+                    className="h-8 px-3 bg-primary text-primary-foreground rounded-[3px] text-[11px] inline-flex items-center gap-1.5 disabled:opacity-50"
+                  >
+                    {boardSettingsSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+                    Guardar configuración
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -1321,6 +1490,25 @@ export function ProjectTasksWorkspace({
                 </span>
               </div>
             </button>
+            <button
+              type="button"
+              onClick={() => setNewColumn((prev) => ({ ...prev, is_review: !prev.is_review }))}
+              className={`w-full rounded-[4px] border px-3 py-2 text-left transition-colors ${
+                newColumn.is_review
+                  ? 'border-info/30 bg-info/10'
+                  : 'border-border bg-surface-secondary/40 hover:bg-surface-secondary/70'
+              }`}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[11px] font-medium text-foreground">Marcar como columna de revisión IA</p>
+                  <p className="text-[10px] text-muted-foreground">El agente analizará las tareas cuando lleguen aquí.</p>
+                </div>
+                <span className={`inline-flex h-5 min-w-[40px] items-center rounded-full border px-1 ${newColumn.is_review ? 'border-info bg-info/20 justify-end' : 'border-border bg-card justify-start'}`}>
+                  <span className={`h-3 w-3 rounded-full ${newColumn.is_review ? 'bg-info' : 'bg-muted-foreground/40'}`} />
+                </span>
+              </div>
+            </button>
             <div className="flex justify-end gap-2">
               <button type="button" onClick={() => setShowColumnModal(false)} className="h-8 px-3 border border-border rounded-[3px] text-[11px]">Cancelar</button>
               <button type="submit" className="h-8 px-3 bg-primary text-primary-foreground rounded-[3px] text-[11px]">Crear</button>
@@ -1443,6 +1631,7 @@ export function ProjectTasksWorkspace({
         canEditAssignment={canEditTasks}
         canEditTask={canEditTasks}
         canDeleteTask={canDeleteTasks}
+        projectId={projectId}
         onClose={() => setSelectedTask(null)}
 
         onDeleteTask={async (taskToDelete) => {

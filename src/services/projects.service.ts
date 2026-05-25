@@ -8,7 +8,9 @@ export interface CreateProjectPayload {
   status?: string;
 }
 
-export interface UpdateProjectPayload extends Partial<CreateProjectPayload> {}
+export interface UpdateProjectPayload extends Partial<CreateProjectPayload> {
+  review_branches?: string;
+}
 
 export const projectsService = {
   /** GET /api/projects/ */

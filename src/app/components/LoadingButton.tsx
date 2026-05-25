@@ -16,7 +16,7 @@ export function LoadingButton({ loading, children, disabled, className = '', ...
       {loading ? (
         <>
           <Loader2 className="w-3.5 h-3.5 animate-spin" />
-          <span>Cargando...</span>
+          <span>Loading...</span>
         </>
       ) : (
         children

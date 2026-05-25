@@ -50,10 +50,10 @@ export function mapUserRole(systemRoleId?: number | null, roleName?: string | nu
   }
 
   if (roleName) {
-    return ROLE_NAME_MAP[roleName.trim().toLowerCase()] ?? 'stakeholder';
+    return ROLE_NAME_MAP[roleName.trim().toLowerCase()] ?? 'user';
   }
 
-  return 'stakeholder';
+  return 'user';
 }
 
 export function getSystemRoleLabel(systemRoleId: number, fallbackName?: string | null): string {

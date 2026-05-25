@@ -2,11 +2,12 @@ import { useState, useEffect, useMemo } from 'react';
 import {
   X, Calendar, User, MessageSquare, AlertTriangle,
   GitCommit, Send, Loader2, Pencil, Trash2, Plus,
+  GitBranch, Copy, Check, ExternalLink, Info, ShieldAlert,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
-import { tasksService } from '../../services';
-import type { ApiTask, ApiTaskStatus, ApiTaskPriority, ApiTaskComment, ApiTaskWarning, ApiTaskAssignment, ApiTag } from '../../services';
+import { tasksService, githubService } from '../../services';
+import type { ApiTask, ApiTaskStatus, ApiTaskPriority, ApiTaskComment, ApiTaskWarning, ApiTaskAssignment, ApiTag, GitHubRepo, CreateBranchResponse } from '../../services';
 import { WarningBadge } from './WarningBadge';
 import { TaskAssigneePicker } from './TaskAssigneePicker';
 import { DatePickerField } from './DatePickerField';
@@ -44,6 +45,7 @@ interface TaskDetailPanelProps {
   canEditAssignment?: boolean;
   canEditTask?: boolean;
   canDeleteTask?: boolean;
+  projectId?: number;
   onClose: () => void;
   onDeleteTask?: (task: ApiTask) => Promise<void>;
   onTaskUpdated?: (updatedTask: ApiTask) => void;
@@ -63,6 +65,7 @@ export function TaskDetailPanel({
   canEditAssignment = true,
   canEditTask = true,
   canDeleteTask = false,
+  projectId,
   onClose,
   onDeleteTask,
   onTaskUpdated,
@@ -91,6 +94,16 @@ export function TaskDetailPanel({
 
   const [isEditingTask, setIsEditingTask] = useState(false);
   const [savingTask, setSavingTask] = useState(false);
+
+  // ── Branch creation ────────────────────────────────────────────────────────
+  const [showBranchModal, setShowBranchModal] = useState(false);
+  const [branchRepos, setBranchRepos] = useState<GitHubRepo[]>([]);
+  const [branchLoadingRepos, setBranchLoadingRepos] = useState(false);
+  const [branchSelectedRepo, setBranchSelectedRepo] = useState('');
+  const [branchBase, setBranchBase] = useState('main');
+  const [branchCreating, setBranchCreating] = useState(false);
+  const [branchResult, setBranchResult] = useState<CreateBranchResponse | null>(null);
+  const [branchCopied, setBranchCopied] = useState(false);
   const [deletingTask, setDeletingTask] = useState(false);
   const [deletingWarningId, setDeletingWarningId] = useState<number | null>(null);
   const [taskForm, setTaskForm] = useState({
@@ -111,6 +124,50 @@ export function TaskDetailPanel({
     () => new Set(statuses.filter((s) => DONE_STATUS_NAMES.has(s.name.trim().toLowerCase())).map((s) => s.id_status)),
     [statuses],
   );
+
+  const openBranchModal = () => {
+    setBranchResult(null);
+    setBranchBase('main');
+    setBranchSelectedRepo('');
+    setShowBranchModal(true);
+    if (!projectId) return;
+    setBranchLoadingRepos(true);
+    githubService.listRepos({ project_id: projectId })
+      .then((repos) => {
+        setBranchRepos(repos);
+        if (repos.length === 1) setBranchSelectedRepo(repos[0].full_name);
+      })
+      .catch(() => setBranchRepos([]))
+      .finally(() => setBranchLoadingRepos(false));
+  };
+
+  const handleCreateBranch = async () => {
+    if (!task) return;
+    setBranchCreating(true);
+    try {
+      const result = await githubService.createBranch(task.id_task, {
+        base_branch: branchBase.trim() || 'main',
+        ...(branchSelectedRepo ? { repo_full_name: branchSelectedRepo } : {}),
+      });
+      setBranchResult(result);
+      toast.success(`Branch "${result.branch_name}" creada`);
+    } catch {
+      toast.error('No se pudo crear la branch. Verifica que el repositorio tenga acceso.');
+    } finally {
+      setBranchCreating(false);
+    }
+  };
+
+  const handleCopyCheckout = async () => {
+    if (!branchResult) return;
+    try {
+      await navigator.clipboard.writeText(branchResult.checkout_command);
+      setBranchCopied(true);
+      setTimeout(() => setBranchCopied(false), 2000);
+    } catch {
+      toast.error('No se pudo copiar al portapapeles');
+    }
+  };
 
   useEffect(() => {
     if (!task) return;
@@ -415,6 +472,14 @@ export function TaskDetailPanel({
                     className="inline-flex items-center gap-1 h-6 px-2 border border-border rounded-[3px] text-[10px] text-muted-foreground hover:text-foreground"
                   >
                     <Pencil className="w-3 h-3" /> Editar
+                  </button>
+                )}
+                {projectId != null && (
+                  <button
+                    onClick={openBranchModal}
+                    className="inline-flex items-center gap-1 h-6 px-2 border border-border rounded-[3px] text-[10px] text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors"
+                  >
+                    <GitBranch className="w-3 h-3" /> Branch
                   </button>
                 )}
                 <button onClick={onClose} className="p-1 rounded-[3px] hover:bg-surface-secondary transition-colors">
@@ -744,10 +809,22 @@ export function TaskDetailPanel({
                       </div>
                     ) : activeWarnings.length > 0 ? (
                       <div className="space-y-2">
-                        {activeWarnings.map((w) => (
-                          <div key={w.id_warning} className="p-2.5 bg-warning/5 border border-warning/20 rounded-[4px]">
+                        {activeWarnings.map((w) => {
+                          const sev = w.severity ?? 'warning';
+                          const sevStyle = sev === 'critical'
+                            ? 'bg-destructive/5 border-destructive/20'
+                            : sev === 'info'
+                            ? 'bg-info/5 border-info/20'
+                            : 'bg-warning/5 border-warning/20';
+                          const SevIcon = sev === 'critical' ? ShieldAlert : sev === 'info' ? Info : AlertTriangle;
+                          const iconColor = sev === 'critical' ? 'text-destructive' : sev === 'info' ? 'text-info' : 'text-warning';
+                          return (
+                          <div key={w.id_warning} className={`p-2.5 border rounded-[4px] ${sevStyle}`}>
                             <div className="flex items-start justify-between gap-2">
-                              <p className="text-[11px] text-foreground leading-relaxed">{w.message}</p>
+                              <div className="flex items-start gap-1.5 flex-1 min-w-0">
+                                <SevIcon className={`w-3.5 h-3.5 mt-0.5 shrink-0 ${iconColor}`} />
+                                <p className="text-[11px] text-foreground leading-relaxed">{w.message}</p>
+                              </div>
                               <button
                                 type="button"
                                 onClick={() => void handleDeleteWarning(w.id_warning)}
@@ -758,17 +835,53 @@ export function TaskDetailPanel({
                                 Eliminar
                               </button>
                             </div>
-                            <p className="text-[10px] text-muted-foreground mt-1">{w.created_at.slice(0, 10)}</p>
+                            <p className="text-[10px] text-muted-foreground mt-1 ml-5">{w.created_at.slice(0, 10)}</p>
                           </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     ) : (
                       <p className="text-[11px] text-muted-foreground">Sin warnings activos.</p>
                     )}
 
                     <div className="rounded-[4px] border border-dashed border-border p-3">
-                      <p className="text-[10px] font-medium uppercase tracking-[0.06em] text-muted-foreground mb-1">Conexiones de codigo</p>
-                      <p className="text-[11px] text-muted-foreground">Proximamente aqui apareceran referencias de commits, diffs y archivos relacionados a esta tarea.</p>
+                      <p className="text-[10px] font-medium uppercase tracking-[0.06em] text-muted-foreground mb-2 flex items-center gap-1.5">
+                        <GitBranch className="w-3 h-3" /> Conexiones de código
+                      </p>
+                      {branchResult ? (
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2 rounded-[3px] bg-success/5 border border-success/20 px-2.5 py-2">
+                            <GitBranch className="w-3 h-3 text-success shrink-0" />
+                            <span className="font-mono text-[11px] text-foreground flex-1 truncate">{branchResult.branch_name}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <code className="flex-1 font-mono text-[10px] text-muted-foreground bg-surface-secondary/60 border border-border rounded-[3px] px-2 py-1 truncate">
+                              {branchResult.checkout_command}
+                            </code>
+                            <button
+                              type="button"
+                              onClick={() => void handleCopyCheckout()}
+                              className="h-6 w-6 shrink-0 flex items-center justify-center border border-border rounded-[3px] text-muted-foreground hover:text-foreground transition-colors"
+                              title="Copiar comando"
+                            >
+                              {branchCopied ? <Check className="w-3 h-3 text-success" /> : <Copy className="w-3 h-3" />}
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <p className="text-[11px] text-muted-foreground">Crea una branch vinculada a esta tarea para que el agente de code review la identifique automáticamente.</p>
+                          {projectId != null && (
+                            <button
+                              type="button"
+                              onClick={openBranchModal}
+                              className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-[3px] border border-dashed border-primary/40 text-[10px] text-primary hover:bg-primary/5 transition-colors"
+                            >
+                              <GitBranch className="w-3 h-3" /> Crear branch
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -776,6 +889,122 @@ export function TaskDetailPanel({
           </div>
         )}
       </div>
+
+      {/* Branch creation modal */}
+      {showBranchModal && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-6">
+          <div className="w-full max-w-sm rounded-[8px] border border-border bg-card overflow-hidden shadow-lg">
+            <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+              <div>
+                <h2 className="text-[13px] font-semibold text-foreground flex items-center gap-1.5">
+                  <GitBranch className="w-3.5 h-3.5 text-primary" /> Crear branch
+                </h2>
+                <p className="text-[11px] text-muted-foreground mt-0.5">Se creará una branch vinculada a la tarea #{task.id_task}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowBranchModal(false)}
+                className="p-1 rounded-[3px] hover:bg-surface-secondary transition-colors"
+              >
+                <X className="w-3.5 h-3.5 text-muted-foreground" />
+              </button>
+            </div>
+
+            {branchResult ? (
+              /* Success state */
+              <div className="px-4 py-4 space-y-3">
+                <div className="rounded-[4px] bg-success/5 border border-success/20 px-3 py-2.5 space-y-1">
+                  <p className="text-[10px] font-medium uppercase tracking-[0.06em] text-success/80">Branch creada</p>
+                  <p className="font-mono text-[12px] text-foreground font-medium">{branchResult.branch_name}</p>
+                </div>
+                <div className="space-y-1.5">
+                  <p className="text-[10px] font-medium text-muted-foreground">Comando de checkout</p>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 font-mono text-[11px] text-muted-foreground bg-surface-secondary/60 border border-border rounded-[3px] px-2.5 py-1.5 truncate">
+                      {branchResult.checkout_command}
+                    </code>
+                    <button
+                      type="button"
+                      onClick={() => void handleCopyCheckout()}
+                      className="h-8 w-8 shrink-0 flex items-center justify-center border border-border rounded-[4px] text-muted-foreground hover:text-foreground transition-colors"
+                      title="Copiar"
+                    >
+                      {branchCopied ? <Check className="w-3.5 h-3.5 text-success" /> : <Copy className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+                </div>
+                <div className="flex justify-end pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowBranchModal(false)}
+                    className="h-8 px-4 bg-primary text-primary-foreground rounded-[4px] text-[11px] transition-opacity"
+                  >
+                    Listo
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* Form state */
+              <div className="px-4 py-4 space-y-4">
+                {branchLoadingRepos ? (
+                  <div className="flex items-center justify-center py-6 text-muted-foreground">
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    <span className="text-[12px]">Cargando repositorios…</span>
+                  </div>
+                ) : (
+                  <>
+                    {branchRepos.length > 0 && (
+                      <div className="space-y-1.5">
+                        <label className="text-[11px] font-medium text-foreground">Repositorio</label>
+                        <select
+                          value={branchSelectedRepo}
+                          onChange={(e) => setBranchSelectedRepo(e.target.value)}
+                          className="w-full h-9 rounded-[4px] border border-border bg-surface-secondary px-3 text-[12px] text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+                        >
+                          <option value="">Seleccionar repositorio…</option>
+                          {branchRepos.map((r) => (
+                            <option key={r.id} value={r.full_name}>{r.full_name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-medium text-foreground">Branch base</label>
+                      <input
+                        value={branchBase}
+                        onChange={(e) => setBranchBase(e.target.value)}
+                        placeholder="main"
+                        className="w-full h-9 rounded-[4px] border border-border bg-surface-secondary px-3 text-[12px] placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-primary/50"
+                      />
+                    </div>
+                    <div className="rounded-[4px] bg-surface-secondary/40 border border-border/50 px-3 py-2">
+                      <p className="text-[10px] text-muted-foreground">El nombre de la branch será generado automáticamente con el ID de la tarea como prefijo.</p>
+                    </div>
+                  </>
+                )}
+                <div className="flex justify-end gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowBranchModal(false)}
+                    className="h-8 px-3 border border-border rounded-[4px] text-[11px] hover:bg-accent transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    disabled={branchCreating || branchLoadingRepos}
+                    onClick={() => void handleCreateBranch()}
+                    className="h-8 px-4 bg-primary text-primary-foreground rounded-[4px] text-[11px] disabled:opacity-40 transition-opacity inline-flex items-center gap-1.5"
+                  >
+                    {branchCreating ? <Loader2 className="w-3 h-3 animate-spin" /> : <GitBranch className="w-3 h-3" />}
+                    Crear branch
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* New tag modal */}
       {showNewTagForm && (

@@ -143,17 +143,28 @@ export const tasksService = {
     return api.delete<void>(`/boards/${id}/`);
   },
 
+  updateBoard(id: number, payload: {
+    coding_style?: ApiBoard['coding_style'];
+    review_focus?: ApiBoard['review_focus'];
+    tech_stack?: ApiBoard['tech_stack'];
+    naming_convention?: ApiBoard['naming_convention'];
+    response_language?: ApiBoard['response_language'];
+    custom_instructions?: string | null;
+  }): Promise<ApiBoard> {
+    return api.patch<ApiBoard>(`/boards/${id}/`, payload);
+  },
+
   // ── Board columns ─────────────────────────────────────────────
   listBoardColumns(boardId?: number): Promise<ApiBoardColumn[]> {
     const url = boardId ? `/board-columns/?board=${boardId}` : '/board-columns/';
     return api.get<ApiBoardColumn[]>(url);
   },
 
-  createBoardColumn(payload: { board: number; name: string; order: number; is_final?: boolean }): Promise<ApiBoardColumn> {
+  createBoardColumn(payload: { board: number; name: string; order: number; is_final?: boolean; is_review?: boolean }): Promise<ApiBoardColumn> {
     return api.post<ApiBoardColumn>('/board-columns/', payload);
   },
 
-  updateBoardColumn(id: number, payload: { name?: string; order?: number; is_final?: boolean }): Promise<ApiBoardColumn> {
+  updateBoardColumn(id: number, payload: { name?: string; order?: number; is_final?: boolean; is_review?: boolean }): Promise<ApiBoardColumn> {
     return api.patch<ApiBoardColumn>(`/board-columns/${id}/`, payload);
   },
 
@@ -232,9 +243,7 @@ export const tasksService = {
   // ── Task assignments ────────────────────────────────────────────
   listAssignments(taskId?: number): Promise<ApiTaskAssignment[]> {
     const url = taskId ? `/task-assignments/?task=${taskId}` : '/task-assignments/';
-    return api.get<ApiTaskAssignment[] | { results: ApiTaskAssignment[] }>(url).then(
-      (res) => Array.isArray(res) ? res : ((res as { results?: ApiTaskAssignment[] }).results ?? []),
-    );
+    return api.get<ApiTaskAssignment[]>(url);
   },
 
   createAssignment(payload: CreateTaskAssignmentPayload): Promise<ApiTaskAssignment> {

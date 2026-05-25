@@ -51,6 +51,7 @@ export default function ProjectDetail() {
   const [deletingProject, setDeletingProject] = useState(false);
   const [projectStatus, setProjectStatus] = useState('planning');
   const [projectEndDate, setProjectEndDate] = useState('');
+  const [reviewBranches, setReviewBranches] = useState('');
 
   useEffect(() => {
     if (!projectId) return;
@@ -65,7 +66,8 @@ export default function ProjectDetail() {
   useEffect(() => {
     setProjectStatus(normalizeProjectStatus(project?.status) ?? 'planning');
     setProjectEndDate(project?.end_date ?? '');
-  }, [project?.status, project?.end_date]);
+    setReviewBranches(project?.review_branches ?? '');
+  }, [project?.status, project?.end_date, project?.review_branches]);
 
   // ── Boards ───────────────────────────────────────────────────────────────
   const { data: boards, loading: loadingBoards, refetch: refetchBoards } = useApiBoards(projectId);
@@ -205,7 +207,7 @@ export default function ProjectDetail() {
     next.setDate(next.getDate() + 1);
     return next.toISOString().slice(0, 10);
   }, []);
-  const hasProjectConfigChanges = projectStatus !== (normalizeProjectStatus(project?.status) ?? 'planning') || projectEndDate !== (project?.end_date ?? '');
+  const hasProjectConfigChanges = projectStatus !== (normalizeProjectStatus(project?.status) ?? 'planning') || projectEndDate !== (project?.end_date ?? '') || reviewBranches !== (project?.review_branches ?? '');
 
   // ── Assign modal ─────────────────────────────────────────────────────────
   const [showAssignModal, setShowAssignModal] = useState(false);
@@ -387,6 +389,7 @@ export default function ProjectDetail() {
       const updated = await projectsService.update(project.id_project, {
         status: apiStatus,
         end_date: projectEndDate || undefined,
+        review_branches: reviewBranches,
       });
       setProject(updated);
       toast.success('Configuración del proyecto actualizada.');
@@ -814,6 +817,19 @@ export default function ProjectDetail() {
                       No puede ser antes del último sprint: <span className="font-medium">{latestSprintEndDate}</span>
                     </p>
                   )}
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-medium text-foreground mb-1">Branches monitoreadas por el agente IA</label>
+                  <input
+                    type="text"
+                    value={reviewBranches}
+                    onChange={(e) => setReviewBranches(e.target.value)}
+                    disabled={!canManageProject || savingProjectConfig}
+                    placeholder="main,develop  (vacío = todas las branches)"
+                    className="w-full h-8 bg-surface-secondary border border-border rounded-[3px] px-2.5 text-[12px] text-foreground focus:outline-none focus:ring-1 focus:ring-primary/20 disabled:opacity-60 placeholder:text-muted-foreground/50"
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-1">Ingresa los nombres separados por coma. Las branches de tarea (<span className="font-mono">{'{id}'}-*</span>) siempre se analizan.</p>
                 </div>
 
                 <button

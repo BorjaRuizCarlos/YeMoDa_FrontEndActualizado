@@ -48,6 +48,19 @@ export const authService = {
     window.location.href = startUrl;
   },
 
+  /**
+   * POST /api/auth/resend-verification/
+   * Always returns 200 even if email is unknown (security by design).
+   * Rate-limited to 3 requests per hour per IP.
+   */
+  async resendVerification(email: string): Promise<{ detail: string }> {
+    return api.post<{ detail: string }>(
+      '/auth/resend-verification/',
+      { email },
+      false,
+    );
+  },
+
   /** Remove tokens from storage (client-side logout). */
   logout(): void {
     tokenStore.clear();
