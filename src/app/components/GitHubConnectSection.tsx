@@ -1,10 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Github, Shield, CheckCircle2 } from 'lucide-react';
+import { Github, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { githubService } from '../../services/github.service';
 import { useAuth } from '../context/AuthContext';
-
-const ORG_OWNER = 'ABCDH-Technologies';
 
 /**
  * Reusable GitHub connection section.
@@ -20,7 +18,7 @@ export function GitHubConnectSection() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [githubLogin, setGithubLogin] = useState<string | null>(null);
-  const [isAdmin] = useState(() => githubService.isAdmin());
+
 
   useEffect(() => {
     if (!userId) { setLoading(false); return; }
@@ -39,7 +37,7 @@ export function GitHubConnectSection() {
           setGithubLogin(res.github_login);
           setConnected(true);
           toast.success('Cuenta de GitHub conectada', {
-            description: `Conectado como ${res.github_login} en ${ORG_OWNER}`,
+            description: `Conectado como ${res.github_login}`,
           });
         })
         .catch((err) => {
@@ -75,17 +73,6 @@ export function GitHubConnectSection() {
       await githubService.startOAuth();
     } catch {
       toast.error('No se pudo iniciar la conexion con GitHub');
-      setBusy(false);
-    }
-  };
-
-  const handleInstallApp = async () => {
-    setBusy(true);
-    try {
-      await githubService.startAppInstall();
-    } catch (err) {
-      const detail = err instanceof Error ? err.message : 'Error desconocido';
-      toast.error('No se pudo iniciar la instalacion', { description: detail });
       setBusy(false);
     }
   };
@@ -142,8 +129,6 @@ export function GitHubConnectSection() {
           {githubLogin && (
             <p className="text-[10px] text-muted-foreground mt-0.5">
               <span className="font-mono text-foreground">{githubLogin}</span>
-              {' · '}
-              <span className="font-mono text-foreground">{ORG_OWNER}</span>
             </p>
           )}
         </div>
@@ -167,8 +152,7 @@ export function GitHubConnectSection() {
         <div className="flex-1 min-w-0">
           <p className="text-[12px] font-medium text-foreground">GitHub no conectado</p>
           <p className="text-[10px] text-muted-foreground">
-            Vincula tu cuenta para gestionar repositorios en{' '}
-            <span className="font-mono text-foreground">{ORG_OWNER}</span>
+            Vincula tu cuenta de GitHub para gestionar repositorios en tus proyectos.
           </p>
         </div>
         <button
@@ -181,16 +165,7 @@ export function GitHubConnectSection() {
         </button>
       </div>
 
-      {isAdmin && (
-        <button
-          onClick={handleInstallApp}
-          disabled={busy}
-          className="flex items-center gap-2 px-3 py-1.5 border border-border hover:bg-accent/30 text-foreground rounded-[4px] text-[11px] font-medium transition-colors disabled:opacity-60"
-        >
-          <Shield className="w-3.5 h-3.5" />
-          Instalar App en organizacion
-        </button>
-      )}
+
     </div>
   );
 }

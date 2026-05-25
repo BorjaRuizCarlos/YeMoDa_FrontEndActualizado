@@ -213,7 +213,6 @@ export interface GitHubOAuthCallbackResponse {
   refresh_token: string;
   expires_at: string;
   github_login: string;
-  authorized_orgs: string[];
   user: ApiUserAccount;
 }
 
@@ -226,8 +225,6 @@ export interface GitHubConnectionStatusResponse {
 export interface GitHubCreateRepoPayload {
   user_id: number;
   project_id?: number;
-  owner_type?: 'org' | 'user';
-  owner?: string;
   name: string;
   description?: string;
   private: boolean;
@@ -358,7 +355,6 @@ export interface DevOpsOAuthStartResponse {
 export interface DevOpsOAuthCallbackPayload {
   code: string;
   state: string;
-  organization?: string;
 }
 
 export interface DevOpsOAuthCallbackResponse {

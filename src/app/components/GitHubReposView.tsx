@@ -6,8 +6,6 @@ import { ApiRequestError } from '../../services/api';
 import { useAuth } from '../context/AuthContext';
 import type { GitHubRepo } from '../../services/types';
 
-const ORG_OWNER = 'ABCDH-Technologies';
-
 interface CreateRepoForm {
   name: string;
   description: string;
@@ -126,8 +124,6 @@ export function GitHubReposView({ projectId, canCreateRepos = true }: GitHubRepo
       const result = await githubService.createRepo({
         user_id: Number(userId),
         project_id: projectId,
-        owner_type: 'org',
-        owner: ORG_OWNER,
         name: form.name.trim(),
         description: form.description.trim() || undefined,
         private: form.private,
@@ -214,13 +210,8 @@ export function GitHubReposView({ projectId, canCreateRepos = true }: GitHubRepo
           <div>
             <p className="text-[12px] font-semibold text-foreground">GitHub conectado</p>
             <p className="text-[10px] text-muted-foreground">
-              {'Organizacion: '}
-              <span className="font-mono text-foreground">{ORG_OWNER}</span>
               {githubLogin && (
-                <>
-                  {' · '}
-                  <span className="font-mono text-foreground">{githubLogin}</span>
-                </>
+                <span className="font-mono text-foreground">{githubLogin}</span>
               )}
             </p>
           </div>
@@ -332,15 +323,6 @@ export function GitHubReposView({ projectId, canCreateRepos = true }: GitHubRepo
             </div>
 
             <div className="space-y-3">
-              {/* Owner (fixed) */}
-              <div>
-                <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-[0.06em]">
-                  Organizacion
-                </label>
-                <div className="mt-1 w-full h-7 bg-muted/30 border border-border rounded-[3px] px-2.5 flex items-center">
-                  <span className="text-[11px] text-muted-foreground font-mono">{ORG_OWNER}</span>
-                </div>
-              </div>
 
               {/* Repo name */}
               <div>
