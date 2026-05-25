@@ -30,6 +30,7 @@ const PaymentSuccess = lazy(() => import('./pages/PaymentSuccess'));
 const PaymentCancel = lazy(() => import('./pages/PaymentCancel'));
 const Plans = lazy(() => import('./pages/Plans'));
 const GoogleAuthCallback = lazy(() => import('./pages/GoogleAuthCallback'));
+const GitHubAuthCallback = lazy(() => import('./pages/GitHubAuthCallback'));
 
 function withSuspense(Component: React.LazyExoticComponent<React.ComponentType>, Fallback: React.ComponentType = GenericPageSkeleton) {
   return (
@@ -59,6 +60,10 @@ export const router = createBrowserRouter([
   {
     path: '/auth/google/callback',
     element: withSuspense(GoogleAuthCallback),
+  },
+  {
+    path: '/auth/github/callback',
+    element: withSuspense(GitHubAuthCallback),
   },
   {
     path: '/',
