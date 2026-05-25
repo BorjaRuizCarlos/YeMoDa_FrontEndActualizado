@@ -123,10 +123,10 @@ export function Sidebar() {
         {!collapsed && (
           <div className="flex-1 min-w-0">
             <p className="text-[13px] font-semibold text-sidebar-foreground leading-none tracking-tight truncate">
-              PI Platform
+              Yemoda
             </p>
             <p className="text-[10px] text-sidebar-muted leading-none mt-0.5 truncate">
-              ABCDH Technologies
+              Project Intelligence
             </p>
           </div>
         )}
