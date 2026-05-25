@@ -7,6 +7,7 @@ import {
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
 import { tasksService, githubService } from '../../services';
+import { ApiRequestError } from '../../services/api';
 import type { ApiTask, ApiTaskStatus, ApiTaskPriority, ApiTaskComment, ApiTaskWarning, ApiTaskAssignment, ApiTag, GitHubRepo, CreateBranchResponse } from '../../services';
 import { WarningBadge } from './WarningBadge';
 import { TaskAssigneePicker } from './TaskAssigneePicker';
@@ -151,8 +152,11 @@ export function TaskDetailPanel({
       });
       setBranchResult(result);
       toast.success(`Branch "${result.branch_name}" creada`);
-    } catch {
-      toast.error('No se pudo crear la branch. Verifica que el repositorio tenga acceso.');
+    } catch (err) {
+      const detail = err instanceof ApiRequestError
+        ? (err.body?.detail ?? 'Error desconocido')
+        : err instanceof Error ? err.message : 'Error desconocido';
+      toast.error('No se pudo crear la branch', { description: detail });
     } finally {
       setBranchCreating(false);
     }
