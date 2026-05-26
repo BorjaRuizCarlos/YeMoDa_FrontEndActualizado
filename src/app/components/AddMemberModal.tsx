@@ -13,6 +13,7 @@ interface AddMemberModalProps {
   candidates: ApiUserAccount[];
   roles: ApiRole[];
   roleIds: ProjectRoleIds;
+  memberIds?: Set<number>;
   bypassGithubCheck?: boolean;
   onSubmit: (userId: number, roleId: number | null) => Promise<void>;
 }
@@ -23,6 +24,7 @@ export function AddMemberModal({
   candidates,
   roles,
   roleIds,
+  memberIds,
   bypassGithubCheck = false,
   onSubmit,
 }: AddMemberModalProps) {
@@ -32,17 +34,55 @@ export function AddMemberModal({
   const [submitting, setSubmitting] = useState(false);
   const [selectedUserDetails, setSelectedUserDetails] = useState<ApiUserAccount | null>(null);
   const [loadingUserDetails, setLoadingUserDetails] = useState(false);
+  const [serverResults, setServerResults] = useState<ApiUserAccount[] | null>(null);
+  const [searching, setSearching] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const filtered = useMemo(() => {
-    if (!query.trim()) return candidates;
-    const q = query.toLowerCase();
+  // Server-side search when query ≥ 3 chars
+  useEffect(() => {
+    const trimmed = query.trim();
+    if (trimmed.length < 3) {
+      setServerResults(null);
+      setSearching(false);
+      return;
+    }
+
+    setSearching(true);
+    const timer = setTimeout(() => {
+      let cancelled = false;
+      usersService.list(trimmed)
+        .then((users) => {
+          if (cancelled) return;
+          // Exclude users who are already members
+          const excludeIds = memberIds ?? new Set(candidates.map((c) => c.id_user));
+          setServerResults(users.filter((u) => !excludeIds.has(u.id_user)));
+        })
+        .catch(() => {
+          if (!cancelled) setServerResults([]);
+        })
+        .finally(() => {
+          if (!cancelled) setSearching(false);
+        });
+      return () => { cancelled = true; };
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [query, candidates, memberIds]);
+
+  // Items to display: server results when query ≥ 3, otherwise local filter on candidates
+  const displayList = useMemo(() => {
+    const trimmed = query.trim();
+    if (trimmed.length >= 3) {
+      return serverResults ?? [];
+    }
+    if (!trimmed) return candidates;
+    const q = trimmed.toLowerCase();
     return candidates.filter(
       (c) =>
         c.username.toLowerCase().includes(q) ||
         c.email.toLowerCase().includes(q),
     );
-  }, [candidates, query]);
+  }, [candidates, query, serverResults]);
 
   useEffect(() => {
     if (open) {
@@ -50,6 +90,7 @@ export function AddMemberModal({
       setSelectedUserId(null);
       setSelectedRoleId(null);
       setSelectedUserDetails(null);
+      setServerResults(null);
       setTimeout(() => inputRef.current?.focus(), 50);
     }
   }, [open]);
@@ -81,8 +122,11 @@ export function AddMemberModal({
   }, [selectedUserId]);
 
   const selectedCandidate = useMemo(
-    () => candidates.find((candidate) => candidate.id_user === selectedUserId) ?? null,
-    [candidates, selectedUserId],
+    () =>
+      candidates.find((candidate) => candidate.id_user === selectedUserId) ??
+      serverResults?.find((u) => u.id_user === selectedUserId) ??
+      null,
+    [candidates, serverResults, selectedUserId],
   );
   const selectedUser = selectedUserDetails ?? selectedCandidate;
   const allowedRoleIds = useMemo(
@@ -145,19 +189,27 @@ export function AddMemberModal({
               placeholder="Buscar por nombre o email…"
               className="w-full h-8 pl-8 pr-3 text-[13px] bg-surface-secondary border border-border rounded-[3px] outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-colors placeholder:text-muted-foreground/60"
             />
+            {searching && <Loader2 className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3 h-3 animate-spin text-muted-foreground" />}
           </div>
+          {query.trim().length > 0 && query.trim().length < 3 && (
+            <p className="mt-1 text-[11px] text-muted-foreground">Escribe al menos 3 caracteres para buscar.</p>
+          )}
         </div>
 
         <div className="max-h-[240px] overflow-y-auto scrollbar-app px-1 pb-2">
-          {filtered.length === 0 ? (
+          {displayList.length === 0 && !searching ? (
             <div className="flex flex-col items-center py-8 text-muted-foreground">
               <User className="w-5 h-5 mb-1 opacity-40" />
               <span className="text-[12px]">
-                {candidates.length === 0 ? 'Todos los usuarios ya son miembros.' : 'Sin resultados'}
+                {query.trim().length >= 3
+                  ? 'No se encontraron usuarios con ese nombre o email.'
+                  : candidates.length === 0
+                    ? 'Todos los usuarios ya son miembros.'
+                    : 'Sin resultados'}
               </span>
             </div>
           ) : (
-            filtered.map((u) => {
+            displayList.map((u) => {
               const isSelected = u.id_user === selectedUserId;
               return (
                 <button

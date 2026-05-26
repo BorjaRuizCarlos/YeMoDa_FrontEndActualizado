@@ -121,11 +121,15 @@ export default function ProjectDetail() {
   const canManageTasks = capabilities.canManageTasks;
   const canCreateRepos = capabilities.canCreateRepos;
 
+  const memberIds = useMemo(
+    () => new Set((members ?? []).map((m) => m.user)),
+    [members],
+  );
+
   const candidatesToAdd = useMemo(() => {
     if (!users) return [];
-    const memberIds = new Set((members ?? []).map((m) => m.user));
     return users.filter((u) => !memberIds.has(u.id_user));
-  }, [users, members]);
+  }, [users, memberIds]);
 
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [bypassGithubCheck, setBypassGithubCheck] = useState(false);
@@ -910,6 +914,7 @@ export default function ProjectDetail() {
         candidates={candidatesToAdd}
         roles={projectRoleOptions}
         roleIds={projectRoleIds}
+        memberIds={memberIds}
         bypassGithubCheck={bypassGithubCheck}
         onSubmit={handleAddMember}
       />

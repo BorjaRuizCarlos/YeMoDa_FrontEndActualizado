@@ -2,9 +2,10 @@ import { api } from './api';
 import type { ApiUserAccount, ApiProjectMember, ApiRole, ApiActivityLog, ApiSystemRole } from './types';
 
 export const usersService = {
-  /** GET /api/user-accounts/ */
-  list(): Promise<ApiUserAccount[]> {
-    return api.get<ApiUserAccount[]>('/user-accounts/');
+  /** GET /api/user-accounts/?search=<query> — search is server-side (min 3 chars) */
+  list(search?: string): Promise<ApiUserAccount[]> {
+    const url = search ? `/user-accounts/?search=${encodeURIComponent(search)}` : '/user-accounts/';
+    return api.get<ApiUserAccount[]>(url);
   },
 
   /** GET /api/user-accounts/:id/ */
