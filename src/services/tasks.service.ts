@@ -11,6 +11,7 @@ import type {
   ApiSprint,
   ApiMilestone,
   ApiTag,
+  ApiTaskPushMatch,
 } from './types';
 
 export interface CreateTaskPayload {
@@ -276,5 +277,11 @@ export const tasksService = {
   /** DELETE /api/task-warnings/:id */
   deleteWarning(id: number): Promise<void> {
     return api.delete<void>(`/task-warnings/${id}/`);
+  },
+
+  // ── Push history ───────────────────────────────────────────────────────────
+  /** GET /api/tasks/:id/history/ — push matches linked to a task by the AI agent */
+  getTaskHistory(taskId: number): Promise<ApiTaskPushMatch[]> {
+    return api.get<ApiTaskPushMatch[]>(`/tasks/${taskId}/history/`);
   },
 };

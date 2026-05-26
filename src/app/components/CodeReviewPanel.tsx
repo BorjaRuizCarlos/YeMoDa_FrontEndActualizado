@@ -1,11 +1,288 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   GitCommit, ChevronDown, ChevronRight, FileCode2,
-  Loader2, RefreshCw, Clock, User, ExternalLink,
+  Loader2, RefreshCw, Clock, User, AlertCircle,
 } from 'lucide-react';
-import { githubService } from '../../services';
-import type { ApiGithubPushEvent, ApiGithubCommitDiff } from '../../services';
+import { tasksService, githubService } from '../../services';
+import type { ApiTask, ApiTaskPushMatch } from '../../services';
 import { CodeDiffViewer } from './CodeDiffViewer';
+
+interface CodeReviewPanelProps {
+  projectId: number;
+  repoFullName: string | null;
+}
+
+// Parse a full unified git diff (push_diff_text) into per-file patches for CodeDiffViewer.
+function parsePushDiff(diffText: string): Array<{ filename: string; patch: string }> {
+  const files: Array<{ filename: string; patch: string }> = [];
+  const sections = diffText.split(/^diff --git /m).filter(s => s.trim());
+  for (const section of sections) {
+    const lines = section.split('\n');
+    const headerMatch = lines[0].match(/a\/.+ b\/(.+)/);
+    const filename = headerMatch ? headerMatch[1].trim() : lines[0].trim();
+    const patchIdx = lines.findIndex(l => l.startsWith('@@'));
+    const patch = patchIdx >= 0 ? lines.slice(patchIdx).join('\n') : '';
+    if (filename && patch) files.push({ filename, patch });
+  }
+  return files;
+}
+
+interface MatchDiffState {
+  files: Array<{ filename: string; patch: string }> | null;
+  loading: boolean;
+  error: string | null;
+}
+
+interface TaskHistoryState {
+  matches: ApiTaskPushMatch[] | null;
+  loading: boolean;
+  error: string | null;
+}
+
+export function CodeReviewPanel({ projectId, repoFullName }: CodeReviewPanelProps) {
+  const [tasks, setTasks] = useState<ApiTask[]>([]);
+  const [loadingTasks, setLoadingTasks] = useState(true);
+  const [expandedTasks, setExpandedTasks] = useState<Set<number>>(new Set());
+  const [taskHistories, setTaskHistories] = useState<Map<number, TaskHistoryState>>(new Map());
+  const [expandedMatches, setExpandedMatches] = useState<Set<number>>(new Set());
+  const [matchDiffs, setMatchDiffs] = useState<Map<number, MatchDiffState>>(new Map());
+
+  const fetchTasks = useCallback(async () => {
+    setLoadingTasks(true);
+    try {
+      const data = await tasksService.list(undefined, projectId);
+      setTasks(data);
+    } catch {
+      setTasks([]);
+    } finally {
+      setLoadingTasks(false);
+    }
+  }, [projectId]);
+
+  useEffect(() => { fetchTasks(); }, [fetchTasks]);
+
+  const toggleTask = async (taskId: number) => {
+    setExpandedTasks(prev => {
+      const next = new Set(prev);
+      next.has(taskId) ? next.delete(taskId) : next.add(taskId);
+      return next;
+    });
+    if (!taskHistories.has(taskId)) {
+      setTaskHistories(prev => new Map(prev).set(taskId, { matches: null, loading: true, error: null }));
+      try {
+        const matches = await tasksService.getTaskHistory(taskId);
+        setTaskHistories(prev => new Map(prev).set(taskId, { matches, loading: false, error: null }));
+      } catch {
+        setTaskHistories(prev => new Map(prev).set(taskId, { matches: [], loading: false, error: 'No se pudo cargar el historial' }));
+      }
+    }
+  };
+
+  const toggleMatch = async (matchId: number, match: ApiTaskPushMatch) => {
+    setExpandedMatches(prev => {
+      const next = new Set(prev);
+      next.has(matchId) ? next.delete(matchId) : next.add(matchId);
+      return next;
+    });
+    if (matchDiffs.has(matchId)) return;
+
+    // Use stored push_diff_text first; fallback to per-commit GitHub API call.
+    if (match.push_diff_text) {
+      const files = parsePushDiff(match.push_diff_text);
+      setMatchDiffs(prev => new Map(prev).set(matchId, { files, loading: false, error: null }));
+    } else if (repoFullName && match.push_commits.length > 0) {
+      setMatchDiffs(prev => new Map(prev).set(matchId, { files: null, loading: true, error: null }));
+      try {
+        const firstSha = match.push_commits[0].id;
+        const diff = await githubService.getCommitDiff(repoFullName, firstSha);
+        const files = (diff.files ?? []).map(f => ({ filename: f.filename, patch: f.patch ?? '' }));
+        setMatchDiffs(prev => new Map(prev).set(matchId, { files, loading: false, error: null }));
+      } catch {
+        setMatchDiffs(prev => new Map(prev).set(matchId, { files: null, loading: false, error: 'No se pudo cargar el diff' }));
+      }
+    } else {
+      setMatchDiffs(prev => new Map(prev).set(matchId, { files: [], loading: false, error: null }));
+    }
+  };
+
+  if (!repoFullName) {
+    return (
+      <div className="text-center py-16">
+        <FileCode2 className="w-8 h-8 text-muted-foreground/30 mx-auto mb-3" />
+        <p className="text-[12px] text-muted-foreground">Sin repositorio vinculado a este proyecto.</p>
+        <p className="text-[10px] text-muted-foreground/60 mt-1">Vincula un repositorio en la pestaña Repositorios.</p>
+      </div>
+    );
+  }
+
+  if (loadingTasks) {
+    return (
+      <div className="flex items-center justify-center py-16 text-muted-foreground gap-2">
+        <Loader2 className="w-4 h-4 animate-spin" />
+        <span className="text-[12px]">Cargando tareas…</span>
+      </div>
+    );
+  }
+
+  if (tasks.length === 0) {
+    return (
+      <div className="text-center py-16">
+        <GitCommit className="w-8 h-8 text-muted-foreground/30 mx-auto mb-3" />
+        <p className="text-[12px] text-muted-foreground">No hay tareas en este proyecto.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <GitCommit className="w-3.5 h-3.5 text-muted-foreground" />
+          <span className="text-[12px] font-semibold text-foreground">{tasks.length} tareas</span>
+        </div>
+        <button
+          onClick={fetchTasks}
+          className="p-1 rounded-[3px] hover:bg-surface-secondary text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <RefreshCw className="w-3.5 h-3.5" />
+        </button>
+      </div>
+
+      {/* Task list */}
+      {tasks.map((task) => {
+        const isTaskExpanded = expandedTasks.has(task.id_task);
+        const history = taskHistories.get(task.id_task);
+
+        return (
+          <div key={task.id_task} className="border border-border rounded-[4px] overflow-hidden">
+            {/* Task row */}
+            <button
+              onClick={() => toggleTask(task.id_task)}
+              className="w-full px-3 py-2.5 flex items-center gap-2 bg-surface-secondary/20 hover:bg-surface-secondary/40 transition-colors text-left"
+            >
+              {isTaskExpanded
+                ? <ChevronDown className="w-3 h-3 text-muted-foreground shrink-0" />
+                : <ChevronRight className="w-3 h-3 text-muted-foreground shrink-0" />}
+              <p className="text-[11px] text-foreground font-medium truncate flex-1">{task.title}</p>
+              {history?.loading && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground shrink-0" />}
+              {history?.matches != null && (
+                <span className={`shrink-0 text-[10px] px-1.5 py-0.5 rounded-[2px] ${
+                  history.matches.length > 0
+                    ? 'text-primary bg-primary/10'
+                    : 'text-muted-foreground/50 bg-surface-secondary'
+                }`}>
+                  {history.matches.length} push{history.matches.length !== 1 ? 'es' : ''}
+                </span>
+              )}
+            </button>
+
+            {/* Push matches */}
+            {isTaskExpanded && (
+              <div className="divide-y divide-border/50">
+                {history?.loading && (
+                  <div className="flex items-center gap-2 px-4 py-3 text-[11px] text-muted-foreground">
+                    <Loader2 className="w-3 h-3 animate-spin" /> Cargando historial…
+                  </div>
+                )}
+                {history?.error && (
+                  <p className="px-4 py-3 text-[11px] text-destructive">{history.error}</p>
+                )}
+                {history?.matches?.length === 0 && !history.loading && (
+                  <p className="px-4 py-3 text-[11px] text-muted-foreground/60 italic">
+                    Sin pushes vinculados a esta tarea.
+                  </p>
+                )}
+
+                {history?.matches?.map((match) => {
+                  const isMatchExpanded = expandedMatches.has(match.id_match);
+                  const diffState = matchDiffs.get(match.id_match);
+                  const filesChanged = match.push_commits.flatMap(c => [
+                    ...(c.added ?? []), ...(c.modified ?? []), ...(c.removed ?? []),
+                  ]);
+
+                  return (
+                    <div key={match.id_match}>
+                      {/* Push match row */}
+                      <button
+                        onClick={() => toggleMatch(match.id_match, match)}
+                        className="w-full px-4 py-2.5 flex items-start gap-2 hover:bg-surface-secondary/20 transition-colors text-left"
+                      >
+                        {isMatchExpanded
+                          ? <ChevronDown className="w-3 h-3 text-muted-foreground mt-0.5 shrink-0" />
+                          : <ChevronRight className="w-3 h-3 text-muted-foreground mt-0.5 shrink-0" />}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-[10px] font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded-[2px]">
+                              {match.push_ref?.replace('refs/heads/', '') ?? 'unknown'}
+                            </span>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-[2px] font-medium ${
+                              match.coverage === 'full'
+                                ? 'bg-emerald-500/10 text-emerald-500'
+                                : 'bg-amber-500/10 text-amber-500'
+                            }`}>
+                              {match.coverage === 'full' ? 'Completa' : 'Parcial'}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-3 mt-1 text-[10px] text-muted-foreground">
+                            {match.push_pusher && (
+                              <span className="flex items-center gap-1">
+                                <User className="w-2.5 h-2.5" /> {match.push_pusher}
+                              </span>
+                            )}
+                            <span className="flex items-center gap-1">
+                              <Clock className="w-2.5 h-2.5" />
+                              {new Date(match.push_received_at).toLocaleDateString('es-MX', {
+                                day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
+                              })}
+                            </span>
+                            {match.push_commits.length > 0 && (
+                              <span>{match.push_commits.length} commit{match.push_commits.length !== 1 ? 's' : ''}</span>
+                            )}
+                            {filesChanged.length > 0 && (
+                              <span>{filesChanged.length} archivo{filesChanged.length !== 1 ? 's' : ''}</span>
+                            )}
+                          </div>
+                        </div>
+                      </button>
+
+                      {/* Expanded match: reason + diff */}
+                      {isMatchExpanded && (
+                        <div className="px-4 pb-3 space-y-3 border-t border-border/30 bg-surface-secondary/10">
+                          {match.reason && (
+                            <div className="flex items-start gap-2 pt-2.5">
+                              <AlertCircle className="w-3 h-3 text-muted-foreground mt-0.5 shrink-0" />
+                              <p className="text-[11px] text-muted-foreground leading-relaxed">{match.reason}</p>
+                            </div>
+                          )}
+                          {diffState?.loading && (
+                            <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                              <Loader2 className="w-3 h-3 animate-spin" /> Cargando diff…
+                            </div>
+                          )}
+                          {diffState?.error && (
+                            <p className="text-[11px] text-destructive">{diffState.error}</p>
+                          )}
+                          {diffState?.files?.map((file, i) => (
+                            <CodeDiffViewer key={i} filename={file.filename} patch={file.patch} />
+                          ))}
+                          {diffState?.files?.length === 0 && !diffState.loading && (
+                            <p className="text-[11px] text-muted-foreground/60 italic">Sin diff disponible para este push.</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 
 interface CodeReviewPanelProps {
   projectId: number;
@@ -27,12 +304,18 @@ export function CodeReviewPanel({ projectId, repoFullName }: CodeReviewPanelProp
   const fetchPushes = useCallback(async () => {
     setLoading(true);
     try {
-      // Prefer repo filter so push events are found even when the backend
-      // didn't link them to a project (project field is null on the event).
-      const filters = repoFullName
-        ? { repo: repoFullName }
-        : { project_id: projectId };
-      const data = await githubService.listPushes(filters);
+      // Try repo filter first (catches pushes where project link is null on backend).
+      // Fall back to project_id if the backend doesn't support repo filter yet.
+      let data: ApiGithubPushEvent[] = [];
+      if (repoFullName) {
+        try {
+          data = await githubService.listPushes({ repo: repoFullName });
+        } catch {
+          data = await githubService.listPushes({ project_id: projectId });
+        }
+      } else {
+        data = await githubService.listPushes({ project_id: projectId });
+      }
       setPushes(data);
     } catch {
       setPushes([]);

@@ -283,6 +283,27 @@ export interface ApiGithubPushEvent {
   project: number | null;
 }
 
+export interface ApiTaskPushMatch {
+  id_match: number;
+  coverage: 'full' | 'partial';
+  reason: string | null;
+  code_snippet: string | null;
+  created_at: string;
+  push_ref: string;
+  push_pusher: string | null;
+  push_received_at: string;
+  push_repo: string;
+  push_commits: Array<{
+    id: string;
+    message: string;
+    author?: string;
+    added?: string[];
+    modified?: string[];
+    removed?: string[];
+  }>;
+  push_diff_text: string | null;
+}
+
 export interface ApiGithubCommitDiff {
   sha: string;
   message: string;
