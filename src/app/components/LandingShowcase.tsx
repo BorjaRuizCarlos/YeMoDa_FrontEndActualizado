@@ -67,10 +67,10 @@ const NAV_ITEMS: Array<{
   danger?: boolean;
 }> = [
   { view: 'dashboard',  icon: Home,      label: 'Dashboard' },
-  { view: 'proyectos',  icon: Briefcase, label: 'Proyectos' },
-  { view: 'reportes',   icon: BarChart3, label: 'Reportes',  section: 'ANÁLISIS' },
-  { view: 'alertas',    icon: Bell,      label: 'Alertas',   count: 3, danger: true },
-  { view: 'perfil',     icon: User,      label: 'Perfil',    section: 'USUARIO' },
+  { view: 'proyectos',  icon: Briefcase, label: 'Projects' },
+  { view: 'reportes',   icon: BarChart3, label: 'Reports',   section: 'ANALYTICS' },
+  { view: 'alertas',    icon: Bell,      label: 'Alerts',    count: 3, danger: true },
+  { view: 'perfil',     icon: User,      label: 'Profile',   section: 'USER' },
 ];
 
 const DEMO_PROYECTOS = [
@@ -127,10 +127,10 @@ const ALERT_DOT: Record<string, string> = {
 
 const VIEW_LABEL: Record<DemoView, string> = {
   dashboard: 'Dashboard',
-  proyectos: 'Proyectos',
-  reportes:  'Reportes',
-  alertas:   'Alertas',
-  perfil:    'Perfil',
+  proyectos: 'Projects',
+  reportes:  'Reports',
+  alertas:   'Alerts',
+  perfil:    'Profile',
 };
 
 // ── Dashboard view ───────────────────────────────────────────────────────────
@@ -179,21 +179,41 @@ function DashboardView({ onNavigate }: { onNavigate: (v: DemoView) => void }) {
         {/* Salud del Portafolio */}
         <div className="rounded-[3px] border border-border bg-background p-2">
           <div className="text-[8px] font-semibold text-foreground mb-1.5">Salud del Portafolio</div>
-          <div className="flex items-center justify-center py-2">
-            <div className="relative w-14 h-14">
-              <svg viewBox="0 0 36 36" className="w-14 h-14 -rotate-90">
-                <circle cx="18" cy="18" r="14" fill="none" stroke="hsl(var(--border))" strokeWidth="4" />
-                <circle cx="18" cy="18" r="14" fill="none" stroke="hsl(var(--warning))" strokeWidth="4" strokeDasharray="88 100" />
+          <div className="flex items-center justify-center py-1">
+            <div className="relative w-16 h-16">
+              <svg viewBox="0 0 36 36" className="w-16 h-16 -rotate-90">
+                {/* track */}
+                <circle cx="18" cy="18" r="14" fill="none" stroke="hsl(var(--border))" strokeWidth="3.5" />
+                {/* on track 40% */}
+                <circle cx="18" cy="18" r="14" fill="none" strokeWidth="3.5" strokeLinecap="butt"
+                  strokeDasharray="35.2 52.8" strokeDashoffset="0"
+                  stroke="hsl(var(--success))" />
+                {/* warning 20% */}
+                <circle cx="18" cy="18" r="14" fill="none" strokeWidth="3.5" strokeLinecap="butt"
+                  strokeDasharray="17.6 70.4" strokeDashoffset="52.8"
+                  stroke="hsl(var(--warning))" />
+                {/* at risk 40% */}
+                <circle cx="18" cy="18" r="14" fill="none" strokeWidth="3.5" strokeLinecap="butt"
+                  strokeDasharray="35.2 52.8" strokeDashoffset="35.2"
+                  stroke="hsl(var(--destructive))" />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <span className="text-[11px] font-bold text-foreground">5</span>
-                <span className="text-[7px] text-muted-foreground">proyectos</span>
+                <span className="text-[7px] text-muted-foreground">projects</span>
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-1 text-[7px] text-warning mt-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-warning shrink-0" />
-            En riesgo · 5 - 100%
+          <div className="space-y-0.5 mt-1">
+            {([
+              { label: 'On track · 2', dot: 'bg-success',     col: 'text-success'     },
+              { label: 'Warning · 1',  dot: 'bg-warning',     col: 'text-warning'     },
+              { label: 'At risk · 2',  dot: 'bg-destructive', col: 'text-destructive' },
+            ] as const).map((item) => (
+              <div key={item.label} className="flex items-center gap-1">
+                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${item.dot}`} />
+                <span className={`text-[7px] ${item.col}`}>{item.label}</span>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -680,7 +700,7 @@ export function DashboardShowcase() {
                   <div className="text-[11px] font-semibold text-foreground">{VIEW_LABEL[activeView]}</div>
                   <div className="flex items-center gap-2 text-[10px] text-muted-foreground bg-surface-secondary/60 border border-border/50 rounded-[3px] px-2.5 py-1">
                     <Activity className="w-3 h-3" />
-                    Buscar... Ctrl K
+                    Search... Ctrl K
                   </div>
                 </div>
                 <div className="flex-1 overflow-hidden">
