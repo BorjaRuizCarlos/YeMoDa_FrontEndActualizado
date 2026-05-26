@@ -260,48 +260,6 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Testimonials / AI feedback */}
-      <section className="container mx-auto px-6 py-16 max-w-6xl">
-        <div className="text-center mb-10">
-          <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-2">What teams are saying</h2>
-          <p className="text-sm text-muted-foreground max-w-xl mx-auto">Real feedback from teams using Yemoda to ship faster and stay aligned.</p>
-        </div>
-        <div className="grid md:grid-cols-3 gap-4">
-          {[
-            {
-              quote: "The AI warnings caught a critical security issue in our sprint review before it hit production. It saved us days of rollback work.",
-              name: "Daniela R.",
-              role: "Tech Lead, fintech startup",
-              initials: "DR",
-            },
-            {
-              quote: "We replaced three separate tools with Yemoda. The boards, backlog, and milestone views give every stakeholder exactly what they need.",
-              name: "Marcos T.",
-              role: "Engineering Manager",
-              initials: "MT",
-            },
-            {
-              quote: "Finally an AI that doesn't get in the way. It flags real blockers and lets us decide what to do — no hallucinated suggestions.",
-              name: "Sofia L.",
-              role: "Product Owner, SaaS team",
-              initials: "SL",
-            },
-          ].map((t) => (
-            <div key={t.name} className="rounded-[4px] border border-border bg-card p-5 flex flex-col gap-4">
-              <p className="text-[13px] text-muted-foreground leading-relaxed flex-1">"{t.quote}"</p>
-              <div className="flex items-center gap-3">
-                <div className="h-8 w-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-[11px] font-semibold text-primary shrink-0">
-                  {t.initials}
-                </div>
-                <div>
-                  <p className="text-[12px] font-medium text-foreground">{t.name}</p>
-                  <p className="text-[11px] text-muted-foreground">{t.role}</p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
 
       {/* CTA */}
       <section className="container mx-auto px-6 pb-20 max-w-6xl">
