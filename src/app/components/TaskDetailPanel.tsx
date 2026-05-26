@@ -515,10 +515,8 @@ export function TaskDetailPanel({
                 )}
                 {projectId != null && (
                   <button
-                    onClick={repoFullName ? openBranchModal : undefined}
-                    disabled={!repoFullName}
-                    title={repoFullName ? undefined : 'Conecta un repositorio para crear branches'}
-                    className="inline-flex items-center gap-1 h-6 px-2 border border-border rounded-[3px] text-[10px] text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-muted-foreground disabled:hover:border-border"
+                    onClick={openBranchModal}
+                    className="inline-flex items-center gap-1 h-6 px-2 border border-border rounded-[3px] text-[10px] text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors"
                   >
                     <GitBranch className="w-3 h-3" /> Branch
                   </button>
@@ -1049,6 +1047,12 @@ export function TaskDetailPanel({
                     <Loader2 className="w-4 h-4 animate-spin mr-2" />
                     <span className="text-[12px]">Cargando repositorios…</span>
                   </div>
+                ) : branchRepos.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-6 gap-2 text-center">
+                    <GitBranch className="w-6 h-6 text-muted-foreground/40" />
+                    <p className="text-[12px] text-muted-foreground">No hay repositorios conectados a este proyecto.</p>
+                    <p className="text-[11px] text-muted-foreground/60">Vincula un repositorio en la pestaña Repositorios primero.</p>
+                  </div>
                 ) : (
                   <>
                     {branchRepos.length > 0 && (
@@ -1088,6 +1092,7 @@ export function TaskDetailPanel({
                   >
                     Cancelar
                   </button>
+                  {!branchLoadingRepos && branchRepos.length > 0 && (
                   <button
                     type="button"
                     disabled={branchCreating || branchLoadingRepos}
@@ -1097,6 +1102,7 @@ export function TaskDetailPanel({
                     {branchCreating ? <Loader2 className="w-3 h-3 animate-spin" /> : <GitBranch className="w-3 h-3" />}
                     Crear branch
                   </button>
+                  )}
                 </div>
               </div>
             )}
