@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import { motion } from 'motion/react';
 import {
-  Plus, Search, Calendar, X, LayoutGrid, List, Loader2, ArrowUpDown,
+  Plus, Search, Calendar, X, LayoutGrid, List, Loader2, ArrowUpDown, RefreshCw,
 } from 'lucide-react';
 import { StatusBadge } from '../components/StatusBadge';
 import { DatePickerField } from '../components/DatePickerField';
@@ -274,6 +274,17 @@ export default function Projects() {
                 <LayoutGrid className="w-4 h-4" />
               </button>
             </div>
+
+            {canCreateProjects && (
+              <button
+                type="button"
+                onClick={() => { void refetch(); void refetchMemberRows(); toast.success('Lista actualizada.'); }}
+                className="h-9 w-9 flex items-center justify-center bg-card border border-border rounded-[4px] text-muted-foreground hover:text-foreground hover:bg-accent/30 transition-colors shrink-0"
+                title="Actualizar"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </button>
+            )}
 
             {canCreateProjects && (
               <button

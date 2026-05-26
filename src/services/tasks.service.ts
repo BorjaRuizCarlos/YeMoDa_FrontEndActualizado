@@ -40,6 +40,7 @@ export interface UpdateTaskPayload {
   board_column?: number | null;
   milestone?: number | null;
   tags?: number[];
+  story_points?: number | null;
 }
 
 export interface UpdateTaskCommentPayload {

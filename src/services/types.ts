@@ -96,6 +96,8 @@ export interface ApiTask {
   due_date: string | null;   // ISO date
   completed_at: string | null;
 
+  story_points?: number | null;
+
   // Legacy compatibility fields retained while frontend migrates.
   board?: number;
   status?: number | null;

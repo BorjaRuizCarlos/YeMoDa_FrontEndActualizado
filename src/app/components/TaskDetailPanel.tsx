@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
 import { tasksService, githubService } from '../../services';
 import { ApiRequestError } from '../../services/api';
-import type { ApiTask, ApiTaskStatus, ApiTaskPriority, ApiTaskComment, ApiTaskWarning, ApiTaskAssignment, ApiTag, GitHubRepo, CreateBranchResponse } from '../../services';
+import type { ApiTask, ApiTaskStatus, ApiTaskPriority, ApiTaskComment, ApiTaskWarning, ApiTaskAssignment, ApiTag, GitHubRepo, CreateBranchResponse, ApiBoardColumn } from '../../services';
 import { WarningBadge } from './WarningBadge';
 import { TaskAssigneePicker } from './TaskAssigneePicker';
 import { DatePickerField } from './DatePickerField';
@@ -47,6 +47,8 @@ interface TaskDetailPanelProps {
   canEditTask?: boolean;
   canDeleteTask?: boolean;
   projectId?: number;
+  boardColumnsByBoard?: Map<number, ApiBoardColumn[]>;
+  boardNames?: Map<number, string>;
   onClose: () => void;
   onDeleteTask?: (task: ApiTask) => Promise<void>;
   onTaskUpdated?: (updatedTask: ApiTask) => void;
@@ -67,6 +69,8 @@ export function TaskDetailPanel({
   canEditTask = true,
   canDeleteTask = false,
   projectId,
+  boardColumnsByBoard,
+  boardNames,
   onClose,
   onDeleteTask,
   onTaskUpdated,
@@ -107,6 +111,9 @@ export function TaskDetailPanel({
   const [branchCopied, setBranchCopied] = useState(false);
   const [deletingTask, setDeletingTask] = useState(false);
   const [deletingWarningId, setDeletingWarningId] = useState<number | null>(null);
+  const [savingBoardColumn, setSavingBoardColumn] = useState(false);
+  const [selectedWarningIds, setSelectedWarningIds] = useState<Set<number>>(new Set());
+  const [deletingSelectedWarnings, setDeletingSelectedWarnings] = useState(false);
   const [taskForm, setTaskForm] = useState({
     title: '',
     description: '',
@@ -350,17 +357,43 @@ export function TaskDetailPanel({
     setDeletingWarningId(warningId);
     try {
       await tasksService.deleteWarning(warningId);
-      if (task) {
-        sessionStorage.setItem(TASK_REOPEN_ID_STORAGE_KEY, String(task.id_task));
-        sessionStorage.setItem(TASK_REOPEN_PATH_STORAGE_KEY, window.location.pathname);
-      }
+      setWarnings((prev) => prev.filter((w) => w.id_warning !== warningId));
       toast.success('Warning eliminado.');
-      window.location.reload();
     } catch {
       toast.error('No se pudo eliminar el warning.');
     } finally {
       setDeletingWarningId(null);
     }
+  };
+
+  const handleChangeBoardColumn = async (columnId: number | null) => {
+    if (!task || !canEditTask) return;
+    setSavingBoardColumn(true);
+    try {
+      const updated = await tasksService.update(task.id_task, { board_column: columnId });
+      onTaskUpdated?.(updated);
+      toast.success('Columna actualizada.');
+    } catch {
+      toast.error('No se pudo cambiar la columna.');
+    } finally {
+      setSavingBoardColumn(false);
+    }
+  };
+
+  const handleDeleteSelectedWarnings = async () => {
+    if (selectedWarningIds.size === 0 || !canEditTask) return;
+    setDeletingSelectedWarnings(true);
+    const ids = Array.from(selectedWarningIds);
+    const results = await Promise.allSettled(ids.map((id) => tasksService.deleteWarning(id)));
+    const succeeded = ids.filter((_, i) => results[i].status === 'fulfilled');
+    if (succeeded.length > 0) {
+      setWarnings((prev) => prev.filter((w) => !succeeded.includes(w.id_warning)));
+      setSelectedWarningIds(new Set());
+    }
+    const failed = ids.length - succeeded.length;
+    if (failed > 0) toast.error(`No se pudieron eliminar ${failed} warning(s).`);
+    else toast.success(`${succeeded.length} warning(s) eliminado(s).`);
+    setDeletingSelectedWarnings(false);
   };
 
   const handleCreateAndAddTag = async () => {
@@ -622,6 +655,50 @@ export function TaskDetailPanel({
                   <span className="text-[10px] text-muted-foreground uppercase tracking-[0.06em]">Creada</span>
                   <span className="text-[11px] text-muted-foreground">{task.created_at.slice(0, 10)}</span>
                 </div>
+                {boardColumnsByBoard && boardColumnsByBoard.size > 0 && (() => {
+                  const allBoards = Array.from(boardColumnsByBoard.entries());
+                  const currentBoard = allBoards.find(([, cols]) => cols.some((c) => c.id_column === task.board_column));
+                  const boardId = currentBoard?.[0] ?? null;
+                  const boardCols = boardId ? (boardColumnsByBoard.get(boardId) ?? []) : [];
+                  return (
+                    <div className="pt-1 space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] text-muted-foreground uppercase tracking-[0.06em]">Board</span>
+                        <select
+                          value={boardId ?? ''}
+                          disabled={!canEditTask || savingBoardColumn}
+                          onChange={(e) => {
+                            const newBoardId = e.target.value ? Number(e.target.value) : null;
+                            const firstCol = newBoardId ? (boardColumnsByBoard.get(newBoardId) ?? []).find((c) => !c.is_final)?.id_column ?? null : null;
+                            void handleChangeBoardColumn(firstCol);
+                          }}
+                          className="h-6 rounded-[3px] border border-border bg-surface-secondary px-1.5 text-[10px] disabled:opacity-60"
+                        >
+                          <option value="">Sin board</option>
+                          {allBoards.map(([bid]) => (
+                            <option key={bid} value={bid}>{boardNames?.get(bid) ?? `Board ${bid}`}</option>
+                          ))}
+                        </select>
+                      </div>
+                      {boardId != null && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] text-muted-foreground uppercase tracking-[0.06em]">Columna</span>
+                          <select
+                            value={task.board_column ?? ''}
+                            disabled={!canEditTask || savingBoardColumn}
+                            onChange={(e) => void handleChangeBoardColumn(e.target.value ? Number(e.target.value) : null)}
+                            className="h-6 rounded-[3px] border border-border bg-surface-secondary px-1.5 text-[10px] disabled:opacity-60"
+                          >
+                            <option value="">Sin columna</option>
+                            {boardCols.map((col) => (
+                              <option key={col.id_column} value={col.id_column}>{col.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Task tags */}
@@ -802,9 +879,39 @@ export function TaskDetailPanel({
               {showWarningsSidePanel && (
                 <div className="flex-1 min-w-0 border-l border-border bg-card flex flex-col">
                   <div className="px-4 py-3 border-b border-border bg-surface-secondary shrink-0">
-                    <p className="text-[11px] font-medium text-foreground flex items-center gap-1.5">
-                      <AlertTriangle className="w-3.5 h-3.5 text-warning" /> Warnings y Conexiones
-                    </p>
+                    <div className="flex items-center justify-between">
+                      <p className="text-[11px] font-medium text-foreground flex items-center gap-1.5">
+                        <AlertTriangle className="w-3.5 h-3.5 text-warning" /> Warnings y Conexiones
+                      </p>
+                      {canEditTask && activeWarnings.length > 0 && (
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (selectedWarningIds.size === activeWarnings.length) {
+                                setSelectedWarningIds(new Set());
+                              } else {
+                                setSelectedWarningIds(new Set(activeWarnings.map((w) => w.id_warning)));
+                              }
+                            }}
+                            className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+                          >
+                            {selectedWarningIds.size === activeWarnings.length ? 'Deselect.' : 'Sel. todo'}
+                          </button>
+                          {selectedWarningIds.size > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => void handleDeleteSelectedWarnings()}
+                              disabled={deletingSelectedWarnings}
+                              className="inline-flex items-center gap-1 rounded-[3px] border border-destructive/30 bg-destructive/10 px-2 py-0.5 text-[10px] text-destructive hover:bg-destructive/20 disabled:opacity-50"
+                            >
+                              {deletingSelectedWarnings ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                              Eliminar ({selectedWarningIds.size})
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <div className="flex-1 overflow-y-auto p-4 space-y-4">
                     {loadingWarnings ? (
@@ -822,22 +929,43 @@ export function TaskDetailPanel({
                             : 'bg-card border-l-2 border-l-warning border-warning/30';
                           const SevIcon = sev === 'critical' ? ShieldAlert : sev === 'info' ? Info : AlertTriangle;
                           const iconColor = sev === 'critical' ? 'text-destructive' : sev === 'info' ? 'text-info' : 'text-warning';
+                          const isSelected = selectedWarningIds.has(w.id_warning);
                           return (
-                          <div key={w.id_warning} className={`p-2.5 border rounded-[4px] ${sevStyle}`}>
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="flex items-start gap-1.5 flex-1 min-w-0">
-                                <SevIcon className={`w-3.5 h-3.5 mt-0.5 shrink-0 ${iconColor}`} />
-                                <p className="text-[11px] text-foreground leading-relaxed">{w.message}</p>
+                          <div
+                            key={w.id_warning}
+                            className={`p-2.5 border rounded-[4px] ${sevStyle} ${isSelected ? 'ring-1 ring-primary' : ''}`}
+                          >
+                            <div className="flex items-start gap-2">
+                              {canEditTask && (
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={() => {
+                                    setSelectedWarningIds((prev) => {
+                                      const next = new Set(prev);
+                                      if (next.has(w.id_warning)) next.delete(w.id_warning);
+                                      else next.add(w.id_warning);
+                                      return next;
+                                    });
+                                  }}
+                                  className="mt-0.5 shrink-0 accent-primary"
+                                />
+                              )}
+                              <div className="flex items-start justify-between gap-2 flex-1 min-w-0">
+                                <div className="flex items-start gap-1.5 flex-1 min-w-0">
+                                  <SevIcon className={`w-3.5 h-3.5 mt-0.5 shrink-0 ${iconColor}`} />
+                                  <p className="text-[11px] text-foreground leading-relaxed">{w.message}</p>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => void handleDeleteWarning(w.id_warning)}
+                                  disabled={!canEditTask || deletingWarningId === w.id_warning}
+                                  className="inline-flex items-center gap-1 rounded-[3px] border border-destructive/30 bg-destructive/10 px-2 py-0.5 text-[10px] text-destructive hover:bg-destructive/20 disabled:opacity-50 shrink-0"
+                                >
+                                  {deletingWarningId === w.id_warning ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                                  Eliminar
+                                </button>
                               </div>
-                              <button
-                                type="button"
-                                onClick={() => void handleDeleteWarning(w.id_warning)}
-                                disabled={!canEditTask || deletingWarningId === w.id_warning}
-                                className="inline-flex items-center gap-1 rounded-[3px] border border-destructive/30 bg-destructive/10 px-2 py-0.5 text-[10px] text-destructive hover:bg-destructive/20 disabled:opacity-50"
-                              >
-                                {deletingWarningId === w.id_warning ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
-                                Eliminar
-                              </button>
                             </div>
                             <p className="text-[10px] text-muted-foreground mt-1 ml-5">{w.created_at.slice(0, 10)}</p>
                           </div>

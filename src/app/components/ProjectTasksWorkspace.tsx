@@ -302,8 +302,9 @@ export function ProjectTasksWorkspace({
   const [creatingSprint, setCreatingSprint] = useState(false);
   const [creatingMilestone, setCreatingMilestone] = useState(false);
 
-  // Board column id captured when the task modal is opened (context-aware)
+  // Board/column selection inside the task creation modal
   const [taskCreationBoardColumnId, setTaskCreationBoardColumnId] = useState<number | null>(null);
+  const [taskCreationModalBoardId, setTaskCreationModalBoardId] = useState<number | null>(null);
 
   const [newTask, setNewTask] = useState({
     title: '',
@@ -359,7 +360,7 @@ export function ProjectTasksWorkspace({
   }, [boards, columns]);
 
   const backlogTasks = useMemo(
-    () => (tasks ?? []).filter((task) => task.sprint == null),
+    () => tasks ?? [],
     [tasks],
   );
 
@@ -399,6 +400,8 @@ export function ProjectTasksWorkspace({
     priorities.forEach((priority) => map.set(priority.id_priority, priority));
     return map;
   }, [priorities]);
+
+  const boardNameMap = useMemo(() => new Map((boards ?? []).map((b) => [b.id_board, b.name])), [boards]);
 
   const defaultBacklogColumnId = useMemo(() => {
     const projectBoardIds = new Set((boards ?? []).map((board) => board.id_board));
@@ -537,6 +540,7 @@ export function ProjectTasksWorkspace({
 
       setShowTaskModal(false);
       setTaskCreationBoardColumnId(null);
+      setTaskCreationModalBoardId(null);
       setNewTask({
         title: '',
         description: '',
@@ -913,7 +917,14 @@ export function ProjectTasksWorkspace({
             <button type="button" onClick={() => setShowMilestoneModal(true)} className="h-8 px-3 rounded-[3px] border border-border text-[11px]">Nuevo milestone</button>
           )}
           {canCreateTasks && activeTab === 'backlog' && (
-            <button type="button" onClick={() => { setTaskCreationBoardColumnId(defaultBacklogColumnId); setNewTask((prev) => ({ ...prev, sprint: null })); setShowTaskModal(true); }} className="h-8 px-3 rounded-[3px] bg-primary text-primary-foreground text-[11px] font-medium inline-flex items-center gap-1">
+            <button type="button" onClick={() => {
+              const colId = defaultBacklogColumnId;
+              const boardId = colId ? (columns ?? []).find((c) => c.id_column === colId)?.board ?? null : null;
+              setTaskCreationBoardColumnId(colId);
+              setTaskCreationModalBoardId(boardId);
+              setNewTask((prev) => ({ ...prev, sprint: null }));
+              setShowTaskModal(true);
+            }} className="h-8 px-3 rounded-[3px] bg-primary text-primary-foreground text-[11px] font-medium inline-flex items-center gap-1">
               <Plus className="w-3.5 h-3.5" /> Nueva tarea
             </button>
           )}
@@ -1117,11 +1128,12 @@ export function ProjectTasksWorkspace({
                     <button
                       type="button"
                       onClick={() => {
-                        // Capture the current board's first non-final column so task creation is board-aware
-                        const col = selectedBoardId
-                          ? (boardColumnsByBoard.get(selectedBoardId) ?? []).find((c) => !c.is_final)?.id_column ?? null
+                        const boardId = selectedBoardId;
+                        const col = boardId
+                          ? (boardColumnsByBoard.get(boardId) ?? []).find((c) => !c.is_final)?.id_column ?? null
                           : defaultBacklogColumnId;
                         setTaskCreationBoardColumnId(col);
+                        setTaskCreationModalBoardId(boardId);
                         setNewTask((prev) => ({ ...prev, sprint: selectedSprintId }));
                         setShowTaskModal(true);
                       }}
@@ -1492,6 +1504,45 @@ export function ProjectTasksWorkspace({
                 : 'Las tareas nuevas se crean siempre en Product Backlog (sin sprint, sin milestone).'}
             </p>
 
+            {(boards ?? []).length > 0 && (
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <p className="text-[10px] text-muted-foreground">Board</p>
+                  <select
+                    value={taskCreationModalBoardId ?? ''}
+                    onChange={(e) => {
+                      const boardId = e.target.value ? Number(e.target.value) : null;
+                      setTaskCreationModalBoardId(boardId);
+                      const firstCol = boardId
+                        ? (boardColumnsByBoard.get(boardId) ?? []).find((c) => !c.is_final)?.id_column ?? null
+                        : null;
+                      setTaskCreationBoardColumnId(firstCol);
+                    }}
+                    className="w-full h-8 rounded-[3px] border border-border bg-surface-secondary px-2 text-[11px]"
+                  >
+                    <option value="">Sin board</option>
+                    {(boards ?? []).map((b) => (
+                      <option key={b.id_board} value={b.id_board}>{b.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] text-muted-foreground">Columna</p>
+                  <select
+                    value={taskCreationBoardColumnId ?? ''}
+                    onChange={(e) => setTaskCreationBoardColumnId(e.target.value ? Number(e.target.value) : null)}
+                    disabled={!taskCreationModalBoardId}
+                    className="w-full h-8 rounded-[3px] border border-border bg-surface-secondary px-2 text-[11px] disabled:opacity-50"
+                  >
+                    <option value="">Sin columna</option>
+                    {(taskCreationModalBoardId ? (boardColumnsByBoard.get(taskCreationModalBoardId) ?? []) : []).map((col) => (
+                      <option key={col.id_column} value={col.id_column}>{col.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            )}
+
             <div>
               <p className="text-[11px] text-muted-foreground mb-1">Asignar personas</p>
               <TaskAssigneePicker users={assignableUsers} selectedIds={newTask.assignedTo} onChange={(ids) => setNewTask((prev) => ({ ...prev, assignedTo: ids }))} />
@@ -1522,7 +1573,7 @@ export function ProjectTasksWorkspace({
             )}
 
             <div className="flex justify-end gap-2 pt-2">
-              <button type="button" onClick={() => { setNewTask((prev) => ({ ...prev, sprint: null })); setShowTaskModal(false); }} className="h-8 px-3 rounded-[3px] border border-border text-[11px]">Cancelar</button>
+              <button type="button" onClick={() => { setNewTask((prev) => ({ ...prev, sprint: null })); setTaskCreationModalBoardId(null); setTaskCreationBoardColumnId(null); setShowTaskModal(false); }} className="h-8 px-3 rounded-[3px] border border-border text-[11px]">Cancelar</button>
               <button type="submit" disabled={creatingTask} className="h-8 px-3 rounded-[3px] bg-primary text-primary-foreground text-[11px] inline-flex items-center gap-1.5 disabled:opacity-50">
                 {creatingTask && <Loader2 className="w-3 h-3 animate-spin" />} Crear
               </button>
@@ -1809,6 +1860,8 @@ export function ProjectTasksWorkspace({
         maxDueDate={projectEndDate ?? undefined}
         userMap={userMap}
         assignableUsers={assignableUsers}
+        boardColumnsByBoard={boardColumnsByBoard}
+        boardNames={boardNameMap}
         taskAssignments={selectedTaskAssignments}
         canEditAssignment={canEditTasks}
         canEditTask={canEditTasks}

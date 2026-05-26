@@ -23,6 +23,7 @@ import type { ApiProject, ApiTask, ApiTaskAssignment, ApiUserAccount } from '../
 import { useAuth } from '../context/AuthContext';
 import { GitHubReposView } from '../components/GitHubReposView';
 import { CodeReviewPanel } from '../components/CodeReviewPanel';
+import { ScrumPoker } from '../components/ScrumPoker';
 import { ProjectTasksWorkspace } from '../components/ProjectTasksWorkspace.tsx';
 import Timeline from '../components/Timeline';
 import { getProjectStatusApiValue, getProjectStatusBadge, getProjectStatusLabel, normalizeProjectStatus, PROJECT_STATUS_OPTIONS } from '../utils/projectStatus';
@@ -427,7 +428,7 @@ export default function ProjectDetail() {
 
   type ProjectWorkspaceTab = 'backlog' | 'sprints' | 'boards' | 'milestones';
 
-  const [activeTab, setActiveTab] = useState<'resumen' | ProjectWorkspaceTab | 'timeline' | 'code-review' | 'repositorios' | 'equipo' | 'configuracion'>(() => {
+  const [activeTab, setActiveTab] = useState<'resumen' | ProjectWorkspaceTab | 'timeline' | 'scrum-poker' | 'code-review' | 'repositorios' | 'equipo' | 'configuracion'>(() => {
     if (initialQueryTab === 'tareas' || initialQueryTab === 'backlog') return 'backlog';
     if (initialQueryTab === 'sprints') return 'sprints';
     if (initialQueryTab === 'boards') return 'boards';
@@ -541,6 +542,7 @@ export default function ProjectDetail() {
               { id: 'sprints', label: 'Sprints' },
               { id: 'boards', label: 'Boards' },
               { id: 'milestones', label: 'Milestones' },
+              { id: 'scrum-poker', label: 'Scrum Poker' },
               ...(canCreateRepos ? [{ id: 'code-review', label: 'Code Review' }] : []),
               { id: 'repositorios', label: 'Repositorios' },
               { id: 'equipo', label: 'Equipo', count: (members ?? []).length },
@@ -665,6 +667,17 @@ export default function ProjectDetail() {
           <div className="flex-1 min-h-0 flex flex-col">
             <Timeline projectId={projectId} projectEndDate={project?.end_date} />
           </div>
+        )}
+
+        {/* SCRUM POKER */}
+        {activeTab === 'scrum-poker' && (
+          <ScrumPoker
+            tasks={allProjectTasks ?? []}
+            canAssignPoints={canManageProject}
+            onTaskUpdated={(updated) => {
+              refetchAllProjectTasks();
+            }}
+          />
         )}
 
         {/* CODE REVIEW */}
