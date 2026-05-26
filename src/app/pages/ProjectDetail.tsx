@@ -674,7 +674,7 @@ export default function ProjectDetail() {
           <ScrumPoker
             tasks={allProjectTasks ?? []}
             canAssignPoints={canManageProject}
-            onTaskUpdated={(updated) => {
+            onTaskUpdated={(_updated) => {
               refetchAllProjectTasks();
             }}
           />
