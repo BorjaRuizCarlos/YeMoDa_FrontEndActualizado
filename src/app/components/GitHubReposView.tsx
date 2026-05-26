@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Github, Plus, ExternalLink, Lock, Unlock, X } from 'lucide-react';
+import { Github, Plus, ExternalLink, Lock, Unlock, X, Trash2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { githubService } from '../../services/github.service';
 import { ApiRequestError } from '../../services/api';
@@ -43,6 +43,7 @@ export function GitHubReposView({ projectId, canCreateRepos = true }: GitHubRepo
 
   const [repos, setRepos] = useState<GitHubRepo[]>([]);
   const [loadingRepos, setLoadingRepos] = useState(false);
+  const [deletingRepoId, setDeletingRepoId] = useState<number | null>(null);
 
   const fetchRepos = async () => {
     if (!projectId || !connected) {
@@ -78,6 +79,20 @@ export function GitHubReposView({ projectId, canCreateRepos = true }: GitHubRepo
   useEffect(() => {
     void fetchRepos();
   }, [connected, projectId]);
+
+  const handleDeleteRepo = async (idRepo: number, repoName: string) => {
+    if (!window.confirm(`¿Eliminar el repositorio "${repoName}" de YeMoDa? Esto no borra el repo en GitHub, solo lo desvincula.`)) return;
+    setDeletingRepoId(idRepo);
+    try {
+      await githubService.deleteRepo(idRepo);
+      setRepos((prev) => prev.filter((r) => r.id_repo !== idRepo));
+      toast.success(`Repositorio "${repoName}" desvinculado.`);
+    } catch {
+      toast.error('No se pudo eliminar el repositorio.');
+    } finally {
+      setDeletingRepoId(null);
+    }
+  };
 
   const handleDisconnect = () => {
     if (!userId) return;
@@ -298,6 +313,19 @@ export function GitHubReposView({ projectId, canCreateRepos = true }: GitHubRepo
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
                   </a>
+                  {canCreateRepos && (
+                    <button
+                      type="button"
+                      title="Desvincular repositorio"
+                      disabled={deletingRepoId === repo.id_repo}
+                      onClick={() => void handleDeleteRepo(repo.id_repo, repo.name)}
+                      className="opacity-0 group-hover:opacity-100 inline-flex items-center justify-center h-6 w-6 rounded-[3px] border border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/20 transition-all disabled:opacity-50"
+                    >
+                      {deletingRepoId === repo.id_repo
+                        ? <Loader2 className="w-3 h-3 animate-spin" />
+                        : <Trash2 className="w-3 h-3" />}
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

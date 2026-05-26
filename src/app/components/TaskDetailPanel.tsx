@@ -800,8 +800,8 @@ export function TaskDetailPanel({
               </div>
 
               {showWarningsSidePanel && (
-                <div className="flex-1 min-w-0 border-l border-border bg-surface-secondary/20 flex flex-col">
-                  <div className="px-4 py-3 border-b border-border bg-warning/5 shrink-0">
+                <div className="flex-1 min-w-0 border-l border-border bg-surface-secondary/40 flex flex-col">
+                  <div className="px-4 py-3 border-b border-border bg-warning/10 shrink-0">
                     <p className="text-[11px] font-medium text-foreground flex items-center gap-1.5">
                       <AlertTriangle className="w-3.5 h-3.5 text-warning" /> Warnings y Conexiones
                     </p>
@@ -816,10 +816,10 @@ export function TaskDetailPanel({
                         {activeWarnings.map((w) => {
                           const sev = w.severity ?? 'warning';
                           const sevStyle = sev === 'critical'
-                            ? 'bg-destructive/5 border-destructive/20'
+                            ? 'bg-destructive/15 border-destructive/40'
                             : sev === 'info'
-                            ? 'bg-info/5 border-info/20'
-                            : 'bg-warning/5 border-warning/20';
+                            ? 'bg-info/15 border-info/40'
+                            : 'bg-warning/15 border-warning/40';
                           const SevIcon = sev === 'critical' ? ShieldAlert : sev === 'info' ? Info : AlertTriangle;
                           const iconColor = sev === 'critical' ? 'text-destructive' : sev === 'info' ? 'text-info' : 'text-warning';
                           return (
@@ -848,45 +848,7 @@ export function TaskDetailPanel({
                       <p className="text-[11px] text-muted-foreground">Sin warnings activos.</p>
                     )}
 
-                    <div className="rounded-[4px] border border-dashed border-border p-3">
-                      <p className="text-[10px] font-medium uppercase tracking-[0.06em] text-muted-foreground mb-2 flex items-center gap-1.5">
-                        <GitBranch className="w-3 h-3" /> Conexiones de código
-                      </p>
-                      {branchResult ? (
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2 rounded-[3px] bg-success/5 border border-success/20 px-2.5 py-2">
-                            <GitBranch className="w-3 h-3 text-success shrink-0" />
-                            <span className="font-mono text-[11px] text-foreground flex-1 truncate">{branchResult.branch_name}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <code className="flex-1 font-mono text-[10px] text-muted-foreground bg-surface-secondary/60 border border-border rounded-[3px] px-2 py-1 truncate">
-                              {branchResult.checkout_command}
-                            </code>
-                            <button
-                              type="button"
-                              onClick={() => void handleCopyCheckout()}
-                              className="h-6 w-6 shrink-0 flex items-center justify-center border border-border rounded-[3px] text-muted-foreground hover:text-foreground transition-colors"
-                              title="Copiar comando"
-                            >
-                              {branchCopied ? <Check className="w-3 h-3 text-success" /> : <Copy className="w-3 h-3" />}
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="space-y-2">
-                          <p className="text-[11px] text-muted-foreground">Crea una branch vinculada a esta tarea para que el agente de code review la identifique automáticamente.</p>
-                          {projectId != null && (
-                            <button
-                              type="button"
-                              onClick={openBranchModal}
-                              className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-[3px] border border-dashed border-primary/40 text-[10px] text-primary hover:bg-primary/5 transition-colors"
-                            >
-                              <GitBranch className="w-3 h-3" /> Crear branch
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </div>
+
                   </div>
                 </div>
               )}

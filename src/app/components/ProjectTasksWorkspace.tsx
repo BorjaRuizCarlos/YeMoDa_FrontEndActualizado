@@ -1382,11 +1382,18 @@ export function ProjectTasksWorkspace({
                   <label className="text-[10px] font-medium text-muted-foreground">Instrucciones personalizadas</label>
                   <textarea
                     value={draftBoard.custom_instructions}
-                    onChange={(e) => setDraftBoard((prev) => ({ ...prev, custom_instructions: e.target.value }))}
+                    onChange={(e) => {
+                      const val = e.target.value.slice(0, 1000);
+                      setDraftBoard((prev) => ({ ...prev, custom_instructions: val }));
+                    }}
                     placeholder="Ej. Este proyecto usa Flutter, ignora warnings de Dart null safety…"
                     rows={3}
+                    maxLength={1000}
                     className="w-full rounded-[3px] border border-border bg-surface-secondary px-2 py-1.5 text-[11px] resize-none placeholder:text-muted-foreground/60 focus:outline-none"
                   />
+                  <p className={`text-right text-[10px] ${draftBoard.custom_instructions.length >= 950 ? 'text-warning' : 'text-muted-foreground'}`}>
+                    {draftBoard.custom_instructions.length}/1000
+                  </p>
                 </div>
                 <div className="flex justify-end">
                   <button

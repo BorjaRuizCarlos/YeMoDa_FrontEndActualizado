@@ -541,7 +541,7 @@ export default function ProjectDetail() {
               { id: 'sprints', label: 'Sprints' },
               { id: 'boards', label: 'Boards' },
               { id: 'milestones', label: 'Milestones' },
-              { id: 'code-review', label: 'Code Review' },
+              ...(canCreateRepos ? [{ id: 'code-review', label: 'Code Review' }] : []),
               { id: 'repositorios', label: 'Repositorios' },
               { id: 'equipo', label: 'Equipo', count: (members ?? []).length },
               ...(canManageProject ? [{ id: 'configuracion', label: 'Configuración', icon: <Settings2 className="w-3.5 h-3.5" /> }] : []),
@@ -668,7 +668,7 @@ export default function ProjectDetail() {
         )}
 
         {/* CODE REVIEW */}
-        {activeTab === 'code-review' && (
+        {activeTab === 'code-review' && canCreateRepos && (
           <CodeReviewPanel
             projectId={projectId}
             repoFullName={project?.github_repo_full_name ?? null}

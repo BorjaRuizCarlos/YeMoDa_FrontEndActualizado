@@ -114,6 +114,11 @@ export const githubService = {
     return api.get<GitHubRepo[]>(`/github/repos/${qs ? `?${qs}` : ''}`);
   },
 
+  /** DELETE /api/github/repos/{id}/ → unlink repo from YeMoDa */
+  async deleteRepo(idRepo: number): Promise<void> {
+    return api.delete(`/github/repos/${idRepo}/`);
+  },
+
   // ─── Branch creation ──────────────────────────────────────────────────────
 
   /** POST /api/tasks/{task_id}/branch/ → creates {task_id}-{slug} branch and returns name + checkout command */
