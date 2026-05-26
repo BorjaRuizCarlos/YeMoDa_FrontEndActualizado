@@ -70,7 +70,6 @@ export function TaskDetailPanel({
   canEditTask = true,
   canDeleteTask = false,
   projectId,
-  repoFullName,
   boardColumnsByBoard,
   boardNames,
   onClose,
