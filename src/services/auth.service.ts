@@ -61,6 +61,18 @@ export const authService = {
     );
   },
 
+  /**
+   * POST /api/auth/verify-email/
+   * Verifies the email address using the token from the link.
+   */
+  async verifyEmail(token: string): Promise<{ detail: string }> {
+    return api.post<{ detail: string }>(
+      '/auth/verify-email/',
+      { token },
+      false,
+    );
+  },
+
   /** Remove tokens from storage (client-side logout). */
   logout(): void {
     tokenStore.clear();

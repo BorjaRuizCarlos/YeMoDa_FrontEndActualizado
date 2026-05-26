@@ -13,6 +13,7 @@ import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import EmailVerified from './pages/EmailVerified';
+import VerifyEmail from './pages/VerifyEmail';
 import NotFound from './pages/NotFound';
 
 // Lazy: heavier authenticated pages
@@ -56,6 +57,10 @@ export const router = createBrowserRouter([
   {
     path: '/auth/verified',
     element: <EmailVerified />,
+  },
+  {
+    path: '/auth/verify-email',
+    element: <VerifyEmail />,
   },
   {
     path: '/auth/google/callback',
