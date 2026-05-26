@@ -27,14 +27,19 @@ export function CodeReviewPanel({ projectId, repoFullName }: CodeReviewPanelProp
   const fetchPushes = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await githubService.listPushes({ project_id: projectId });
+      // Prefer repo filter so push events are found even when the backend
+      // didn't link them to a project (project field is null on the event).
+      const filters = repoFullName
+        ? { repo: repoFullName }
+        : { project_id: projectId };
+      const data = await githubService.listPushes(filters);
       setPushes(data);
     } catch {
       setPushes([]);
     } finally {
       setLoading(false);
     }
-  }, [projectId]);
+  }, [projectId, repoFullName]);
 
   useEffect(() => { fetchPushes(); }, [fetchPushes]);
 

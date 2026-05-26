@@ -52,7 +52,7 @@ const gutterStyles: Record<DiffLine['type'], string> = {
 };
 
 export function CodeDiffViewer({ patch, filename }: CodeDiffViewerProps) {
-  const parsedLines = useMemo(() => parsePatch(patch), [patch]);
+  const parsedLines = useMemo(() => (patch ? parsePatch(patch) : []), [patch]);
 
   const ext = filename.split('.').pop() ?? '';
   const isCode = ['ts', 'tsx', 'js', 'jsx', 'py', 'css', 'html', 'json', 'yml', 'yaml', 'md'].includes(ext);
@@ -65,6 +65,9 @@ export function CodeDiffViewer({ patch, filename }: CodeDiffViewerProps) {
         <span className="font-mono text-[10px] text-foreground truncate">{filename}</span>
       </div>
 
+      {parsedLines.length === 0 ? (
+        <p className="px-3 py-2 text-[10px] text-muted-foreground/60 italic">Sin diff de texto disponible (archivo binario o diff omitido)</p>
+      ) : (
       <div className="overflow-x-auto">
         <table className="w-full font-mono">
           <tbody>
@@ -89,6 +92,7 @@ export function CodeDiffViewer({ patch, filename }: CodeDiffViewerProps) {
           </tbody>
         </table>
       </div>
+      )}
     </div>
   );
 }

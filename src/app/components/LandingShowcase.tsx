@@ -7,6 +7,7 @@ import {
   BarChart3,
   Bell,
   Briefcase,
+  Calendar,
   ChevronRight,
   Code2,
   FileCode2,
@@ -802,6 +803,639 @@ export function DashboardShowcase() {
             ))}{' '}
             to explore
           </p>
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
+// ── Project Detail Showcase ──────────────────────────────────────────────────
+
+type ProjectTab =
+  | 'resumen' | 'backlog' | 'timeline' | 'sprints' | 'boards'
+  | 'milestones' | 'scrum-poker' | 'code-review' | 'repositorios'
+  | 'equipo' | 'configuracion';
+
+const PROJECT_TABS: { id: ProjectTab; label: string; count?: number }[] = [
+  { id: 'resumen',      label: 'Overview' },
+  { id: 'backlog',      label: 'Backlog' },
+  { id: 'timeline',     label: 'Timeline' },
+  { id: 'sprints',      label: 'Sprints' },
+  { id: 'boards',       label: 'Boards' },
+  { id: 'milestones',   label: 'Milestones' },
+  { id: 'scrum-poker',  label: 'Scrum Poker' },
+  { id: 'code-review',  label: 'Code Review' },
+  { id: 'repositorios', label: 'Repositorios' },
+  { id: 'equipo',       label: 'Equipo', count: 4 },
+  { id: 'configuracion',label: '⚙ Configuración' },
+];
+
+const PROJ_TASKS = [
+  { id:1,  titulo:'Implement payment gateway',    prioridad:'Alta',  pColor:'text-destructive',      estado:'En progreso', eColor:'text-warning',         av:'AG' },
+  { id:2,  titulo:'Shopping cart persistence',    prioridad:'Media', pColor:'text-warning',          estado:'Completado',  eColor:'text-success',         av:'MS' },
+  { id:3,  titulo:'Product search & filters',     prioridad:'Media', pColor:'text-warning',          estado:'Completado',  eColor:'text-success',         av:'CR' },
+  { id:4,  titulo:'Mobile responsive layout',     prioridad:'Alta',  pColor:'text-destructive',      estado:'En revisión', eColor:'text-primary',         av:'AL' },
+  { id:5,  titulo:'User checkout flow',           prioridad:'Media', pColor:'text-warning',          estado:'En progreso', eColor:'text-warning',         av:'AG' },
+  { id:6,  titulo:'SEO meta tags setup',          prioridad:'Baja',  pColor:'text-muted-foreground', estado:'Pendiente',   eColor:'text-muted-foreground',av:'—'  },
+  { id:7,  titulo:'Email notifications',          prioridad:'Media', pColor:'text-warning',          estado:'Completado',  eColor:'text-success',         av:'MS' },
+  { id:8,  titulo:'Analytics integration',        prioridad:'Alta',  pColor:'text-destructive',      estado:'Completado',  eColor:'text-success',         av:'CR' },
+  { id:9,  titulo:'Performance optimization',     prioridad:'Media', pColor:'text-warning',          estado:'Pendiente',   eColor:'text-muted-foreground',av:'—'  },
+  { id:10, titulo:'Security audit',               prioridad:'Alta',  pColor:'text-destructive',      estado:'En progreso', eColor:'text-warning',         av:'AG' },
+  { id:11, titulo:'Developer documentation',      prioridad:'Baja',  pColor:'text-muted-foreground', estado:'Pendiente',   eColor:'text-muted-foreground',av:'—'  },
+];
+
+const PROJ_BOARD_COLS = [
+  { id:'todo',     label:'Por hacer',   lColor:'text-muted-foreground', taskIds:[6,9,11] },
+  { id:'progress', label:'En progreso', lColor:'text-warning',          taskIds:[1,5,10] },
+  { id:'review',   label:'En revisión', lColor:'text-primary',          taskIds:[4] },
+  { id:'done',     label:'Completado',  lColor:'text-success',          taskIds:[2,3,7,8] },
+];
+
+const PROJ_TIMELINE_ITEMS = [
+  { titulo:'Payment gateway',    inicio:35, ancho:48, progreso:70 },
+  { titulo:'Mobile responsive',  inicio:15, ancho:42, progreso:82 },
+  { titulo:'Checkout flow',      inicio:50, ancho:50, progreso:55 },
+  { titulo:'Performance optim.', inicio:65, ancho:40, progreso:18 },
+  { titulo:'Security audit',     inicio:42, ancho:38, progreso:62 },
+];
+
+const PROJ_SPRINT = [
+  { id:1,  titulo:'Implement payment gateway', estado:'En progreso', av:'AG', eColor:'text-warning' },
+  { id:4,  titulo:'Mobile responsive layout',  estado:'En revisión', av:'AL', eColor:'text-primary' },
+  { id:5,  titulo:'User checkout flow',        estado:'En progreso', av:'AG', eColor:'text-warning' },
+  { id:10, titulo:'Security audit',            estado:'En progreso', av:'AG', eColor:'text-warning' },
+  { id:9,  titulo:'Performance optimization',  estado:'Pendiente',   av:'—',  eColor:'text-muted-foreground' },
+  { id:11, titulo:'Developer documentation',   estado:'Pendiente',   av:'—',  eColor:'text-muted-foreground' },
+];
+
+const PROJ_MILESTONES = [
+  { titulo:'Alpha Release',     fecha:'30 abr 2026', progreso:100, mColor:'text-success',          bColor:'bg-success' },
+  { titulo:'Beta Launch',       fecha:'25 may 2026', progreso:75,  mColor:'text-warning',          bColor:'bg-warning' },
+  { titulo:'Production Deploy', fecha:'7 jun 2026',  progreso:20,  mColor:'text-muted-foreground', bColor:'bg-primary/50' },
+];
+
+const PROJ_PRS = [
+  { id:'#44', titulo:'feat: payment gateway integration',    estado:'En revisión', av:'AG', rama:'feat/payment',    hace:'hace 2h',  merged:false },
+  { id:'#43', titulo:'fix: cart persistence on page reload', estado:'Merged',      av:'CR', rama:'fix/cart-state',  hace:'hace 1d',  merged:true  },
+  { id:'#42', titulo:'feat: mobile responsive redesign',     estado:'En revisión', av:'AL', rama:'feat/responsive', hace:'hace 5h',  merged:false },
+  { id:'#41', titulo:'chore: update package dependencies',   estado:'Merged',      av:'MS', rama:'chore/deps',      hace:'hace 2d',  merged:true  },
+];
+
+const PROJ_MEMBERS = [
+  { av:'AG', name:'Alex García',    role:'Tech Lead',    bgColor:'bg-primary/20',    tColor:'text-primary' },
+  { av:'MS', name:'Maria Santos',   role:'Frontend Dev', bgColor:'bg-success/20',    tColor:'text-success' },
+  { av:'CR', name:'Carlos Ramírez', role:'Backend Dev',  bgColor:'bg-warning/20',    tColor:'text-warning' },
+  { av:'AL', name:'Ana López',      role:'UI/UX Design', bgColor:'bg-purple-500/20', tColor:'text-purple-400' },
+];
+
+// ── Tab sub-components ────────────────────────────────────────────────────────
+
+function ProjOverviewTab() {
+  return (
+    <div className="p-2.5 space-y-2">
+      <div className="grid grid-cols-4 gap-1.5">
+        {[
+          { title:'TAREAS',       value:'11', sub:'en el proyecto',    border:'border-l-2 border-l-sky-500/60' },
+          { title:'COMPLETADAS',  value:'8',  sub:'finalizadas',       border:'border-l-2 border-l-success/60' },
+          { title:'VENCIDAS',     value:'1',  sub:'requieren atención',border:'border-l-2 border-l-destructive/60' },
+          { title:'TIEMPO REST.', value:'12d',sub:'7 jun 2026',        border:'border-l-2 border-l-warning/60' },
+        ].map(k => (
+          <div key={k.title} className={`rounded-[3px] border border-border bg-background p-2 ${k.border}`}>
+            <div className="text-[7px] text-muted-foreground font-medium uppercase tracking-wide mb-0.5">{k.title}</div>
+            <div className="text-[14px] font-bold text-foreground leading-none">{k.value}</div>
+            <div className="text-[6px] text-muted-foreground mt-0.5">{k.sub}</div>
+          </div>
+        ))}
+      </div>
+      <div className="rounded-[3px] border border-border bg-background p-2.5">
+        <div className="text-[8px] font-semibold text-muted-foreground uppercase tracking-wide mb-2">Información General</div>
+        <div className="grid grid-cols-2 gap-x-8 gap-y-1.5">
+          {[
+            { label:'Estado',           val:'En progreso' },
+            { label:'Creado',           val:'12 abr 2026' },
+            { label:'Fecha fin',        val:'7 jun 2026' },
+            { label:'Tiempo restante',  val:'12 días' },
+            { label:'Miembros',         val:'4 personas' },
+          ].map(({ label, val }) => (
+            <div key={label}>
+              <div className="text-[7px] text-muted-foreground">{label}</div>
+              <div className="text-[9px] font-semibold text-foreground">{val}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="rounded-[3px] border border-border bg-background p-2.5">
+        <div className="flex items-center justify-between mb-1.5">
+          <div className="text-[8px] font-semibold text-muted-foreground uppercase tracking-wide">Avance</div>
+          <div className="text-[10px] font-bold text-foreground">72%</div>
+        </div>
+        <div className="h-2 bg-surface-secondary/60 rounded-full overflow-hidden">
+          <div className="h-full rounded-full bg-warning" style={{ width: '72%' }} />
+        </div>
+        <div className="text-[7px] text-muted-foreground mt-1">8 de 11 tareas completadas</div>
+      </div>
+    </div>
+  );
+}
+
+function ProjBacklogTab() {
+  return (
+    <div className="p-2.5">
+      <div className="rounded-[3px] border border-border bg-background overflow-hidden">
+        <table className="w-full text-[8px]">
+          <thead>
+            <tr className="border-b border-border bg-surface-secondary/40">
+              <th className="text-left px-2.5 py-1.5 text-muted-foreground font-medium w-[42%]">TÍTULO</th>
+              <th className="text-left px-2 py-1.5 text-muted-foreground font-medium">PRIORIDAD</th>
+              <th className="text-left px-2 py-1.5 text-muted-foreground font-medium">ESTADO</th>
+              <th className="text-left px-2 py-1.5 text-muted-foreground font-medium">ASIGNADO</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border/30">
+            {PROJ_TASKS.map(t => (
+              <tr key={t.id} className="hover:bg-surface-secondary/20 transition-colors">
+                <td className="px-2.5 py-1 text-foreground truncate max-w-0">{t.titulo}</td>
+                <td className={`px-2 py-1 font-medium ${t.pColor}`}>{t.prioridad}</td>
+                <td className={`px-2 py-1 ${t.eColor}`}>{t.estado}</td>
+                <td className="px-2 py-1">
+                  {t.av !== '—'
+                    ? <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center"><span className="text-[7px] font-bold text-primary">{t.av}</span></div>
+                    : <span className="text-muted-foreground">—</span>
+                  }
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function ProjTimelineTab() {
+  return (
+    <div className="p-2.5">
+      <div className="rounded-[3px] border border-border bg-background p-2.5">
+        <div className="flex items-center justify-between mb-2 text-[7px] text-muted-foreground font-medium">
+          <span>may 2026</span><span>jun 2026</span>
+        </div>
+        <div className="border-t border-border/30 space-y-2 pt-2">
+          {PROJ_TIMELINE_ITEMS.map((t, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <div className="w-24 text-[7px] text-muted-foreground truncate shrink-0">{t.titulo}</div>
+              <div className="flex-1 relative h-5 bg-surface-secondary/40 rounded-[2px] overflow-hidden">
+                <div
+                  className="absolute top-0 h-full rounded-[2px] bg-primary/25 border border-primary/30"
+                  style={{ left: `${t.inicio}%`, width: `${t.ancho}%` }}
+                />
+                <div
+                  className="absolute top-0 h-full rounded-[2px] bg-primary/75"
+                  style={{ left: `${t.inicio}%`, width: `${t.ancho * t.progreso / 100}%` }}
+                />
+                <div
+                  className="absolute inset-0 flex items-center"
+                  style={{ left: `${t.inicio + t.ancho / 2 - 5}%` }}
+                >
+                  <span className="text-[6px] text-white font-semibold">{t.progreso}%</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="mt-2.5 flex justify-center gap-4 text-[7px] text-muted-foreground">
+          <span className="flex items-center gap-1"><span className="w-3 h-1.5 rounded-[1px] bg-primary/25 border border-primary/30 inline-block" />Planificado</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-1.5 rounded-[1px] bg-primary/75 inline-block" />Completado</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ProjSprintsTab() {
+  return (
+    <div className="p-2.5 space-y-2">
+      <div className="rounded-[3px] border border-primary/30 bg-primary/5 p-2.5">
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-[9px] font-semibold text-foreground">Sprint 3</span>
+          <span className="text-[7px] px-1.5 py-0.5 rounded-full bg-primary/15 text-primary font-medium">Activo</span>
+        </div>
+        <div className="text-[7px] text-muted-foreground mb-2">26 may – 9 jun 2026 · 6 tareas</div>
+        <div className="space-y-0.5">
+          {PROJ_SPRINT.map(t => (
+            <div key={t.id} className="flex items-center justify-between py-1 border-b border-border/30 last:border-0">
+              <span className="text-[8px] text-foreground truncate flex-1">{t.titulo}</span>
+              <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                <span className={`text-[7px] ${t.eColor}`}>{t.estado}</span>
+                <div className="w-4 h-4 rounded-full bg-surface-secondary border border-border flex items-center justify-center">
+                  <span className="text-[6px] text-muted-foreground">{t.av}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="text-[7px] text-center text-muted-foreground">Sprint 1 (cerrado · 100%) · Sprint 2 (cerrado · 100%)</div>
+    </div>
+  );
+}
+
+function ProjBoardsTab() {
+  return (
+    <div className="p-2.5">
+      <div className="grid grid-cols-4 gap-1.5">
+        {PROJ_BOARD_COLS.map(col => {
+          const tasks = col.taskIds.map(id => PROJ_TASKS.find(t => t.id === id)!);
+          return (
+            <div key={col.id} className="flex flex-col">
+              <div className="flex items-center justify-between mb-1.5 px-0.5">
+                <span className={`text-[8px] font-semibold ${col.lColor}`}>{col.label}</span>
+                <span className="text-[7px] text-muted-foreground">{col.taskIds.length}</span>
+              </div>
+              <div className="space-y-1">
+                {tasks.map(task => (
+                  <div key={task.id} className="rounded-[3px] border border-border bg-card p-1.5">
+                    <div className="text-[7px] text-foreground leading-snug">{task.titulo}</div>
+                    <div className="flex items-center justify-between mt-1">
+                      <span className={`text-[6px] font-medium ${task.pColor}`}>{task.prioridad}</span>
+                      {task.av !== '—' && (
+                        <div className="w-3.5 h-3.5 rounded-full bg-primary/20 flex items-center justify-center">
+                          <span className="text-[5px] font-bold text-primary">{task.av[0]}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function ProjMilestonesTab() {
+  return (
+    <div className="p-2.5 space-y-2">
+      {PROJ_MILESTONES.map((m, i) => (
+        <div key={i} className="rounded-[3px] border border-border bg-background p-2.5">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[9px] font-semibold text-foreground">{m.titulo}</span>
+            <span className={`text-[7px] font-medium ${m.mColor}`}>
+              {m.progreso === 100 ? '✓ Completado' : m.progreso >= 50 ? '↻ En progreso' : '○ Pendiente'}
+            </span>
+          </div>
+          <div className="text-[7px] text-muted-foreground mb-1.5">{m.fecha}</div>
+          <div className="h-1.5 bg-surface-secondary/60 rounded-full overflow-hidden">
+            <div className={`h-full rounded-full ${m.bColor}`} style={{ width: `${m.progreso}%` }} />
+          </div>
+          <div className="text-[7px] text-muted-foreground mt-0.5">{m.progreso}% completado</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ProjScrumPokerTab() {
+  const [selected, setSelected] = useState<number | null>(null);
+  const cards = [1, 2, 3, 5, 8, 13, 21];
+  return (
+    <div className="p-2.5 space-y-2">
+      <div className="rounded-[3px] border border-border bg-background p-2.5">
+        <div className="text-[8px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Historia a estimar</div>
+        <div className="text-[9px] text-foreground">Implement payment gateway integration</div>
+        <div className="text-[7px] text-muted-foreground mt-0.5">4 participantes · 2 han votado</div>
+      </div>
+      <div className="rounded-[3px] border border-border bg-background p-2.5">
+        <div className="text-[8px] font-semibold text-muted-foreground uppercase tracking-wide mb-2">Tu estimación</div>
+        <div className="flex gap-1.5 flex-wrap">
+          {cards.map(n => (
+            <button
+              key={n}
+              onClick={() => setSelected(n)}
+              className={`w-8 h-10 rounded-[3px] border text-[10px] font-bold transition-all ${
+                selected === n
+                  ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                  : 'border-border text-foreground bg-card hover:border-primary/50'
+              }`}
+            >
+              {n}
+            </button>
+          ))}
+          <button
+            onClick={() => setSelected(-1)}
+            className={`w-8 h-10 rounded-[3px] border text-[9px] font-bold transition-all ${
+              selected === -1
+                ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                : 'border-border text-muted-foreground bg-card hover:border-primary/50'
+            }`}
+          >
+            ?
+          </button>
+        </div>
+        {selected !== null && (
+          <div className="mt-2 text-[8px] text-success font-medium">
+            ✓ Voto registrado: {selected === -1 ? '?' : selected} puntos
+          </div>
+        )}
+      </div>
+      <div className="rounded-[3px] border border-border bg-background p-2">
+        <div className="text-[8px] font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Participantes</div>
+        <div className="space-y-1">
+          {[
+            { av:'AG', name:'Alex García',    voted:true  },
+            { av:'MS', name:'Maria Santos',   voted:true  },
+            { av:'CR', name:'Carlos Ramírez', voted:false },
+            { av:'AL', name:'Ana López',      voted:false },
+          ].map(p => (
+            <div key={p.av} className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <div className="w-4 h-4 rounded-full bg-primary/20 flex items-center justify-center">
+                  <span className="text-[6px] font-bold text-primary">{p.av}</span>
+                </div>
+                <span className="text-[8px] text-foreground">{p.name}</span>
+              </div>
+              <span className={`text-[7px] ${p.voted ? 'text-success' : 'text-muted-foreground'}`}>
+                {p.voted ? '✓ Votó' : '⏳ Esperando'}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ProjCodeReviewTab() {
+  return (
+    <div className="p-2.5 space-y-1.5">
+      {PROJ_PRS.map(pr => (
+        <div key={pr.id} className="rounded-[3px] border border-border bg-background p-2 hover:bg-surface-secondary/20 transition-colors">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <span className="text-[7px] text-muted-foreground font-mono">{pr.id}</span>
+                <span className="text-[8px] font-medium text-foreground truncate">{pr.titulo}</span>
+              </div>
+              <div className="text-[7px] text-muted-foreground font-mono">{pr.rama} → main · {pr.hace}</div>
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center">
+                <span className="text-[7px] font-bold text-primary">{pr.av}</span>
+              </div>
+              <span className={`text-[7px] px-1.5 py-0.5 rounded-[3px] font-medium ${
+                pr.merged ? 'bg-success/15 text-success' : 'bg-warning/15 text-warning'
+              }`}>
+                {pr.estado}
+              </span>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ProjRepositoriosTab() {
+  return (
+    <div className="p-2.5 space-y-2">
+      <div className="rounded-[3px] border border-border bg-background p-2.5">
+        <div className="flex items-center justify-between mb-2">
+          <div className="text-[9px] font-semibold text-foreground">GitHub</div>
+          <span className="text-[7px] px-1.5 py-0.5 rounded-full bg-success/15 text-success font-medium">● Conectado</span>
+        </div>
+        <div className="flex items-center gap-2 p-2 rounded-[3px] bg-surface-secondary/40 border border-border/50">
+          <Github className="w-4 h-4 text-foreground shrink-0" />
+          <div className="min-w-0">
+            <div className="text-[9px] font-medium text-foreground">react-ecommerce-platform</div>
+            <div className="text-[7px] text-muted-foreground">alexdev2024 / react-ecommerce-platform · main</div>
+          </div>
+        </div>
+        <div className="mt-2 space-y-0.5">
+          <div className="text-[7px] text-muted-foreground font-semibold uppercase tracking-wide mb-1.5">Commits recientes</div>
+          {[
+            { hash:'a3f8c2', msg:'feat: add payment gateway middleware',   time:'hace 2h', av:'AG' },
+            { hash:'9b2d14', msg:'fix: cart state reset on navigation',    time:'hace 1d', av:'CR' },
+            { hash:'7e5f31', msg:'style: responsive breakpoints mobile',   time:'hace 2d', av:'AL' },
+          ].map(c => (
+            <div key={c.hash} className="flex items-center gap-2 py-0.5 border-b border-border/30 last:border-0">
+              <span className="text-[7px] font-mono text-primary">{c.hash}</span>
+              <span className="text-[7px] text-foreground truncate flex-1">{c.msg}</span>
+              <span className="text-[6px] text-muted-foreground shrink-0">{c.time}</span>
+              <div className="w-3.5 h-3.5 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                <span className="text-[5px] font-bold text-primary">{c.av}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ProjEquipoTab() {
+  return (
+    <div className="p-2.5 space-y-1.5">
+      {PROJ_MEMBERS.map((m, i) => (
+        <div key={i} className="flex items-center gap-2.5 px-2.5 py-2 rounded-[3px] border border-border bg-background hover:bg-surface-secondary/20 transition-colors">
+          <div className={`w-7 h-7 rounded-full ${m.bgColor} flex items-center justify-center shrink-0`}>
+            <span className={`text-[9px] font-bold ${m.tColor}`}>{m.av}</span>
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-[9px] font-semibold text-foreground">{m.name}</div>
+            <div className="text-[7px] text-muted-foreground">{m.role}</div>
+          </div>
+          <span className="text-[7px] px-1.5 py-0.5 rounded-[3px] border border-border text-muted-foreground shrink-0">Editar</span>
+        </div>
+      ))}
+      <div className="text-center pt-1">
+        <button className="text-[8px] text-primary hover:underline">+ Agregar miembro</button>
+      </div>
+    </div>
+  );
+}
+
+function ProjConfiguracionTab() {
+  return (
+    <div className="p-2.5">
+      <div className="rounded-[3px] border border-border bg-background p-2.5 space-y-2.5 max-w-sm">
+        <div>
+          <label className="block text-[8px] font-semibold text-foreground mb-1">Etapa del proyecto</label>
+          <div className="h-7 bg-surface-secondary border border-border rounded-[3px] px-2.5 flex items-center justify-between text-[8px] text-foreground">
+            En progreso<span className="text-muted-foreground">▾</span>
+          </div>
+        </div>
+        <div>
+          <label className="block text-[8px] font-semibold text-foreground mb-1">Fecha de entrega</label>
+          <div className="h-7 bg-surface-secondary border border-border rounded-[3px] px-2.5 flex items-center justify-between text-[8px] text-foreground">
+            7 jun 2026<Calendar className="w-3 h-3 text-muted-foreground" />
+          </div>
+        </div>
+        <div>
+          <label className="block text-[8px] font-semibold text-foreground mb-1">Descripción</label>
+          <div className="h-14 bg-surface-secondary border border-border rounded-[3px] px-2.5 py-1.5 text-[7px] text-muted-foreground leading-relaxed overflow-hidden">
+            Full redesign of the e-commerce platform including new checkout flow, mobile optimization and payment gateway integration.
+          </div>
+        </div>
+        <div className="flex items-center justify-between pt-1">
+          <button className="text-[8px] text-destructive/70 hover:text-destructive transition-colors">Eliminar proyecto</button>
+          <button className="h-7 px-3 bg-primary text-primary-foreground rounded-[3px] text-[8px] font-medium">Guardar cambios</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Main export ───────────────────────────────────────────────────────────────
+
+export function ProjectDetailShowcase() {
+  const [activeTab, setActiveTab] = useState<ProjectTab>('resumen');
+
+  return (
+    <section id="project-demo" className="container mx-auto px-6 py-24 max-w-6xl scroll-mt-16">
+      <div className="flex flex-col items-center gap-10">
+
+        {/* Texto marketing */}
+        <motion.div
+          initial={{ opacity: 0, y: -16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-80px' }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+          className="space-y-5 text-center max-w-2xl w-full"
+        >
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-[3px] border border-primary/20 bg-primary/10 text-primary text-[11px] font-medium">
+            <Briefcase className="w-3 h-3" />
+            Project workspace — all tools in one place
+          </div>
+          <h2 className="text-2xl md:text-3xl font-semibold text-foreground leading-snug">
+            One project.{' '}
+            <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+              All your tools.
+            </span>
+          </h2>
+          <p className="text-[13px] text-muted-foreground leading-relaxed max-w-xl mx-auto">
+            Backlog, timeline, sprints, boards, milestones, code review and your team — everything inside a single project workspace.
+          </p>
+
+          {/* Tab pills */}
+          <div className="flex flex-wrap justify-center gap-1.5">
+            {PROJECT_TABS.map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-3 py-1.5 rounded-[4px] text-[11px] font-medium transition-all ${
+                  activeTab === tab.id
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'bg-card border border-border text-muted-foreground hover:text-foreground hover:border-primary/30'
+                }`}
+              >
+                {tab.label}{tab.count != null ? ` ${tab.count}` : ''}
+              </button>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* App frame */}
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-80px' }}
+          transition={{ duration: 0.55, ease: 'easeOut', delay: 0.1 }}
+          className="w-full"
+        >
+          <AppFrame url={`app.yemoda.io/proyectos/e-commerce${activeTab !== 'resumen' ? `?tab=${activeTab}` : ''}`}>
+            <div className="flex flex-col bg-background overflow-hidden" style={{ height: 520 }}>
+
+              {/* App topbar */}
+              <div className="flex items-center justify-between px-3 py-1.5 border-b border-border bg-card/80 shrink-0">
+                <div className="flex items-center gap-1 text-[8px] text-muted-foreground min-w-0">
+                  <span className="hover:text-foreground cursor-pointer transition-colors">Proyectos</span>
+                  <ChevronRight className="w-2.5 h-2.5 shrink-0" />
+                  <span className="text-foreground font-medium truncate">E-Commerce Redesign</span>
+                </div>
+                <div className="flex items-center gap-2.5 shrink-0">
+                  <div className="flex items-center gap-1 text-[8px] text-muted-foreground bg-surface-secondary/60 border border-border/50 rounded-[3px] px-2 py-0.5">
+                    <Activity className="w-2.5 h-2.5" /> Buscar...
+                  </div>
+                  <div className="relative">
+                    <Bell className="w-3.5 h-3.5 text-muted-foreground" />
+                    <span className="absolute -top-1 -right-1 w-3 h-3 bg-destructive rounded-full text-[5px] text-white flex items-center justify-center font-bold">3</span>
+                  </div>
+                  <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center shrink-0">
+                    <span className="text-[7px] font-bold text-primary-foreground">C</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* CommandBar */}
+              <div className="flex items-center gap-1.5 px-3 py-1.5 border-b border-border bg-card/60 shrink-0">
+                <button className="flex items-center gap-1 text-[8px] text-muted-foreground px-2 py-0.5 rounded-[3px] border border-border hover:text-foreground transition-colors">
+                  ← Volver
+                </button>
+                <button className="flex items-center gap-1 text-[8px] text-muted-foreground px-2 py-0.5 rounded-[3px] border border-border hover:text-foreground transition-colors">
+                  ↺ Actualizar
+                </button>
+                <button className="flex items-center gap-1 text-[8px] text-muted-foreground px-2 py-0.5 rounded-[3px] border border-border hover:text-foreground transition-colors">
+                  <Users className="w-2.5 h-2.5" /> Asignar responsable
+                </button>
+                <div className="ml-auto text-[7px] px-2 py-0.5 rounded-[3px] bg-warning/15 text-warning font-semibold border border-warning/30">
+                  ● En progreso
+                </div>
+              </div>
+
+              {/* Project header */}
+              <div className="px-3 pb-2 pt-1.5 border-b border-border shrink-0">
+                <h1 className="text-[11px] font-semibold text-foreground">E-Commerce Redesign</h1>
+                <div className="flex items-center gap-3 mt-0.5 text-[8px] text-muted-foreground">
+                  <span className="flex items-center gap-1"><Calendar className="w-2.5 h-2.5" />Inicio: 12 abr 2026</span>
+                  <span className="flex items-center gap-1"><Clock className="w-2.5 h-2.5" />Fin: 7 jun 2026</span>
+                  <span className="flex items-center gap-1"><Users className="w-2.5 h-2.5" />4 miembros</span>
+                </div>
+              </div>
+
+              {/* ADO tab bar */}
+              <div className="flex border-b border-border bg-card/40 shrink-0 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+                {PROJECT_TABS.map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`px-2.5 py-2 text-[8px] font-medium whitespace-nowrap transition-colors shrink-0 border-b-2 ${
+                      activeTab === tab.id
+                        ? 'border-primary text-primary bg-primary/5'
+                        : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-surface-secondary/30'
+                    }`}
+                  >
+                    {tab.label}{tab.count != null ? ` ${tab.count}` : ''}
+                  </button>
+                ))}
+              </div>
+
+              {/* Tab content */}
+              <div className="flex-1 overflow-y-auto">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={activeTab}
+                    initial={{ opacity: 0, x: 6 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -6 }}
+                    transition={{ duration: 0.15, ease: 'easeOut' }}
+                  >
+                    {activeTab === 'resumen'       && <ProjOverviewTab />}
+                    {activeTab === 'backlog'        && <ProjBacklogTab />}
+                    {activeTab === 'timeline'       && <ProjTimelineTab />}
+                    {activeTab === 'sprints'        && <ProjSprintsTab />}
+                    {activeTab === 'boards'         && <ProjBoardsTab />}
+                    {activeTab === 'milestones'     && <ProjMilestonesTab />}
+                    {activeTab === 'scrum-poker'    && <ProjScrumPokerTab />}
+                    {activeTab === 'code-review'    && <ProjCodeReviewTab />}
+                    {activeTab === 'repositorios'   && <ProjRepositoriosTab />}
+                    {activeTab === 'equipo'         && <ProjEquipoTab />}
+                    {activeTab === 'configuracion'  && <ProjConfiguracionTab />}
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+            </div>
+          </AppFrame>
         </motion.div>
       </div>
     </section>

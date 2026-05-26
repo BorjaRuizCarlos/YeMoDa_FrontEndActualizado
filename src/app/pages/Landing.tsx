@@ -14,7 +14,7 @@ import {
   Clock,
   AlertTriangle
 } from 'lucide-react';
-import { DashboardShowcase, CodeReviewShowcase } from '../components/LandingShowcase';
+import { DashboardShowcase, CodeReviewShowcase, ProjectDetailShowcase } from '../components/LandingShowcase';
 
 export default function Landing() {
   const features = [
@@ -135,6 +135,7 @@ export default function Landing() {
       </section>
 
       <DashboardShowcase />
+      <ProjectDetailShowcase />
       <CodeReviewShowcase />
 
       {/* Stats Bar */}
