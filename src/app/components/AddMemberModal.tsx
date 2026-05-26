@@ -102,6 +102,17 @@ export function AddMemberModal({
       return;
     }
 
+    // If we already have full data from server search or the candidates list, skip the extra fetch
+    const cached =
+      serverResults?.find((u) => u.id_user === selectedUserId) ??
+      candidates.find((c) => c.id_user === selectedUserId) ??
+      null;
+    if (cached) {
+      setSelectedUserDetails(cached);
+      setLoadingUserDetails(false);
+      return;
+    }
+
     let cancelled = false;
     setLoadingUserDetails(true);
 
@@ -119,7 +130,7 @@ export function AddMemberModal({
     return () => {
       cancelled = true;
     };
-  }, [selectedUserId]);
+  }, [selectedUserId, serverResults, candidates]);
 
   const selectedCandidate = useMemo(
     () =>
