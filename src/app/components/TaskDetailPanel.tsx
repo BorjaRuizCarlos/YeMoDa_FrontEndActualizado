@@ -800,8 +800,8 @@ export function TaskDetailPanel({
               </div>
 
               {showWarningsSidePanel && (
-                <div className="flex-1 min-w-0 border-l border-border bg-surface-secondary/40 flex flex-col">
-                  <div className="px-4 py-3 border-b border-border bg-warning/10 shrink-0">
+                <div className="flex-1 min-w-0 border-l border-border bg-card flex flex-col">
+                  <div className="px-4 py-3 border-b border-border bg-surface-secondary shrink-0">
                     <p className="text-[11px] font-medium text-foreground flex items-center gap-1.5">
                       <AlertTriangle className="w-3.5 h-3.5 text-warning" /> Warnings y Conexiones
                     </p>
@@ -816,10 +816,10 @@ export function TaskDetailPanel({
                         {activeWarnings.map((w) => {
                           const sev = w.severity ?? 'warning';
                           const sevStyle = sev === 'critical'
-                            ? 'bg-destructive/15 border-destructive/40'
+                            ? 'bg-card border-l-2 border-l-destructive border-destructive/30'
                             : sev === 'info'
-                            ? 'bg-info/15 border-info/40'
-                            : 'bg-warning/15 border-warning/40';
+                            ? 'bg-card border-l-2 border-l-info border-info/30'
+                            : 'bg-card border-l-2 border-l-warning border-warning/30';
                           const SevIcon = sev === 'critical' ? ShieldAlert : sev === 'info' ? Info : AlertTriangle;
                           const iconColor = sev === 'critical' ? 'text-destructive' : sev === 'info' ? 'text-info' : 'text-warning';
                           return (
