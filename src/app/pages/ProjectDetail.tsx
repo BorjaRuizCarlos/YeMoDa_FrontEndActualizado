@@ -92,7 +92,7 @@ export default function ProjectDetail() {
   }, [sprints]);
   // ── Tasks ─────────────────────────────────────────────────────────────────
   const { statuses, refetch: refetchTasks } = useApiTasks(selectedBoardId, projectId);
-  const { data: allProjectTasks } = useApiTasks(undefined, projectId);
+  const { data: allProjectTasks, refetch: refetchAllProjectTasks } = useApiTasks(undefined, projectId);
 
   // ── Members + Users ───────────────────────────────────────────────────────
   const { data: members, loading: loadingMembers, refetch: refetchMembers } = useApiProjectMembers(projectId);
