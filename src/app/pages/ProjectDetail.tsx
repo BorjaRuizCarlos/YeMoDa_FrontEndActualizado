@@ -96,7 +96,7 @@ export default function ProjectDetail() {
 
   // ── Members + Users ───────────────────────────────────────────────────────
   const { data: members, loading: loadingMembers, refetch: refetchMembers } = useApiProjectMembers(projectId);
-  const { data: users, loading: loadingUsers } = useApiUsers();
+  const { data: users, loading: loadingUsers, refetch: refetchUsers } = useApiUsers();
   const { data: roles } = useApiRoles();
 
   const currentUserId = Number(user?.id ?? 0);
@@ -140,6 +140,7 @@ export default function ProjectDetail() {
       await usersService.addMember(projectId, userId, roleId ?? undefined);
       toast.success('Miembro agregado');
       refetchMembers();
+      refetchUsers();
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'No se pudo agregar el miembro';
       toast.error(msg);
