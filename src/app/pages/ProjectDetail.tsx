@@ -137,21 +137,6 @@ export default function ProjectDetail() {
     if (!canManageMembers) {
       throw new Error('Solo el Project Manager puede agregar miembros.');
     }
-    const selectedUser = (users ?? []).find((candidate) => candidate.id_user === userId) ?? null;
-    const allowedRoleIds = getAllowedProjectRoleIdsForUser(selectedUser, projectRoleIds);
-    const githubState = getUserGithubConnectionState(selectedUser);
-
-    if (roleId == null) {
-      throw new Error('Debes seleccionar un rol antes de agregar a la persona.');
-    }
-    if (!allowedRoleIds.includes(roleId)) {
-      throw new Error(isStakeholderSystemUser(selectedUser)
-        ? 'Los Stakeholders solo pueden entrar con rol Stakeholder.'
-        : 'Debes asignar Product Owner, Scrum Master o Developer.');
-    }
-    if (!bypassGithubCheck && !isStakeholderSystemUser(selectedUser) && githubState.connected !== true) {
-      throw new Error('No puedes agregar a esta persona porque GitHub no esta conectado o no se pudo verificar.');
-    }
     try {
       await usersService.addMember(projectId, userId, roleId ?? undefined);
       toast.success('Miembro agregado');
