@@ -1278,7 +1278,11 @@ export function ProjectTasksWorkspace({
                             toast.success('Board eliminado.');
                           }).catch(() => toast.error('No se pudo eliminar el board.'));
                         }}
-                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 h-5 w-5 rounded-[3px] bg-destructive/10 border border-destructive/30 text-destructive inline-flex items-center justify-center transition-opacity"
+                        className={`absolute top-2 right-2 opacity-0 group-hover:opacity-100 h-5 w-5 rounded-[3px] inline-flex items-center justify-center transition-opacity ${
+                          selectedBoardId === board.id_board
+                            ? 'bg-white/20 border border-white/40 text-white hover:bg-white/30'
+                            : 'bg-destructive/10 border border-destructive/30 text-destructive hover:bg-destructive/20'
+                        }`}
                       >
                         <Trash2 className="w-3 h-3" />
                       </button>
