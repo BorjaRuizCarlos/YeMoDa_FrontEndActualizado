@@ -74,34 +74,48 @@ const NAV_ITEMS: Array<{
 ];
 
 const DEMO_PROYECTOS = [
-  { id: 1, nombre: 'E-Commerce Redesign',   estado: 'En progreso', progreso: 72, dias: '12d', tareas: '8 de 11' },
-  { id: 2, nombre: 'Mobile App v2',          estado: 'En progreso', progreso: 45, dias: '8d',  tareas: '4 de 9'  },
-  { id: 3, nombre: 'API Gateway Migration',  estado: 'Planeación',  progreso: 20, dias: '21d', tareas: '2 de 10' },
-  { id: 4, nombre: 'Admin Dashboard',        estado: 'Planeación',  progreso: 0,  dias: '30d', tareas: '0 de 6'  },
-  { id: 5, nombre: 'Analytics Platform',     estado: 'En progreso', progreso: 88, dias: '4d',  tareas: '7 de 8'  },
+  { id: 1, nombre: 'E-Commerce Redesign',   estado: 'En progreso', progreso: 72, dias: '12d', tareas: '8 de 11', fecha: '7 jun 2026'  },
+  { id: 2, nombre: 'Mobile App v2',          estado: 'En progreso', progreso: 45, dias: '8d',  tareas: '4 de 9',  fecha: '3 jun 2026'  },
+  { id: 3, nombre: 'API Gateway Migration',  estado: 'Planeación',  progreso: 20, dias: '21d', tareas: '2 de 10', fecha: '16 jun 2026' },
+  { id: 4, nombre: 'Admin Dashboard',        estado: 'Planeación',  progreso: 0,  dias: '30d', tareas: '0 de 6',  fecha: '25 jun 2026' },
+  { id: 5, nombre: 'Analytics Platform',     estado: 'En progreso', progreso: 88, dias: '4d',  tareas: '7 de 8',  fecha: '30 may 2026' },
 ];
 
 const DEMO_ALERTAS = [
   {
-    id: 1, tipo: 'warning',
+    id: 1, tipo: 'warning', activo: true,
     titulo: 'Deprecated dependency detected in package.json',
     tarea: 'Project scaffolding review',
     tiempo: 'hace 1d',
     etiqueta: 'Activo',
   },
   {
-    id: 2, tipo: 'danger',
+    id: 2, tipo: 'danger', activo: true,
     titulo: 'Critical: API endpoint exposed without authentication',
     tarea: 'API Gateway setup task',
     tiempo: 'hace 5h',
     etiqueta: 'Activo',
   },
   {
-    id: 3, tipo: 'danger',
+    id: 3, tipo: 'danger', activo: true,
     titulo: 'Critical: Missing input validation on checkout form',
     tarea: 'Build checkout flow',
     tiempo: 'hace 2h',
     etiqueta: 'Activo',
+  },
+  {
+    id: 4, tipo: 'warning', activo: false,
+    titulo: 'Unused environment variable in production config',
+    tarea: 'Deploy staging environment',
+    tiempo: 'hace 3d',
+    etiqueta: 'Resuelto',
+  },
+  {
+    id: 5, tipo: 'warning', activo: false,
+    titulo: 'High memory usage detected in background worker',
+    tarea: 'Performance optimization sprint',
+    tiempo: 'hace 5d',
+    etiqueta: 'Resuelto',
   },
 ];
 
@@ -247,15 +261,22 @@ function DashboardView({ onNavigate }: { onNavigate: (v: DemoView) => void }) {
           </button>
         </div>
         <div className="grid grid-cols-2 gap-1">
-          {DEMO_PROYECTOS.slice(0, 4).map((p) => (
-            <div key={p.id} className="rounded-[3px] border border-border bg-card/50 px-2 py-1.5">
-              <p className="text-[8px] font-medium text-foreground truncate">{p.nombre}</p>
-              <div className="flex items-center justify-between mt-0.5">
-                <span className="text-[7px] text-muted-foreground">{p.tareas} tareas</span>
-                <span className="text-[7px] text-success font-medium">Al día</span>
+          {DEMO_PROYECTOS.slice(0, 4).map((p) => {
+            const days = parseInt(p.dias);
+            const atRisk = days <= 10 && p.progreso < 60;
+            const onTrack = !atRisk;
+            return (
+              <div key={p.id} className="rounded-[3px] border border-border bg-card/50 px-2 py-1.5">
+                <p className="text-[8px] font-medium text-foreground truncate">{p.nombre}</p>
+                <div className="flex items-center justify-between mt-0.5">
+                  <span className="text-[7px] text-muted-foreground">{p.tareas} tareas</span>
+                  <span className={`text-[7px] font-medium ${onTrack ? 'text-success' : 'text-warning'}`}>
+                    {onTrack ? 'Al día' : 'En riesgo'}
+                  </span>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>
@@ -276,7 +297,8 @@ function ProyectosView() {
       </div>
       <div className="flex items-center gap-1.5 px-3 py-1.5 border-b border-border bg-card/30 shrink-0">
         <span className="text-[8px] px-2 py-0.5 rounded-full bg-primary/15 text-primary font-medium">Todos 5</span>
-        <span className="text-[8px] px-2 py-0.5 rounded-full border border-border text-muted-foreground">Planeación 5</span>
+        <span className="text-[8px] px-2 py-0.5 rounded-full border border-border text-muted-foreground">En progreso 3</span>
+        <span className="text-[8px] px-2 py-0.5 rounded-full border border-border text-muted-foreground">Planeación 2</span>
       </div>
       <div className="overflow-y-auto flex-1">
         <table className="w-full text-[9px]">
@@ -296,14 +318,25 @@ function ProyectosView() {
                 <td className="px-2 py-2">
                   <span className="px-1.5 py-0.5 rounded-[3px] border border-border/60 text-muted-foreground bg-surface-secondary/30">● {p.estado}</span>
                 </td>
-                <td className="px-2 py-2 text-right">
-                  <div className="flex items-center justify-end gap-1">
-                    <span className="text-muted-foreground">0%</span>
-                    <span className="w-1.5 h-1.5 rounded-full bg-warning" />
+                <td className="px-2 py-2">
+                  <div className="flex items-center justify-end gap-1.5">
+                    <div className="w-10 h-1 rounded-full bg-border overflow-hidden">
+                      <div
+                        className={`h-full rounded-full ${
+                          p.progreso >= 70 ? 'bg-success' : p.progreso >= 40 ? 'bg-warning' : 'bg-destructive'
+                        }`}
+                        style={{ width: `${p.progreso}%` }}
+                      />
+                    </div>
+                    <span className={`text-[9px] w-6 text-right ${
+                      p.progreso >= 70 ? 'text-success' : p.progreso >= 40 ? 'text-warning' : 'text-destructive'
+                    }`}>{p.progreso}%</span>
                   </div>
                 </td>
-                <td className="px-2 py-2 text-right text-muted-foreground">31 may 2026</td>
-                <td className="px-3 py-2 text-right text-warning font-semibold">{p.dias}</td>
+                <td className="px-2 py-2 text-right text-muted-foreground">{p.fecha}</td>
+                <td className={`px-3 py-2 text-right font-semibold ${
+                  p.dias === '4d' ? 'text-destructive' : p.dias === '8d' || p.dias === '12d' ? 'text-warning' : 'text-muted-foreground'
+                }`}>{p.dias}</td>
               </tr>
             ))}
           </tbody>
@@ -426,32 +459,52 @@ function AlertasView() {
     <div className="flex flex-col h-full overflow-hidden">
       <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-card/60 shrink-0">
         <button className="text-[8px] flex items-center gap-1 px-2 py-0.5 rounded-[3px] border border-border text-muted-foreground">↻ Refrescar</button>
-        <span className="text-[8px] px-2 py-0.5 rounded-full bg-primary/15 text-primary font-medium">Todos 3</span>
+        <span className="text-[8px] px-2 py-0.5 rounded-full bg-primary/15 text-primary font-medium">Todos 5</span>
         <span className="text-[8px] px-2 py-0.5 rounded-full border border-border text-muted-foreground">Activos 3</span>
-        <span className="text-[8px] px-2 py-0.5 rounded-full border border-border text-muted-foreground">Resueltos 0</span>
+        <span className="text-[8px] px-2 py-0.5 rounded-full border border-border text-muted-foreground">Resueltos 2</span>
       </div>
       <div className="flex items-center gap-4 px-3 py-1.5 border-b border-border/50 bg-background/30 shrink-0 text-[8px] text-muted-foreground">
         <span className="text-warning font-medium">▲ 3 activos</span>
-        <span>○ 0 resueltos</span>
-        <span>◎ 3 total</span>
+        <span className="text-success font-medium">○ 2 resueltos</span>
+        <span>◎ 5 total</span>
       </div>
-      <div className="px-3 py-1.5 border-b border-border/30 shrink-0">
-        <span className="text-[8px] text-muted-foreground font-medium uppercase tracking-wider">Ayer</span>
-      </div>
-      <div className="flex-1 overflow-y-auto divide-y divide-border/50">
-        {DEMO_ALERTAS.map((a) => (
-          <div key={a.id} className="px-3 py-2.5 hover:bg-surface-secondary/20 transition-colors">
-            <div className="flex items-start gap-2">
-              <input type="checkbox" className="mt-0.5 w-3 h-3 shrink-0 accent-primary" readOnly />
-              <AlertTriangle className={`w-3 h-3 mt-0.5 shrink-0 ${a.tipo === 'danger' ? 'text-destructive' : 'text-warning'}`} />
-              <div className="flex-1 min-w-0">
-                <p className="text-[9px] text-foreground leading-tight line-clamp-2">{a.titulo}</p>
-                <p className="text-[8px] text-muted-foreground mt-0.5 truncate">↗ Tarea: {a.tarea} · {a.tiempo}</p>
+      <div className="flex-1 overflow-y-auto">
+        <div className="px-3 py-1.5 border-b border-border/30 bg-surface-secondary/20">
+          <span className="text-[8px] text-muted-foreground font-medium uppercase tracking-wider">Ayer</span>
+        </div>
+        <div className="divide-y divide-border/50">
+          {DEMO_ALERTAS.filter(a => a.activo).map((a) => (
+            <div key={a.id} className="px-3 py-2.5 hover:bg-surface-secondary/20 transition-colors">
+              <div className="flex items-start gap-2">
+                <input type="checkbox" className="mt-0.5 w-3 h-3 shrink-0 accent-primary" readOnly />
+                <AlertTriangle className={`w-3 h-3 mt-0.5 shrink-0 ${a.tipo === 'danger' ? 'text-destructive' : 'text-warning'}`} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[9px] text-foreground leading-tight line-clamp-2">{a.titulo}</p>
+                  <p className="text-[8px] text-muted-foreground mt-0.5 truncate">↗ Tarea: {a.tarea} · {a.tiempo}</p>
+                </div>
+                <span className="text-[7px] px-1.5 py-0.5 rounded-[3px] bg-destructive/15 text-destructive font-medium shrink-0">● {a.etiqueta}</span>
               </div>
-              <span className="text-[7px] px-1.5 py-0.5 rounded-[3px] bg-primary/15 text-primary font-medium shrink-0">● {a.etiqueta}</span>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
+        <div className="px-3 py-1.5 border-b border-border/30 border-t border-t-border/50 bg-surface-secondary/20 mt-1">
+          <span className="text-[8px] text-muted-foreground font-medium uppercase tracking-wider">Esta Semana</span>
+        </div>
+        <div className="divide-y divide-border/50">
+          {DEMO_ALERTAS.filter(a => !a.activo).map((a) => (
+            <div key={a.id} className="px-3 py-2.5 opacity-60 hover:opacity-80 transition-opacity">
+              <div className="flex items-start gap-2">
+                <input type="checkbox" checked className="mt-0.5 w-3 h-3 shrink-0 accent-primary" readOnly />
+                <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0 text-muted-foreground" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[9px] text-muted-foreground leading-tight line-clamp-2 line-through">{a.titulo}</p>
+                  <p className="text-[8px] text-muted-foreground/60 mt-0.5 truncate">↗ Tarea: {a.tarea} · {a.tiempo}</p>
+                </div>
+                <span className="text-[7px] px-1.5 py-0.5 rounded-[3px] bg-success/15 text-success font-medium shrink-0">✓ {a.etiqueta}</span>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -555,8 +608,10 @@ function PerfilView() {
               <tr key={p.id}>
                 <td className="py-1 text-foreground truncate max-w-[90px]">{p.nombre}</td>
                 <td className="py-1 text-muted-foreground">● {p.estado}</td>
-                <td className="py-1 text-right text-muted-foreground">31 may 2026</td>
-                <td className="py-1 text-right text-warning font-semibold">{p.dias}</td>
+                <td className="py-1 text-right text-muted-foreground">{p.fecha}</td>
+                <td className={`py-1 text-right font-semibold ${
+                  parseInt(p.dias) <= 5 ? 'text-destructive' : parseInt(p.dias) <= 14 ? 'text-warning' : 'text-muted-foreground'
+                }`}>{p.dias}</td>
               </tr>
             ))}
           </tbody>
