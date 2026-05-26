@@ -74,42 +74,42 @@ const NAV_ITEMS: Array<{
 ];
 
 const DEMO_PROYECTOS = [
-  { id: 1, nombre: 'proyectopruebayemoda3',  estado: 'Planeación', progreso: 0,  dias: '5d', tareas: '0 de 1' },
-  { id: 2, nombre: 'proyetoyemoda4',         estado: 'Planeación', progreso: 0,  dias: '5d', tareas: '0 de 1' },
-  { id: 3, nombre: 'prouyectoyemodaprueba5', estado: 'Planeación', progreso: 0,  dias: '5d', tareas: '0 de 1' },
-  { id: 4, nombre: 'proyectopruebat yemoda6',estado: 'Planeación', progreso: 0,  dias: '5d', tareas: '0 de 1' },
-  { id: 5, nombre: 'Proyecto Prueba Yemoda 7',estado:'Planeación', progreso: 67, dias: '5d', tareas: '0 de 3' },
+  { id: 1, nombre: 'E-Commerce Redesign',   estado: 'En progreso', progreso: 72, dias: '12d', tareas: '8 de 11' },
+  { id: 2, nombre: 'Mobile App v2',          estado: 'En progreso', progreso: 45, dias: '8d',  tareas: '4 de 9'  },
+  { id: 3, nombre: 'API Gateway Migration',  estado: 'Planeación',  progreso: 20, dias: '21d', tareas: '2 de 10' },
+  { id: 4, nombre: 'Admin Dashboard',        estado: 'Planeación',  progreso: 0,  dias: '30d', tareas: '0 de 6'  },
+  { id: 5, nombre: 'Analytics Platform',     estado: 'En progreso', progreso: 88, dias: '4d',  tareas: '7 de 8'  },
 ];
 
 const DEMO_ALERTAS = [
   {
     id: 1, tipo: 'warning',
-    titulo: 'Password recovery link has href="#"',
-    tarea: 'Implementar pantalla de Login en HTML',
-    tiempo: 'hace 14h',
+    titulo: 'Deprecated dependency detected in package.json',
+    tarea: 'Project scaffolding review',
+    tiempo: 'hace 1d',
     etiqueta: 'Activo',
   },
   {
     id: 2, tipo: 'danger',
-    titulo: 'Critical: No CSRF token present in the form',
-    tarea: 'Implementar pantalla de Login en HTML',
-    tiempo: 'hace 14h',
+    titulo: 'Critical: API endpoint exposed without authentication',
+    tarea: 'API Gateway setup task',
+    tiempo: 'hace 5h',
     etiqueta: 'Activo',
   },
   {
     id: 3, tipo: 'danger',
-    titulo: 'Critical: Form action attribute points to "#"',
-    tarea: 'Implementar pantalla de Login en HTML',
-    tiempo: 'hace 14h',
+    titulo: 'Critical: Missing input validation on checkout form',
+    tarea: 'Build checkout flow',
+    tiempo: 'hace 2h',
     etiqueta: 'Activo',
   },
 ];
 
 const PROXIMAS_VENCER = [
-  { id: 1, titulo: 'hu3',                             proyecto: 'Proyecto Prueba Yemoda 7',  tag: 'mañana' },
-  { id: 2, titulo: 'Implementar pantalla de Login en HTML', proyecto: 'proyectopruebayemoda6', tag: 'en 4d' },
-  { id: 3, titulo: 'hu7',                             proyecto: 'Proyecto Prueba Yemoda 7',  tag: 'en 4d' },
-  { id: 4, titulo: 'Implementar pantalla de Login en HTML', proyecto: 'proyectopruebayemoda3', tag: 'en 4d' },
+  { id: 1, titulo: 'Implement payment gateway',   proyecto: 'E-Commerce Redesign',  tag: 'mañana' },
+  { id: 2, titulo: 'Auth flow unit tests',         proyecto: 'Mobile App v2',         tag: 'en 4d'  },
+  { id: 3, titulo: 'Load balancer configuration',  proyecto: 'API Gateway Migration', tag: 'en 4d'  },
+  { id: 4, titulo: 'User role permissions UI',     proyecto: 'Admin Dashboard',       tag: 'en 6d'  },
 ];
 
 const TAG_COLOR: Record<string, string> = {
@@ -137,12 +137,12 @@ const VIEW_LABEL: Record<DemoView, string> = {
 
 function DashboardView({ onNavigate }: { onNavigate: (v: DemoView) => void }) {
   const kpis = [
-    { label: 'PROYECTOS',   value: '5',  sub: 'activos',          tone: 'primary' },
-    { label: 'TAREAS',      value: '7',  sub: 'en tus proyectos', tone: 'info'    },
-    { label: 'COMPLETADAS', value: '0',  sub: 'tareas terminadas',tone: 'success' },
-    { label: 'PENDIENTES',  value: '7',  sub: 'tareas abiertas',  tone: 'warning' },
-    { label: 'VENCIDAS',    value: '0',  sub: 'requieren atención',tone:'muted'   },
-    { label: 'WARNINGS',    value: '3',  sub: 'alertas activas',  tone: 'danger'  },
+    { label: 'PROYECTOS',   value: '5',  sub: 'activos',           tone: 'primary' },
+    { label: 'TAREAS',      value: '34', sub: 'en tus proyectos',  tone: 'info'    },
+    { label: 'COMPLETADAS', value: '21', sub: 'tareas terminadas',  tone: 'success' },
+    { label: 'PENDIENTES',  value: '13', sub: 'tareas abiertas',   tone: 'warning' },
+    { label: 'VENCIDAS',    value: '3',  sub: 'requieren atención', tone: 'muted'   },
+    { label: 'WARNINGS',    value: '2',  sub: 'alertas activas',   tone: 'danger'  },
   ];
   const toneClass: Record<string, string> = {
     primary: 'text-primary',
@@ -157,7 +157,7 @@ function DashboardView({ onNavigate }: { onNavigate: (v: DemoView) => void }) {
     <div className="p-2.5 space-y-2 overflow-y-auto h-full">
       {/* Hola */}
       <div className="flex items-center justify-between">
-        <span className="text-[9px] text-muted-foreground">Hola, <span className="font-semibold text-foreground">Christian</span></span>
+        <span className="text-[9px] text-muted-foreground">Hola, <span className="font-semibold text-foreground">Alex</span></span>
         <button className="text-[8px] flex items-center gap-1 px-2 py-0.5 rounded-[3px] border border-border text-muted-foreground">
           ↻ Actualizar
         </button>
@@ -297,11 +297,11 @@ function ProyectosView() {
 
 function ReportesView() {
   const attProyectos = [
-    { nombre: 'proyectopruebayemoda3',  salud: '0%',  vencidas: '0 vencidas' },
-    { nombre: 'proyetoyemoda4',         salud: '0%',  vencidas: '0 vencidas' },
-    { nombre: 'proyectopruebat yemoda6',salud: '0%',  vencidas: '0 vencidas' },
-    { nombre: 'prouyectoyemodaprueba5', salud: '0%',  vencidas: '0 vencidas' },
-    { nombre: 'Proyecto Prueba Yemoda 7',salud: '67%', vencidas: '0 vencidas' },
+    { nombre: 'API Gateway Migration',  salud: '20%', vencidas: '2 vencidas' },
+    { nombre: 'Admin Dashboard',        salud: '0%',  vencidas: '0 vencidas' },
+    { nombre: 'Mobile App v2',          salud: '45%', vencidas: '1 vencida'  },
+    { nombre: 'E-Commerce Redesign',    salud: '72%', vencidas: '1 vencida'  },
+    { nombre: 'Analytics Platform',     salud: '88%', vencidas: '0 vencidas' },
   ];
   return (
     <div className="flex flex-col h-full overflow-y-auto p-2.5 space-y-2">
@@ -311,19 +311,19 @@ function ReportesView() {
           <span className="text-[7px] px-1.5 py-0.5 rounded-[3px] bg-warning/15 text-warning font-semibold uppercase tracking-wider">Requiere Atención</span>
           <span className="text-[8px] text-muted-foreground">5 proyectos</span>
         </div>
-        <div className="text-[22px] font-bold text-foreground leading-none mb-1">13% <span className="text-[9px] font-normal text-muted-foreground">SALUD DEL PORTAFOLIO</span></div>
+        <div className="text-[22px] font-bold text-foreground leading-none mb-1">48% <span className="text-[9px] font-normal text-muted-foreground">SALUD DEL PORTAFOLIO</span></div>
         <div className="space-y-0.5">
           <div className="flex items-center gap-1 text-[8px] text-muted-foreground">
             <TrendingDown className="w-2.5 h-2.5 text-destructive shrink-0" />
-            Velocidad −100% vs periodo anterior
+            Velocidad −18% vs periodo anterior
           </div>
           <div className="flex items-center gap-1 text-[8px] text-muted-foreground">
             <TrendingDown className="w-2.5 h-2.5 text-warning shrink-0" />
-            Tasa de completado 29% bajo la meta de 80%
+            Tasa de completado 62% bajo la meta de 80%
           </div>
           <div className="flex items-center gap-1 text-[8px] text-muted-foreground">
             <AlertTriangle className="w-2.5 h-2.5 text-warning shrink-0" />
-            Hay 3 warnings activos sin resolver
+            Hay 2 warnings activos sin resolver
           </div>
         </div>
       </div>
@@ -441,18 +441,18 @@ function PerfilView() {
           </div>
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
-              <span className="text-[10px] font-bold text-primary">C</span>
+              <span className="text-[10px] font-bold text-primary">A</span>
             </div>
             <div>
-              <p className="text-[9px] font-semibold text-foreground">Christian Hernandez</p>
-              <p className="text-[7px] text-muted-foreground">User</p>
+              <p className="text-[9px] font-semibold text-foreground">Alex García</p>
+              <p className="text-[7px] text-muted-foreground">Tech Lead</p>
             </div>
           </div>
           <div className="space-y-1">
             {[
-              { icon: User, label: 'Nombre',  val: 'Christian Hernandez' },
-              { icon: Activity, label: 'Correo', val: 'cehdeavila@hotmail.com' },
-              { icon: CheckCircle2, label: 'Rol', val: 'User' },
+              { icon: User, label: 'Nombre',  val: 'Alex García' },
+              { icon: Activity, label: 'Correo', val: 'alex.garcia@techco.io' },
+              { icon: CheckCircle2, label: 'Rol', val: 'Tech Lead' },
             ].map(({ icon: Icon, label, val }) => (
               <div key={label}>
                 <div className="flex items-center gap-1 text-[7px] text-muted-foreground mb-0.5">
@@ -486,7 +486,7 @@ function PerfilView() {
                 <Github className="w-3 h-3 text-foreground" />
                 <div>
                   <p className="text-[8px] text-success font-medium">● Ya estás conectado</p>
-                  <p className="text-[7px] text-muted-foreground">christianE2005</p>
+                  <p className="text-[7px] text-muted-foreground">alexdev2024</p>
                 </div>
               </div>
               <button className="text-[7px] px-1.5 py-0.5 rounded-[3px] border border-destructive/40 text-destructive">Desconectar</button>
@@ -541,15 +541,15 @@ export function DashboardShowcase() {
 
   return (
     <section id="demo" className="container mx-auto px-6 py-24 max-w-6xl scroll-mt-16">
-      <div className="grid lg:grid-cols-[1fr_1.7fr] gap-14 items-center">
+      <div className="flex flex-col items-center gap-10">
 
         {/* Texto */}
         <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          whileInView={{ opacity: 1, x: 0 }}
+          initial={{ opacity: 0, y: -16 }}
+          whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-80px' }}
           transition={{ duration: 0.5, ease: 'easeOut' }}
-          className="space-y-6"
+          className="space-y-5 text-center max-w-2xl w-full"
         >
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-[3px] border border-primary/20 bg-primary/10 text-primary text-[11px] font-medium">
             <Sparkles className="w-3 h-3" />
@@ -565,7 +565,7 @@ export function DashboardShowcase() {
             Real-time dashboard, project management, automated reports, risk alerts, and a profile integrated with GitHub and Azure — all connected so your team moves forward, not backward.
           </p>
 
-          <ul className="space-y-3">
+          <ul className="space-y-2 inline-flex flex-col text-left mx-auto">
             {[
               { icon: BarChart3, text: 'KPIs and portfolio health in real time' },
               { icon: AlertTriangle, text: 'AI-generated early risk alerts' },
@@ -581,7 +581,7 @@ export function DashboardShowcase() {
           </ul>
 
           {/* Nav pills */}
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 justify-center">
             {NAV_ITEMS.map(({ view, label }) => (
               <button
                 key={view}
@@ -597,22 +597,24 @@ export function DashboardShowcase() {
             ))}
           </div>
 
-          <Link
-            to="/login"
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-primary-foreground rounded-[3px] text-[13px] font-medium transition-colors"
-          >
-            Get started for free
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
+          <div className="flex justify-center">
+            <Link
+              to="/login"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-primary-foreground rounded-[3px] text-[13px] font-medium transition-colors"
+            >
+              Get started for free
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
         </motion.div>
 
         {/* App frame */}
         <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          whileInView={{ opacity: 1, x: 0 }}
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-80px' }}
           transition={{ duration: 0.5, ease: 'easeOut', delay: 0.1 }}
-          className="space-y-3"
+          className="w-full space-y-3"
         >
           <AppFrame url={`app.yemoda.io/${activeView}`}>
             <div className="grid grid-cols-[148px_minmax(0,1fr)] h-[480px] overflow-hidden">
@@ -663,10 +665,10 @@ export function DashboardShowcase() {
                 <div className="mt-auto pt-2 border-t border-border/50">
                   <div className="flex items-center gap-2 px-2 py-1.5">
                     <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
-                      <span className="text-[9px] font-bold text-primary">C</span>
+                      <span className="text-[9px] font-bold text-primary">A</span>
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[9px] font-medium text-foreground truncate">Christian H.</p>
+                      <p className="text-[9px] font-medium text-foreground truncate">Alex G.</p>
                     </div>
                   </div>
                 </div>
