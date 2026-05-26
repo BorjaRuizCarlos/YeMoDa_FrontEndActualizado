@@ -8,6 +8,7 @@ import {
 } from '@dnd-kit/core';
 import {
   SortableContext,
+  arrayMove,
   useSortable,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
@@ -108,7 +109,158 @@ function TaskCard({
   );
 }
 
+// ── Sortable column item (used in boards config panel) ────────────────────────
+function SortableColumnItem({
+  column,
+  boardColumnsByBoard,
+  refetchColumns,
+}: {
+  column: ApiBoardColumn;
+  boardColumnsByBoard: Map<number, ApiBoardColumn[]>;
+  refetchColumns: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: column.id_column });
 
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 }}
+      className="flex items-center justify-between rounded-[3px] border border-border bg-surface-secondary/40 px-2 py-1.5 text-[11px]"
+    >
+      {/* Drag handle */}
+      <div className="flex items-center gap-2 min-w-0">
+        <button type="button" {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground shrink-0">
+          <GripVertical className="w-3.5 h-3.5" />
+        </button>
+        <span className="truncate">{column.order}. {column.name}</span>
+      </div>
+
+      {/* Actions */}
+      <div className="flex items-center gap-2 shrink-0 ml-2">
+        <button
+          type="button"
+          onClick={() => {
+            const boardCols = boardColumnsByBoard.get(column.board) ?? [];
+            const currentFinal = boardCols.find((c) => c.is_final && c.id_column !== column.id_column);
+            const ops: Promise<unknown>[] = [];
+            if (!column.is_final && currentFinal) {
+              ops.push(tasksService.updateBoardColumn(currentFinal.id_column, { is_final: false }));
+            }
+            ops.push(tasksService.updateBoardColumn(column.id_column, { is_final: !column.is_final }));
+            void Promise.all(ops).then(() => refetchColumns());
+          }}
+          className={`h-6 px-2.5 rounded-full border text-[10px] inline-flex items-center gap-1 transition-colors ${
+            column.is_final
+              ? 'border-success/30 bg-success/10 text-success'
+              : 'border-border text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          {column.is_final && <Check className="w-3 h-3" />}
+          {column.is_final ? 'Final' : 'Marcar final'}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            const boardCols = boardColumnsByBoard.get(column.board) ?? [];
+            const currentReview = boardCols.find((c) => c.is_review && c.id_column !== column.id_column);
+            const ops: Promise<unknown>[] = [];
+            if (!column.is_review && currentReview) {
+              ops.push(tasksService.updateBoardColumn(currentReview.id_column, { is_review: false }));
+            }
+            ops.push(tasksService.updateBoardColumn(column.id_column, { is_review: !column.is_review }));
+            void Promise.all(ops).then(() => refetchColumns());
+          }}
+          className={`h-6 px-2.5 rounded-full border text-[10px] inline-flex items-center gap-1 transition-colors ${
+            column.is_review
+              ? 'border-info/30 bg-info/10 text-info'
+              : 'border-border text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          {column.is_review && <Bot className="w-3 h-3" />}
+          {column.is_review ? 'Revisión IA' : 'Marcar revisión'}
+        </button>
+        <button
+          type="button"
+          onClick={() => { void tasksService.deleteBoardColumn(column.id_column).then(() => refetchColumns()); }}
+          className="h-6 px-2 rounded-[3px] border border-destructive/30 text-destructive text-[10px] hover:bg-destructive/10 transition-colors"
+        >
+          Eliminar
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Drag-sortable column list ─────────────────────────────────────────────────
+function ColumnSortableList({
+  columns,
+  boardColumnsByBoard,
+  refetchColumns,
+}: {
+  columns: ApiBoardColumn[];
+  boardColumnsByBoard: Map<number, ApiBoardColumn[]>;
+  refetchColumns: () => void;
+}) {
+  const [localColumns, setLocalColumns] = useState<ApiBoardColumn[]>(columns);
+  const [saving, setSaving] = useState(false);
+
+  // Sync when props change (e.g. after refetch)
+  useEffect(() => {
+    setLocalColumns(columns);
+  }, [columns]);
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = localColumns.findIndex((c) => c.id_column === Number(active.id));
+    const newIndex = localColumns.findIndex((c) => c.id_column === Number(over.id));
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const reordered = arrayMove(localColumns, oldIndex, newIndex).map((col, i) => ({
+      ...col,
+      order: i + 1,
+    }));
+    setLocalColumns(reordered); // optimistic
+
+    setSaving(true);
+    try {
+      await Promise.all(
+        reordered
+          .filter((col, i) => col.order !== columns[i]?.order || col.id_column !== columns[i]?.id_column)
+          .map((col) => tasksService.updateBoardColumn(col.id_column, { order: col.order })),
+      );
+      refetchColumns();
+    } catch {
+      setLocalColumns(columns); // rollback
+      toast.error('No se pudo guardar el orden de las columnas.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-2">
+      {saving && (
+        <p className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+          <Loader2 className="w-3 h-3 animate-spin" /> Guardando orden…
+        </p>
+      )}
+      <DndContext collisionDetection={closestCenter} onDragEnd={(e) => void handleDragEnd(e)}>
+        <SortableContext items={localColumns.map((c) => c.id_column)} strategy={verticalListSortingStrategy}>
+          {localColumns.map((column) => (
+            <SortableColumnItem
+              key={column.id_column}
+              column={column}
+              boardColumnsByBoard={boardColumnsByBoard}
+              refetchColumns={refetchColumns}
+            />
+          ))}
+        </SortableContext>
+      </DndContext>
+    </div>
+  );
+}
 
 export function ProjectTasksWorkspace({
   projectId,
@@ -1141,58 +1293,11 @@ export function ProjectTasksWorkspace({
             <h3 className="text-[12px] font-medium text-foreground mb-2">{selectedBoard ? selectedBoard.name : 'Selecciona un board'}</h3>
             {selectedBoard && (
               <>
-              <div className="space-y-2">
-                {(boardColumnsByBoard.get(selectedBoard.id_board) ?? []).map((column) => (
-                  <div key={column.id_column} className="flex items-center justify-between rounded-[3px] border border-border bg-surface-secondary/40 px-2 py-1.5 text-[11px]">
-                    <span>{column.order}. {column.name}</span>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const boardCols = boardColumnsByBoard.get(column.board) ?? [];
-                          const currentFinal = boardCols.find((c) => c.is_final && c.id_column !== column.id_column);
-                          const ops: Promise<unknown>[] = [];
-                          if (!column.is_final && currentFinal) {
-                            ops.push(tasksService.updateBoardColumn(currentFinal.id_column, { is_final: false }));
-                          }
-                          ops.push(tasksService.updateBoardColumn(column.id_column, { is_final: !column.is_final }));
-                          void Promise.all(ops).then(() => refetchColumns());
-                        }}
-                        className={`h-6 px-2.5 rounded-full border text-[10px] inline-flex items-center gap-1 transition-colors ${
-                          column.is_final
-                            ? 'border-success/30 bg-success/10 text-success'
-                            : 'border-border text-muted-foreground hover:text-foreground'
-                        }`}
-                      >
-                        {column.is_final && <Check className="w-3 h-3" />}
-                        {column.is_final ? 'Final' : 'Marcar final'}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const boardCols = boardColumnsByBoard.get(column.board) ?? [];
-                          const currentReview = boardCols.find((c) => c.is_review && c.id_column !== column.id_column);
-                          const ops: Promise<unknown>[] = [];
-                          if (!column.is_review && currentReview) {
-                            ops.push(tasksService.updateBoardColumn(currentReview.id_column, { is_review: false }));
-                          }
-                          ops.push(tasksService.updateBoardColumn(column.id_column, { is_review: !column.is_review }));
-                          void Promise.all(ops).then(() => refetchColumns());
-                        }}
-                        className={`h-6 px-2.5 rounded-full border text-[10px] inline-flex items-center gap-1 transition-colors ${
-                          column.is_review
-                            ? 'border-info/30 bg-info/10 text-info'
-                            : 'border-border text-muted-foreground hover:text-foreground'
-                        }`}
-                      >
-                        {column.is_review && <Bot className="w-3 h-3" />}
-                        {column.is_review ? 'Revisión IA' : 'Marcar revisión'}
-                      </button>
-                      <button type="button" onClick={() => { void tasksService.deleteBoardColumn(column.id_column).then(() => refetchColumns()); }} className="h-6 px-2 rounded-[3px] border border-destructive/30 text-destructive text-[10px]">Eliminar</button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <ColumnSortableList
+                columns={boardColumnsByBoard.get(selectedBoard.id_board) ?? []}
+                boardColumnsByBoard={boardColumnsByBoard}
+                refetchColumns={refetchColumns}
+              />
 
               {/* ── Board AI settings ── */}
               <div className="mt-4 pt-4 border-t border-border space-y-3">
