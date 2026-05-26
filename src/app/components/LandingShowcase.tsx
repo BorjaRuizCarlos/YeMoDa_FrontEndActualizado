@@ -183,19 +183,19 @@ function DashboardView({ onNavigate }: { onNavigate: (v: DemoView) => void }) {
             <div className="relative w-16 h-16">
               <svg viewBox="0 0 36 36" className="w-16 h-16 -rotate-90">
                 {/* track */}
-                <circle cx="18" cy="18" r="14" fill="none" stroke="hsl(var(--border))" strokeWidth="3.5" />
-                {/* on track 40% */}
+                <circle cx="18" cy="18" r="14" fill="none" strokeWidth="3.5" style={{ stroke: 'rgba(255,255,255,0.1)' }} />
+                {/* on track 40% — green */}
                 <circle cx="18" cy="18" r="14" fill="none" strokeWidth="3.5" strokeLinecap="butt"
                   strokeDasharray="35.2 52.8" strokeDashoffset="0"
-                  stroke="hsl(var(--success))" />
-                {/* warning 20% */}
+                  style={{ stroke: '#22c55e' }} />
+                {/* warning 20% — amber */}
                 <circle cx="18" cy="18" r="14" fill="none" strokeWidth="3.5" strokeLinecap="butt"
                   strokeDasharray="17.6 70.4" strokeDashoffset="52.8"
-                  stroke="hsl(var(--warning))" />
-                {/* at risk 40% */}
+                  style={{ stroke: '#f59e0b' }} />
+                {/* at risk 40% — red */}
                 <circle cx="18" cy="18" r="14" fill="none" strokeWidth="3.5" strokeLinecap="butt"
                   strokeDasharray="35.2 52.8" strokeDashoffset="35.2"
-                  stroke="hsl(var(--destructive))" />
+                  style={{ stroke: '#ef4444' }} />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <span className="text-[11px] font-bold text-foreground">5</span>
@@ -351,10 +351,10 @@ function ReportesView() {
       {/* KPIs */}
       <div className="grid grid-cols-4 gap-1.5">
         {[
-          { label: 'TOTAL TAREAS',  value: '7',  sub: 'tareas registradas', dot: 'bg-info'       },
-          { label: 'COMPLETADAS',   value: '2',  sub: '29% del total',      dot: 'bg-destructive'},
-          { label: 'PENDIENTES',    value: '5',  sub: 'tareas por completar',dot:'bg-warning'    },
-          { label: 'VENCIDAS',      value: '0',  sub: 'pasaron su fecha',    dot: 'bg-success'   },
+          { label: 'TOTAL TAREAS',  value: '34', sub: 'tareas registradas',  dot: 'bg-info'       },
+          { label: 'COMPLETADAS',   value: '21', sub: '62% del total',        dot: 'bg-success'    },
+          { label: 'PENDIENTES',    value: '13', sub: 'tareas por completar', dot: 'bg-warning'    },
+          { label: 'VENCIDAS',      value: '3',  sub: 'pasaron su fecha',     dot: 'bg-destructive'},
         ].map((k) => (
           <div key={k.label} className="rounded-[3px] border border-border bg-background p-1.5">
             <div className="flex items-center gap-1 mb-0.5">
@@ -372,19 +372,31 @@ function ReportesView() {
         <div className="rounded-[3px] border border-border bg-background p-2">
           <div className="text-[8px] text-muted-foreground uppercase tracking-wider mb-0.5">Tendencia · 2 Semanas</div>
           <div className="text-[9px] font-semibold text-foreground mb-1.5">Tareas completadas por semana</div>
-          {/* Mini sparkline */}
-          <svg viewBox="0 0 120 40" className="w-full h-10">
+          {/* Sparkline */}
+          <svg viewBox="0 0 120 50" className="w-full h-14">
             <defs>
-              <linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="hsl(var(--destructive))" stopOpacity="0.3" />
-                <stop offset="100%" stopColor="hsl(var(--destructive))" stopOpacity="0.02" />
+              <linearGradient id="demoSparkGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#f59e0b" stopOpacity="0.35" />
+                <stop offset="100%" stopColor="#f59e0b" stopOpacity="0.02" />
               </linearGradient>
             </defs>
-            <path d="M0 8 L120 36" stroke="hsl(var(--destructive))" strokeWidth="1.5" fill="none" />
-            <path d="M0 8 L120 36 L120 40 L0 40 Z" fill="url(#grad)" />
-            <text x="0" y="38" className="text-[7px]" fill="hsl(var(--muted-foreground))" fontSize="7">24 may</text>
-            <text x="90" y="38" fill="hsl(var(--muted-foreground))" fontSize="7">31 may</text>
-            <text x="45" y="6" fill="hsl(var(--destructive))" fontSize="7" fontWeight="bold">−100%</text>
+            {/* Grid lines */}
+            <line x1="12" y1="6"  x2="116" y2="6"  stroke="rgba(255,255,255,0.07)" strokeWidth="0.5" strokeDasharray="2 2" />
+            <line x1="12" y1="16" x2="116" y2="16" stroke="rgba(255,255,255,0.07)" strokeWidth="0.5" strokeDasharray="2 2" />
+            <line x1="12" y1="26" x2="116" y2="26" stroke="rgba(255,255,255,0.07)" strokeWidth="0.5" strokeDasharray="2 2" />
+            <line x1="12" y1="36" x2="116" y2="36" stroke="rgba(255,255,255,0.07)" strokeWidth="0.5" strokeDasharray="2 2" />
+            {/* Y labels */}
+            <text x="10" y="9"  fill="rgba(255,255,255,0.3)" fontSize="5" textAnchor="end">8</text>
+            <text x="10" y="19" fill="rgba(255,255,255,0.3)" fontSize="5" textAnchor="end">6</text>
+            <text x="10" y="29" fill="rgba(255,255,255,0.3)" fontSize="5" textAnchor="end">4</text>
+            <text x="10" y="39" fill="rgba(255,255,255,0.3)" fontSize="5" textAnchor="end">2</text>
+            {/* Line — declining trend */}
+            <path d="M12 8 L46 12 L80 21 L116 34" stroke="#f59e0b" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+            {/* Area fill */}
+            <path d="M12 8 L46 12 L80 21 L116 34 L116 43 L12 43 Z" fill="url(#demoSparkGrad)" />
+            {/* X labels */}
+            <text x="12" y="49" fill="rgba(255,255,255,0.3)" fontSize="5">12 may</text>
+            <text x="88" y="49" fill="rgba(255,255,255,0.3)" fontSize="5">26 may</text>
           </svg>
         </div>
         <div className="rounded-[3px] border border-border bg-background p-2">
