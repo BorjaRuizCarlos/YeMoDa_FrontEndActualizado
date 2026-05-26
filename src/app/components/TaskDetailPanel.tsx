@@ -1094,7 +1094,8 @@ export function TaskDetailPanel({
                   {!branchLoadingRepos && branchRepos.length > 0 && (
                   <button
                     type="button"
-                    disabled={branchCreating || branchLoadingRepos}
+                    disabled={branchCreating || branchLoadingRepos || (branchRepos.length > 1 && !branchSelectedRepo)}
+                    title={branchRepos.length > 1 && !branchSelectedRepo ? 'Selecciona un repositorio' : undefined}
                     onClick={() => void handleCreateBranch()}
                     className="h-8 px-4 bg-primary text-primary-foreground rounded-[4px] text-[11px] disabled:opacity-40 transition-opacity inline-flex items-center gap-1.5"
                   >
