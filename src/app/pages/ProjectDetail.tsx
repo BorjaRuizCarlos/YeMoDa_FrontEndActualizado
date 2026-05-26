@@ -33,7 +33,6 @@ import {
   getAllowedProjectRoleIdsForUser,
   getProjectCapabilities,
   getProjectRoleIds,
-  getUserGithubConnectionState,
   isStakeholderSystemUser,
 } from '../utils/projectPermissions';
 
