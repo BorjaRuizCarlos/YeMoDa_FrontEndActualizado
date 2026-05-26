@@ -47,6 +47,7 @@ interface TaskDetailPanelProps {
   canEditTask?: boolean;
   canDeleteTask?: boolean;
   projectId?: number;
+  repoFullName?: string | null;
   boardColumnsByBoard?: Map<number, ApiBoardColumn[]>;
   boardNames?: Map<number, string>;
   onClose: () => void;
@@ -69,6 +70,7 @@ export function TaskDetailPanel({
   canEditTask = true,
   canDeleteTask = false,
   projectId,
+  repoFullName,
   boardColumnsByBoard,
   boardNames,
   onClose,
@@ -513,8 +515,10 @@ export function TaskDetailPanel({
                 )}
                 {projectId != null && (
                   <button
-                    onClick={openBranchModal}
-                    className="inline-flex items-center gap-1 h-6 px-2 border border-border rounded-[3px] text-[10px] text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors"
+                    onClick={repoFullName ? openBranchModal : undefined}
+                    disabled={!repoFullName}
+                    title={repoFullName ? undefined : 'Conecta un repositorio para crear branches'}
+                    className="inline-flex items-center gap-1 h-6 px-2 border border-border rounded-[3px] text-[10px] text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-muted-foreground disabled:hover:border-border"
                   >
                     <GitBranch className="w-3 h-3" /> Branch
                   </button>

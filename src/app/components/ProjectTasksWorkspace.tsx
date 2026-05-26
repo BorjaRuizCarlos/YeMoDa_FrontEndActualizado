@@ -40,6 +40,7 @@ interface ProjectTasksWorkspaceProps {
   canEditTasks: boolean;
   canDeleteTasks: boolean;
   projectEndDate?: string | null;
+  repoFullName?: string | null;
   forcedTab?: WorkspaceTab;
   initialTaskId?: number | null;
   onInitialTaskHandled?: (taskId: number) => void;
@@ -271,6 +272,7 @@ export function ProjectTasksWorkspace({
   canEditTasks,
   canDeleteTasks,
   projectEndDate = null,
+  repoFullName = null,
   forcedTab,
   initialTaskId = null,
   onInitialTaskHandled,
@@ -1867,6 +1869,7 @@ export function ProjectTasksWorkspace({
         canEditTask={canEditTasks}
         canDeleteTask={canDeleteTasks}
         projectId={projectId}
+        repoFullName={repoFullName}
         onClose={() => setSelectedTask(null)}
 
         onDeleteTask={async (taskToDelete) => {
