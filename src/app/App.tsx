@@ -11,7 +11,7 @@ export default function App() {
       <ThemeProvider>
         <AuthProvider>
           <RouterProvider router={router} />
-          <Toaster position="top-right" richColors />
+          <Toaster position="top-right" richColors closeButton />
         </AuthProvider>
       </ThemeProvider>
     </ErrorBoundary>

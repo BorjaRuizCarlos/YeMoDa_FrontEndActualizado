@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import {
   AlertTriangle, CheckCircle2, Clock, ExternalLink,
-  RefreshCw, Loader2, Search, Trash2,
+  RefreshCw, Loader2, Search, Trash2, CheckSquare, Square,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { CommandBar } from '../components/CommandBar';
@@ -29,6 +29,9 @@ export default function Alerts() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedWarning, setSelectedWarning] = useState<number | null>(null);
   const [deletingWarningId, setDeletingWarningId] = useState<number | null>(null);
+  const [deletedIds, setDeletedIds] = useState<Set<number>>(new Set());
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   const boardProjectMap = useMemo(() => {
     const map = new Map<number, number>();
@@ -77,10 +80,10 @@ export default function Alerts() {
     try {
       setDeletingWarningId(warningId);
       await tasksService.deleteWarning(warningId);
-      if (selectedWarning === warningId) {
-        setSelectedWarning(null);
-      }
-      refetch();
+      // Optimistic update — no full refetch
+      setDeletedIds((prev) => new Set([...prev, warningId]));
+      if (selectedWarning === warningId) setSelectedWarning(null);
+      setSelectedIds((prev) => { const n = new Set(prev); n.delete(warningId); return n; });
       toast.success('Alerta eliminada.');
     } catch {
       toast.error('No se pudo eliminar la alerta.');
@@ -89,9 +92,26 @@ export default function Alerts() {
     }
   };
 
+  const handleBulkDelete = async () => {
+    const ids = [...selectedIds];
+    if (ids.length === 0) return;
+    setBulkDeleting(true);
+    try {
+      await Promise.all(ids.map((id) => tasksService.deleteWarning(id)));
+      setDeletedIds((prev) => new Set([...prev, ...ids]));
+      setSelectedIds(new Set());
+      if (selectedWarning != null && ids.includes(selectedWarning)) setSelectedWarning(null);
+      toast.success(`${ids.length} alerta${ids.length > 1 ? 's' : ''} eliminada${ids.length > 1 ? 's' : ''}.`);
+    } catch {
+      toast.error('No se pudieron eliminar algunas alertas.');
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
   // Filtered warnings
   const filtered = useMemo(() => {
-    let w = warnings ?? [];
+    let w = (warnings ?? []).filter((wr) => !deletedIds.has(wr.id_warning));
     if (severity !== 'all') {
       w = w.filter((wr) => wr.status === severity);
     }
@@ -103,7 +123,7 @@ export default function Alerts() {
       });
     }
     return w.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-  }, [warnings, severity, searchQuery, taskMap]);
+  }, [warnings, severity, searchQuery, taskMap, deletedIds]);
 
   // KPI counts
   const counts = useMemo(() => {
@@ -163,7 +183,13 @@ export default function Alerts() {
     <div className="flex flex-col h-full">
       <CommandBar
         actions={[
-          { label: 'Refrescar', icon: <RefreshCw className="w-3.5 h-3.5" />, onClick: refetch },
+          { label: 'Refrescar', icon: <RefreshCw className="w-3.5 h-3.5" />, onClick: () => { setDeletedIds(new Set()); refetch(); } },
+          ...(selectedIds.size > 0 ? [{
+            label: bulkDeleting ? 'Eliminando…' : `Eliminar ${selectedIds.size} seleccionada${selectedIds.size > 1 ? 's' : ''}`,
+            icon: bulkDeleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />,
+            onClick: () => void handleBulkDelete(),
+            variant: 'destructive' as const,
+          }] : []),
         ]}
         filters={[
           { label: 'Todos', active: severity === 'all', count: counts.total, onClick: () => setSeverity('all') },
@@ -226,28 +252,42 @@ export default function Alerts() {
               const isSelected = selectedWarning === w.id_warning;
               const canDeleteWarning = canDeleteWarningInProject(taskInfo?.project ?? null);
               const isDeleting = deletingWarningId === w.id_warning;
+              const isChecked = selectedIds.has(w.id_warning);
 
               return (
-                <button
+                <div
                   key={w.id_warning}
-                  onClick={() => setSelectedWarning(isSelected ? null : w.id_warning)}
-                  className={`w-full text-left px-6 py-3 transition-colors hover:bg-accent/50 ${
-                    isSelected ? 'bg-accent/30' : ''
-                  }`}
+                  className={`group relative flex items-start gap-3 px-6 py-3 transition-colors hover:bg-accent/50 cursor-pointer ${isSelected ? 'bg-accent/30' : ''}`}
                 >
-                  <div className="flex items-start gap-3">
-                    <div className="mt-0.5 shrink-0">
-                      {isActive ? (
-                        <AlertTriangle className="w-4 h-4 text-warning" />
-                      ) : (
-                        <CheckCircle2 className="w-4 h-4 text-success" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <span className="text-[12px] font-medium text-foreground">
-                          {w.message}
-                        </span>
+                  {/* Checkbox */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedIds((prev) => {
+                        const n = new Set(prev);
+                        if (n.has(w.id_warning)) n.delete(w.id_warning); else n.add(w.id_warning);
+                        return n;
+                      });
+                    }}
+                    className="mt-0.5 shrink-0 text-muted-foreground hover:text-foreground"
+                  >
+                    {isChecked ? <CheckSquare className="w-4 h-4 text-primary" /> : <Square className="w-4 h-4 opacity-40 group-hover:opacity-70" />}
+                  </button>
+
+                  {/* Status icon */}
+                  <div className="mt-0.5 shrink-0" onClick={() => setSelectedWarning(isSelected ? null : w.id_warning)}>
+                    {isActive ? (
+                      <AlertTriangle className="w-4 h-4 text-warning" />
+                    ) : (
+                      <CheckCircle2 className="w-4 h-4 text-success" />
+                    )}
+                  </div>
+
+                  {/* Content */}
+                  <div className="flex-1 min-w-0" onClick={() => setSelectedWarning(isSelected ? null : w.id_warning)}>
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="text-[12px] font-medium text-foreground">{w.message}</span>
                         <StatusBadge
                           status={isActive ? 'warning' : 'success'}
                           text={isActive ? 'Activo' : 'Resuelto'}
@@ -271,20 +311,6 @@ export default function Alerts() {
                       {/* Expanded detail */}
                       {isSelected && (
                         <div className="mt-2 p-3 bg-card border border-border rounded-[4px] text-[11px] space-y-1">
-                          <div className="flex items-center justify-end mb-2">
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                void handleDeleteWarning(w.id_warning, taskInfo?.project ?? null);
-                              }}
-                              disabled={!canDeleteWarning || isDeleting}
-                              className="inline-flex items-center gap-1.5 rounded-[4px] border border-destructive/30 bg-destructive/10 px-2 py-1 text-[10px] font-medium text-destructive transition-colors disabled:cursor-not-allowed disabled:opacity-50 hover:bg-destructive/20"
-                            >
-                              {isDeleting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
-                              Eliminar alerta
-                            </button>
-                          </div>
                           <div><span className="text-muted-foreground">ID:</span> {w.id_warning}</div>
                           <div><span className="text-muted-foreground">Tarea ID:</span> {w.task}</div>
                           <div><span className="text-muted-foreground">Creado:</span> {new Date(w.created_at).toLocaleString('es-ES')}</div>
@@ -300,8 +326,24 @@ export default function Alerts() {
                         </div>
                       )}
                     </div>
-                  </div>
-                </button>
+
+                  {/* Hover delete button */}
+                  {canDeleteWarning && (
+                    <button
+                      type="button"
+                      title="Eliminar alerta"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void handleDeleteWarning(w.id_warning, taskInfo?.project ?? null);
+                      }}
+                      disabled={isDeleting}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 h-7 px-2 rounded-[4px] border border-destructive/30 bg-destructive/10 text-destructive text-[10px] inline-flex items-center gap-1.5 transition-opacity disabled:opacity-50"
+                    >
+                      {isDeleting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                      Eliminar
+                    </button>
+                  )}
+                </div>
               );
             })}
                 </div>

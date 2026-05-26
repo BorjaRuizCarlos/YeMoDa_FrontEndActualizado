@@ -52,6 +52,9 @@ export default function ProjectDetail() {
   const [projectStatus, setProjectStatus] = useState('planning');
   const [projectEndDate, setProjectEndDate] = useState('');
   const [reviewBranches, setReviewBranches] = useState('');
+  const [projectTick, setProjectTick] = useState(0);
+
+  const reloadProject = () => setProjectTick((t) => t + 1);
 
   useEffect(() => {
     if (!projectId) return;
@@ -61,7 +64,7 @@ export default function ProjectDetail() {
       .then(setProject)
       .catch(() => setProjectError('No se pudo cargar el proyecto.'))
       .finally(() => setLoadingProject(false));
-  }, [projectId]);
+  }, [projectId, projectTick]);
 
   useEffect(() => {
     setProjectStatus(normalizeProjectStatus(project?.status) ?? 'planning');
@@ -499,7 +502,7 @@ export default function ProjectDetail() {
         <CommandBar
           actions={[
             { label: 'Volver', icon: <ArrowLeft className="w-3.5 h-3.5" />, onClick: () => navigate('/projects') },
-            { label: 'Actualizar', icon: <RefreshCw className="w-3.5 h-3.5" />, onClick: () => { refetchTasks(); refetchMembers(); refetchBoards(); } },
+            { label: 'Actualizar', icon: <RefreshCw className="w-3.5 h-3.5" />, onClick: () => { reloadProject(); refetchTasks(); refetchAllProjectTasks(); refetchMembers(); refetchBoards(); } },
             ...(canManageProject ? [{ label: 'Asignar responsable', icon: <UserPlus className="w-3.5 h-3.5" />, onClick: () => setShowAssignModal(true) }] : []),
           ]}
           rightSlot={project ? <StatusBadge status={getProjectStatusBadge(project.status)} text={getProjectStatusLabel(project.status)} size="sm" /> : null}

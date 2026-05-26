@@ -4,7 +4,6 @@ import {
   Briefcase,
   ListChecks,
   CircleUser,
-  SlidersHorizontal,
   ChevronLeft,
   ChevronRight,
   Zap,
@@ -29,7 +28,6 @@ const navItems: NavItem[] = [
   { name: 'Reportes', path: '/reports', icon: BarChart3, group: 'analytics' },
   { name: 'Alertas', path: '/alerts', icon: Bell, group: 'analytics' },
   { name: 'Perfil', path: '/profile', icon: CircleUser, group: 'user' },
-  { name: 'Configuración', path: '/settings', icon: SlidersHorizontal, group: 'user' },
 ];
 
 export function Sidebar() {

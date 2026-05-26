@@ -12,7 +12,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Bot, Calendar, Check, Filter, GripVertical, LayoutDashboard, LayoutList, Loader2, Pencil, Plus, Search } from 'lucide-react';
+import { Bot, Calendar, Check, Filter, GripVertical, LayoutDashboard, LayoutList, Loader2, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   useApiBoardColumns,
@@ -142,6 +142,16 @@ export function ProjectTasksWorkspace({
   const [savingSprintEdit, setSavingSprintEdit] = useState(false);
   const [showMilestoneModal, setShowMilestoneModal] = useState(false);
   const [showTagModal, setShowTagModal] = useState(false);
+
+  // Loading/submitting states (rate limit / double-click prevention)
+  const [creatingTask, setCreatingTask] = useState(false);
+  const [creatingBoard, setCreatingBoard] = useState(false);
+  const [creatingColumn, setCreatingColumn] = useState(false);
+  const [creatingSprint, setCreatingSprint] = useState(false);
+  const [creatingMilestone, setCreatingMilestone] = useState(false);
+
+  // Board column id captured when the task modal is opened (context-aware)
+  const [taskCreationBoardColumnId, setTaskCreationBoardColumnId] = useState<number | null>(null);
 
   const [newTask, setNewTask] = useState({
     title: '',
@@ -337,6 +347,7 @@ export function ProjectTasksWorkspace({
 
   const createTask = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (creatingTask) return;
     if (!canCreateTasks) {
       toast.error('No tienes permisos para crear tareas.');
       return;
@@ -347,13 +358,15 @@ export function ProjectTasksWorkspace({
       return;
     }
 
-    const boardColumn = defaultBacklogColumnId ?? null;
+    // Use the board column captured when the modal was opened (context-aware)
+    const boardColumn = taskCreationBoardColumnId ?? defaultBacklogColumnId ?? null;
 
     if (newTask.priority == null) {
       toast.error('Selecciona una prioridad.');
       return;
     }
 
+    setCreatingTask(true);
     try {
       const created = await tasksService.create({
         project: projectId,
@@ -371,6 +384,7 @@ export function ProjectTasksWorkspace({
       await Promise.all(newTask.assignedTo.map((assignedId) => tasksService.createAssignment({ task: created.id_task, assigned_to: assignedId })));
 
       setShowTaskModal(false);
+      setTaskCreationBoardColumnId(null);
       setNewTask({
         title: '',
         description: '',
@@ -385,12 +399,15 @@ export function ProjectTasksWorkspace({
       toast.success('Tarea creada.');
     } catch {
       toast.error('No se pudo crear la tarea.');
+    } finally {
+      setCreatingTask(false);
     }
   };
 
   const createBoard = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newBoard.name.trim()) return;
+    if (creatingBoard || !newBoard.name.trim()) return;
+    setCreatingBoard(true);
     try {
       const created = await tasksService.createBoard(projectId, newBoard.name.trim(), newBoard.description.trim() || undefined);
       setSelectedBoardId(created.id_board);
@@ -400,13 +417,16 @@ export function ProjectTasksWorkspace({
       toast.success('Board creado.');
     } catch {
       toast.error('No se pudo crear el board.');
+    } finally {
+      setCreatingBoard(false);
     }
   };
 
   const createColumn = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedBoardId || !newColumn.name.trim()) return;
+    if (creatingColumn || !selectedBoardId || !newColumn.name.trim()) return;
     const nextOrder = (boardColumnsByBoard.get(selectedBoardId) ?? []).length + 1;
+    setCreatingColumn(true);
     try {
       await tasksService.createBoardColumn({
         board: selectedBoardId,
@@ -421,6 +441,8 @@ export function ProjectTasksWorkspace({
       toast.success('Columna creada.');
     } catch {
       toast.error('No se pudo crear la columna.');
+    } finally {
+      setCreatingColumn(false);
     }
   };
 
@@ -496,6 +518,7 @@ export function ProjectTasksWorkspace({
 
   const createSprint = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (creatingSprint) return;
     if (!newSprint.start_date || !newSprint.end_date) {
       toast.error('Las fechas de inicio y fin son obligatorias.');
       return;
@@ -513,6 +536,7 @@ export function ProjectTasksWorkspace({
       return;
     }
     const autoName = `Sprint ${(sprints ?? []).length + 1}`;
+    setCreatingSprint(true);
     try {
       const created = await tasksService.createSprint({
         project: projectId,
@@ -528,12 +552,15 @@ export function ProjectTasksWorkspace({
       toast.success('Sprint creado.');
     } catch {
       toast.error('No se pudo crear el sprint.');
+    } finally {
+      setCreatingSprint(false);
     }
   };
 
   const createMilestone = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMilestone.name.trim()) return;
+    if (creatingMilestone || !newMilestone.name.trim()) return;
+    setCreatingMilestone(true);
     try {
       await tasksService.createMilestone({
         project: projectId,
@@ -547,6 +574,8 @@ export function ProjectTasksWorkspace({
       toast.success('Milestone creado.');
     } catch {
       toast.error('No se pudo crear el milestone.');
+    } finally {
+      setCreatingMilestone(false);
     }
   };
 
@@ -732,7 +761,7 @@ export function ProjectTasksWorkspace({
             <button type="button" onClick={() => setShowMilestoneModal(true)} className="h-8 px-3 rounded-[3px] border border-border text-[11px]">Nuevo milestone</button>
           )}
           {canCreateTasks && activeTab === 'backlog' && (
-            <button type="button" onClick={() => { setNewTask((prev) => ({ ...prev, sprint: null })); setShowTaskModal(true); }} className="h-8 px-3 rounded-[3px] bg-primary text-primary-foreground text-[11px] font-medium inline-flex items-center gap-1">
+            <button type="button" onClick={() => { setTaskCreationBoardColumnId(defaultBacklogColumnId); setNewTask((prev) => ({ ...prev, sprint: null })); setShowTaskModal(true); }} className="h-8 px-3 rounded-[3px] bg-primary text-primary-foreground text-[11px] font-medium inline-flex items-center gap-1">
               <Plus className="w-3.5 h-3.5" /> Nueva tarea
             </button>
           )}
@@ -935,7 +964,15 @@ export function ProjectTasksWorkspace({
                   {canCreateTasks && (
                     <button
                       type="button"
-                      onClick={() => { setNewTask((prev) => ({ ...prev, sprint: selectedSprintId })); setShowTaskModal(true); }}
+                      onClick={() => {
+                        // Capture the current board's first non-final column so task creation is board-aware
+                        const col = selectedBoardId
+                          ? (boardColumnsByBoard.get(selectedBoardId) ?? []).find((c) => !c.is_final)?.id_column ?? null
+                          : defaultBacklogColumnId;
+                        setTaskCreationBoardColumnId(col);
+                        setNewTask((prev) => ({ ...prev, sprint: selectedSprintId }));
+                        setShowTaskModal(true);
+                      }}
                       className="h-7 px-2.5 rounded-[3px] bg-primary text-primary-foreground text-[10px] font-medium inline-flex items-center gap-1"
                     >
                       <Plus className="w-3 h-3" /> Nueva tarea
@@ -1060,24 +1097,41 @@ export function ProjectTasksWorkspace({
             ) : (
               <div className="p-1.5 space-y-0.5">
                 {(boards ?? []).map((board) => (
-                  <button
+                  <div
                     key={board.id_board}
-                    type="button"
-                    onClick={() => setSelectedBoardId(board.id_board)}
-                    className={`w-full text-left rounded-[4px] px-3 py-2 text-[11px] transition-colors ${
+                    className={`group relative w-full rounded-[4px] px-3 py-2 text-[11px] transition-colors cursor-pointer ${
                       selectedBoardId === board.id_board
                         ? 'bg-primary text-primary-foreground'
                         : 'hover:bg-accent/30 text-foreground'
                     }`}
+                    onClick={() => setSelectedBoardId(board.id_board)}
                   >
-                    <p className="font-medium">{board.name}</p>
+                    <p className="font-medium pr-6">{board.name}</p>
                     {board.description && (
                       <p className={`text-[10px] mt-0.5 ${selectedBoardId === board.id_board ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>{board.description}</p>
                     )}
                     <p className={`text-[9px] mt-1 ${selectedBoardId === board.id_board ? 'text-primary-foreground/60' : 'text-muted-foreground/70'}`}>
                       {(boardColumnsByBoard.get(board.id_board) ?? []).length} columnas
                     </p>
-                  </button>
+                    {canCreateBoards && (
+                      <button
+                        type="button"
+                        title="Eliminar board"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (!window.confirm(`¿Eliminar el board "${board.name}"? Esta acción no se puede deshacer.`)) return;
+                          void tasksService.deleteBoard(board.id_board).then(() => {
+                            if (selectedBoardId === board.id_board) setSelectedBoardId(null);
+                            refetchBoards();
+                            toast.success('Board eliminado.');
+                          }).catch(() => toast.error('No se pudo eliminar el board.'));
+                        }}
+                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 h-5 w-5 rounded-[3px] bg-destructive/10 border border-destructive/30 text-destructive inline-flex items-center justify-center transition-opacity"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
                 ))}
               </div>
             )}
@@ -1353,7 +1407,9 @@ export function ProjectTasksWorkspace({
 
             <div className="flex justify-end gap-2 pt-2">
               <button type="button" onClick={() => { setNewTask((prev) => ({ ...prev, sprint: null })); setShowTaskModal(false); }} className="h-8 px-3 rounded-[3px] border border-border text-[11px]">Cancelar</button>
-              <button type="submit" className="h-8 px-3 rounded-[3px] bg-primary text-primary-foreground text-[11px]">Crear</button>
+              <button type="submit" disabled={creatingTask} className="h-8 px-3 rounded-[3px] bg-primary text-primary-foreground text-[11px] inline-flex items-center gap-1.5 disabled:opacity-50">
+                {creatingTask && <Loader2 className="w-3 h-3 animate-spin" />} Crear
+              </button>
             </div>
           </form>
         </div>
@@ -1462,7 +1518,9 @@ export function ProjectTasksWorkspace({
             <textarea value={newBoard.description} onChange={(e) => setNewBoard((prev) => ({ ...prev, description: e.target.value }))} placeholder="Descripcion" rows={3} className="w-full rounded-[3px] border border-border bg-surface-secondary px-2 py-1 text-[11px]" />
             <div className="flex justify-end gap-2">
               <button type="button" onClick={() => setShowBoardModal(false)} className="h-8 px-3 border border-border rounded-[3px] text-[11px]">Cancelar</button>
-              <button type="submit" className="h-8 px-3 bg-primary text-primary-foreground rounded-[3px] text-[11px]">Crear</button>
+              <button type="submit" disabled={creatingBoard} className="h-8 px-3 bg-primary text-primary-foreground rounded-[3px] text-[11px] inline-flex items-center gap-1.5 disabled:opacity-50">
+                {creatingBoard && <Loader2 className="w-3 h-3 animate-spin" />} Crear
+              </button>
             </div>
           </form>
         </div>
@@ -1513,7 +1571,9 @@ export function ProjectTasksWorkspace({
             </button>
             <div className="flex justify-end gap-2">
               <button type="button" onClick={() => setShowColumnModal(false)} className="h-8 px-3 border border-border rounded-[3px] text-[11px]">Cancelar</button>
-              <button type="submit" className="h-8 px-3 bg-primary text-primary-foreground rounded-[3px] text-[11px]">Crear</button>
+              <button type="submit" disabled={creatingColumn} className="h-8 px-3 bg-primary text-primary-foreground rounded-[3px] text-[11px] inline-flex items-center gap-1.5 disabled:opacity-50">
+                {creatingColumn && <Loader2 className="w-3 h-3 animate-spin" />} Crear
+              </button>
             </div>
           </form>
         </div>
@@ -1554,7 +1614,9 @@ export function ProjectTasksWorkspace({
             </select>
             <div className="flex justify-end gap-2">
               <button type="button" onClick={() => setShowSprintModal(false)} className="h-8 px-3 border border-border rounded-[3px] text-[11px]">Cancelar</button>
-              <button type="submit" className="h-8 px-3 bg-primary text-primary-foreground rounded-[3px] text-[11px]">Crear</button>
+              <button type="submit" disabled={creatingSprint} className="h-8 px-3 bg-primary text-primary-foreground rounded-[3px] text-[11px] inline-flex items-center gap-1.5 disabled:opacity-50">
+                {creatingSprint && <Loader2 className="w-3 h-3 animate-spin" />} Crear
+              </button>
             </div>
           </form>
         </div>
@@ -1569,7 +1631,9 @@ export function ProjectTasksWorkspace({
             <DatePickerField value={newMilestone.due_date} onChange={(value) => setNewMilestone((prev) => ({ ...prev, due_date: value }))} placeholder="Fecha limite" />
             <div className="flex justify-end gap-2">
               <button type="button" onClick={() => setShowMilestoneModal(false)} className="h-8 px-3 border border-border rounded-[3px] text-[11px]">Cancelar</button>
-              <button type="submit" className="h-8 px-3 bg-primary text-primary-foreground rounded-[3px] text-[11px]">Crear</button>
+              <button type="submit" disabled={creatingMilestone} className="h-8 px-3 bg-primary text-primary-foreground rounded-[3px] text-[11px] inline-flex items-center gap-1.5 disabled:opacity-50">
+                {creatingMilestone && <Loader2 className="w-3 h-3 animate-spin" />} Crear
+              </button>
             </div>
           </form>
         </div>
