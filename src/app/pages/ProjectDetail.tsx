@@ -640,6 +640,7 @@ export default function ProjectDetail() {
               canEditTasks={canManageTasks}
               canDeleteTasks={canManageTasks}
               projectEndDate={project?.end_date ?? null}
+              projectCreatedAt={project?.created_at ?? null}
               repoFullName={project?.github_repo_full_name ?? null}
               forcedTab={activeTab}
               initialTaskId={initialTaskId}

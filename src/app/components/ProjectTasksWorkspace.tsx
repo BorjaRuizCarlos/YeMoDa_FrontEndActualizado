@@ -40,6 +40,7 @@ interface ProjectTasksWorkspaceProps {
   canEditTasks: boolean;
   canDeleteTasks: boolean;
   projectEndDate?: string | null;
+  projectCreatedAt?: string | null;
   repoFullName?: string | null;
   forcedTab?: WorkspaceTab;
   initialTaskId?: number | null;
@@ -272,6 +273,7 @@ export function ProjectTasksWorkspace({
   canEditTasks,
   canDeleteTasks,
   projectEndDate = null,
+  projectCreatedAt = null,
   repoFullName = null,
   forcedTab,
   initialTaskId = null,
@@ -294,6 +296,7 @@ export function ProjectTasksWorkspace({
   const [showSprintModal, setShowSprintModal] = useState(false);
   const [editingSprint, setEditingSprint] = useState<{ id: number; name: string; start_date: string; end_date: string; status: 'planned' | 'active' | 'closed' } | null>(null);
   const [savingSprintEdit, setSavingSprintEdit] = useState(false);
+  const [deletingSprintId, setDeletingSprintId] = useState<number | null>(null);
   const [showMilestoneModal, setShowMilestoneModal] = useState(false);
   const [showTagModal, setShowTagModal] = useState(false);
 
@@ -303,6 +306,7 @@ export function ProjectTasksWorkspace({
   const [creatingColumn, setCreatingColumn] = useState(false);
   const [creatingSprint, setCreatingSprint] = useState(false);
   const [creatingMilestone, setCreatingMilestone] = useState(false);
+  const [deletingMilestoneId, setDeletingMilestoneId] = useState<number | null>(null);
 
   // Board/column selection inside the task creation modal
   const [taskCreationBoardColumnId, setTaskCreationBoardColumnId] = useState<number | null>(null);
@@ -376,6 +380,11 @@ export function ProjectTasksWorkspace({
     next.setDate(next.getDate() + 1);
     return next.toISOString().slice(0, 10);
   }, []);
+
+  const milestoneMinDate = useMemo(() => {
+    if (!projectCreatedAt) return undefined;
+    return projectCreatedAt.slice(0, 10);
+  }, [projectCreatedAt]);
 
   // Latest end_date among sprints that have one, used to enforce sequential sprint creation
   const latestSprintEndDate = useMemo(() => {
@@ -653,6 +662,20 @@ export function ProjectTasksWorkspace({
     }
   };
 
+  const handleDeleteSprint = async (sprintId: number) => {
+    if (!confirm('¿Eliminar este sprint? Las tareas asociadas quedarán sin sprint.')) return;
+    setDeletingSprintId(sprintId);
+    try {
+      await tasksService.deleteSprint(sprintId);
+      refetchSprints();
+      toast.success('Sprint eliminado.');
+    } catch {
+      toast.error('No se pudo eliminar el sprint.');
+    } finally {
+      setDeletingSprintId(null);
+    }
+  };
+
   const handlePushTaskToSprint = async () => {
     if (!pushingTaskId || !pushSprintId) return;
     setSavingPush(true);
@@ -734,6 +757,20 @@ export function ProjectTasksWorkspace({
       toast.error('No se pudo crear el milestone.');
     } finally {
       setCreatingMilestone(false);
+    }
+  };
+
+  const handleDeleteMilestone = async (milestoneId: number) => {
+    if (!confirm('¿Eliminar este milestone?')) return;
+    setDeletingMilestoneId(milestoneId);
+    try {
+      await tasksService.deleteMilestone(milestoneId);
+      refetchMilestones();
+      toast.success('Milestone eliminado.');
+    } catch {
+      toast.error('No se pudo eliminar el milestone.');
+    } finally {
+      setDeletingMilestoneId(null);
     }
   };
 
@@ -1054,17 +1091,31 @@ export function ProjectTasksWorkspace({
                     <div className="flex items-center justify-between gap-1">
                       <p className="text-[11px] font-medium truncate">{sprint.name}</p>
                       {canCreateBoards && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEditingSprint({ id: sprint.id_sprint, name: sprint.name, start_date: sprint.start_date ?? '', end_date: sprint.end_date ?? '', status: sprint.status });
-                          }}
-                          className="opacity-0 group-hover:opacity-100 h-5 w-5 rounded-[3px] border border-border bg-card text-muted-foreground hover:text-foreground inline-flex items-center justify-center shrink-0 transition-opacity"
-                          title="Editar sprint"
-                        >
-                          <Pencil className="w-2.5 h-2.5" />
-                        </button>
+                        <div className="flex items-center gap-0.5">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingSprint({ id: sprint.id_sprint, name: sprint.name, start_date: sprint.start_date ?? '', end_date: sprint.end_date ?? '', status: sprint.status });
+                            }}
+                            className="opacity-0 group-hover:opacity-100 h-5 w-5 rounded-[3px] border border-border bg-card text-muted-foreground hover:text-foreground inline-flex items-center justify-center shrink-0 transition-opacity"
+                            title="Editar sprint"
+                          >
+                            <Pencil className="w-2.5 h-2.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void handleDeleteSprint(sprint.id_sprint);
+                            }}
+                            disabled={deletingSprintId === sprint.id_sprint}
+                            className="opacity-0 group-hover:opacity-100 h-5 w-5 rounded-[3px] border border-border bg-card text-muted-foreground hover:text-destructive inline-flex items-center justify-center shrink-0 transition-opacity disabled:opacity-50"
+                            title="Eliminar sprint"
+                          >
+                            {deletingSprintId === sprint.id_sprint ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <Trash2 className="w-2.5 h-2.5" />}
+                          </button>
+                        </div>
                       )}
                     </div>
                     <div className="flex items-center gap-1.5 mt-0.5">
@@ -1439,6 +1490,7 @@ export function ProjectTasksWorkspace({
                 <th className="text-left px-3 py-2">Milestone</th>
                 <th className="text-left px-3 py-2">Due Date</th>
                 <th className="text-left px-3 py-2">Estado</th>
+                {canCreateBoards && <th className="px-3 py-2 w-8" />}
               </tr>
             </thead>
             <tbody>
@@ -1462,6 +1514,19 @@ export function ProjectTasksWorkspace({
                       ) : 'Marcar completo'}
                     </button>
                   </td>
+                  {canCreateBoards && (
+                    <td className="px-3 py-2">
+                      <button
+                        type="button"
+                        onClick={() => void handleDeleteMilestone(milestone.id_milestone)}
+                        disabled={deletingMilestoneId === milestone.id_milestone}
+                        className="h-6 w-6 rounded-[3px] border border-border bg-card text-muted-foreground hover:text-destructive inline-flex items-center justify-center disabled:opacity-50"
+                        title="Eliminar milestone"
+                      >
+                        {deletingMilestoneId === milestone.id_milestone ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                      </button>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
@@ -1797,7 +1862,7 @@ export function ProjectTasksWorkspace({
             <h2 className="text-[13px] font-semibold">Nuevo milestone</h2>
             <input value={newMilestone.name} onChange={(e) => setNewMilestone((prev) => ({ ...prev, name: e.target.value }))} placeholder="Nombre" className="w-full h-8 rounded-[3px] border border-border bg-surface-secondary px-2 text-[11px]" />
             <textarea value={newMilestone.description} onChange={(e) => setNewMilestone((prev) => ({ ...prev, description: e.target.value }))} placeholder="Descripcion" rows={3} className="w-full rounded-[3px] border border-border bg-surface-secondary px-2 py-1 text-[11px]" />
-            <DatePickerField value={newMilestone.due_date} onChange={(value) => setNewMilestone((prev) => ({ ...prev, due_date: value }))} placeholder="Fecha limite" />
+            <DatePickerField value={newMilestone.due_date} onChange={(value) => setNewMilestone((prev) => ({ ...prev, due_date: value }))} placeholder="Fecha limite" minDate={milestoneMinDate} />
             <div className="flex justify-end gap-2">
               <button type="button" onClick={() => setShowMilestoneModal(false)} className="h-8 px-3 border border-border rounded-[3px] text-[11px]">Cancelar</button>
               <button type="submit" disabled={creatingMilestone} className="h-8 px-3 bg-primary text-primary-foreground rounded-[3px] text-[11px] inline-flex items-center gap-1.5 disabled:opacity-50">

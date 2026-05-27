@@ -199,6 +199,10 @@ export const tasksService = {
     return api.patch<ApiSprint>(`/sprints/${id}/`, payload);
   },
 
+  deleteSprint(id: number): Promise<void> {
+    return api.delete(`/sprints/${id}/`);
+  },
+
   // ── Milestones ────────────────────────────────────────────────
   listMilestones(projectId?: number): Promise<ApiMilestone[]> {
     const url = projectId ? `/milestones/?project=${projectId}` : '/milestones/';
@@ -222,6 +226,10 @@ export const tasksService = {
     is_completed?: boolean;
   }): Promise<ApiMilestone> {
     return api.patch<ApiMilestone>(`/milestones/${id}/`, payload);
+  },
+
+  deleteMilestone(id: number): Promise<void> {
+    return api.delete(`/milestones/${id}/`);
   },
 
   // ── Tags ──────────────────────────────────────────────────────
