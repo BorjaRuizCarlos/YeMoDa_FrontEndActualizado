@@ -9,7 +9,6 @@ import { useApiProjectMembers, useApiProjects } from '../hooks/useProjectData';
 import { StatusBadge } from '../components/StatusBadge';
 import { GitHubConnectSection } from '../components/GitHubConnectSection';
 import { usersService } from '../../services';
-import { getUserRoleLabel } from '../utils/roles';
 import { compareProjectsForGenericPriority, getProjectStatusBadge, getProjectStatusLabel, shouldShowInGenericProjectDisplays } from '../utils/projectStatus';
 import { formatProjectDate, getProjectDaysLabel } from '../utils/projectDates';
 
@@ -78,7 +77,7 @@ export default function Profile() {
     };
   }, [user]);
 
-  const roleLabel = useMemo(() => (user ? getUserRoleLabel(user.role) : 'Usuario'), [user]);
+  const planLabel = useMemo(() => (isPremium ? 'Premium' : 'Free'), [isPremium]);
 
   const resetEditingState = () => {
     setFormData({
@@ -188,7 +187,7 @@ export default function Profile() {
               </div>
               <div>
                 <h3 className="text-[13px] font-semibold text-foreground">{user?.name}</h3>
-                <p className="text-[10px] text-muted-foreground">{roleLabel}</p>
+                <p className="text-[10px] text-muted-foreground">Plan: {planLabel}</p>
               </div>
             </div>
 
@@ -219,10 +218,10 @@ export default function Profile() {
               </div>
               <div>
                 <label className="block text-[11px] font-medium text-foreground mb-1">
-                  <Shield className="w-3 h-3 inline mr-1" /> Rol
+                  <Shield className="w-3 h-3 inline mr-1" /> Plan
                 </label>
                 <div className="w-full h-7 bg-surface-secondary border border-border rounded-[3px] px-2.5 text-[11px] text-muted-foreground capitalize flex items-center">
-                  {roleLabel}
+                  {planLabel}
                 </div>
               </div>
             </div>

@@ -42,11 +42,14 @@ export const authService = {
    * Starts the Google auth flow by sending the browser to the backend.
    * The backend should redirect back to /auth/google/callback on the frontend.
    */
-  startGoogleLogin(nickname: string): void {
+  startGoogleLogin(nickname?: string): void {
     const apiBase = import.meta.env.VITE_API_TARGET;
     const baseStartUrl = import.meta.env.VITE_GOOGLE_AUTH_START_URL ?? `${apiBase}/auth/google/start/`;
     const startUrl = new URL(baseStartUrl, window.location.origin);
-    startUrl.searchParams.set('nickname', nickname.trim());
+    const trimmedNickname = (nickname ?? '').trim();
+    if (trimmedNickname) {
+      startUrl.searchParams.set('nickname', trimmedNickname);
+    }
     window.location.href = startUrl.toString();
   },
 
