@@ -606,13 +606,13 @@ export default function Dashboard() {
 
       {/* ───────── Bottom: My Tasks + Git Activity ───────── */}
       {!isStakeholderUser && (
-        <div className="grid xl:grid-cols-2 gap-3 items-start">
+        <div className="grid xl:grid-cols-2 gap-3 items-stretch">
           {/* My tasks */}
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.25, delay: 0.25, ease: 'easeOut' }}
-            className="bg-card border border-border rounded-[8px] flex flex-col"
+            className="bg-card border border-border rounded-[8px] flex flex-col h-full"
           >
             <div className="flex items-center justify-between px-4 py-2.5 border-b border-border">
               <div className="flex items-center gap-2">
@@ -636,7 +636,7 @@ export default function Dashboard() {
               <div className="py-8 text-center text-[12px] text-muted-foreground">Sin tareas pendientes.</div>
             ) : (
               <>
-                <div className="max-h-[360px] overflow-y-auto scrollbar-app divide-y divide-border">
+                <div className="flex-1 min-h-0 overflow-y-auto scrollbar-app divide-y divide-border">
                   {paginatedMyTasks.map((task) => {
                     const isOverdue = task.due_date && new Date(task.due_date) < new Date();
                     const projectId = task.project ?? boardProjectMap.get(task.board ?? 0);
@@ -706,7 +706,7 @@ export default function Dashboard() {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.25, delay: 0.3, ease: 'easeOut' }}
-            className="bg-card border border-border rounded-[8px] flex flex-col"
+            className="bg-card border border-border rounded-[8px] flex flex-col h-full"
           >
             <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border">
               <GitCommit className="w-3.5 h-3.5 text-muted-foreground" />

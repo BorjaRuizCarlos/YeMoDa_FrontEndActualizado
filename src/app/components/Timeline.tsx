@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
 import { differenceInCalendarDays, format, startOfMonth, addMonths, startOfWeek, addWeeks } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { enUS } from 'date-fns/locale';
 import { CheckCircle2, Circle, Loader2, Target } from 'lucide-react';
-import { useApiTasks } from '../hooks/useProjectData';
+import { useApiBoardColumns, useApiSprints, useApiTasks } from '../hooks/useProjectData';
 import type { ApiTask } from '../../services';
 
 type ZoomLevel = 'day' | 'week' | 'month';
@@ -45,13 +45,13 @@ function sortTasks(tasks: ApiTask[]) {
     });
 }
 
-function getTagColor(task: ApiTask, index: number): string {
-  const hue = (task.id_task * 47 + index * 11) % 360;
-  return `hsl(${hue} 68% 46%)`;
-}
+const DEFAULT_BAR_COLOR = '#0A5F38';
+const SPRINT_BAR_COLORS = ['#1D4ED8', '#9333EA', '#D97706', '#0EA5A4', '#DC2626', '#4D7C0F'];
 
 export function Timeline({ projectId, projectEndDate }: { projectId: number; projectEndDate?: string | null }) {
   const { data: tasks, loading, statuses } = useApiTasks(undefined, projectId);
+  const { data: sprints } = useApiSprints(projectId);
+  const { data: boardColumns } = useApiBoardColumns();
   const [zoom, setZoom] = useState<ZoomLevel | null>(null);
 
   const timelineTasks = useMemo(() => sortTasks(tasks ?? []), [tasks]);
@@ -59,6 +59,26 @@ export function Timeline({ projectId, projectEndDate }: { projectId: number; pro
   const statusById = useMemo(() => {
     return new Map((statuses ?? []).map((status) => [status.id_status, status.name]));
   }, [statuses]);
+
+  const sprintColorById = useMemo(() => {
+    const sortedSprints = (sprints ?? []).slice().sort((a, b) => {
+      const aDate = parseTaskDate(a.start_date)?.getTime() ?? Number.MAX_SAFE_INTEGER;
+      const bDate = parseTaskDate(b.start_date)?.getTime() ?? Number.MAX_SAFE_INTEGER;
+      if (aDate !== bDate) return aDate - bDate;
+      return a.id_sprint - b.id_sprint;
+    });
+
+    return new Map(
+      sortedSprints.map((sprint, index) => [
+        sprint.id_sprint,
+        SPRINT_BAR_COLORS[index % SPRINT_BAR_COLORS.length],
+      ]),
+    );
+  }, [sprints]);
+
+  const boardColumnNameById = useMemo(() => {
+    return new Map((boardColumns ?? []).map((column) => [column.id_column, column.name]));
+  }, [boardColumns]);
 
   const range = useMemo(() => {
     if (timelineTasks.length === 0) return null;
@@ -88,12 +108,12 @@ export function Timeline({ projectId, projectEndDate }: { projectId: number; pro
       return Array.from({ length: range.totalDays }, (_, i) => {
         const d = new Date(range.min);
         d.setDate(d.getDate() + i);
-        return { date: d, label: format(d, 'dd'), sublabel: format(d, 'MMM', { locale: es }), width: 1 };
+        return { date: d, label: format(d, 'dd'), sublabel: format(d, 'MMM', { locale: enUS }), width: 1 };
       });
     }
     if (effectiveZoom === 'week') {
       const buckets: { date: Date; label: string; sublabel: string; width: number }[] = [];
-      let cur = startOfWeek(range.min, { locale: es });
+      let cur = startOfWeek(range.min, { locale: enUS });
       while (cur <= range.max) {
         const weekEnd = addWeeks(cur, 1);
         const effectiveStart = cur < range.min ? range.min : cur;
@@ -101,8 +121,8 @@ export function Timeline({ projectId, projectEndDate }: { projectId: number; pro
         const daysInRange = Math.max(1, daysBetween(effectiveStart, effectiveEnd));
         buckets.push({
           date: cur,
-          label: `S${format(cur, 'w', { locale: es })}`,
-          sublabel: format(cur, 'MMM', { locale: es }),
+          label: `W${format(cur, 'w', { locale: enUS })}`,
+          sublabel: format(cur, 'MMM', { locale: enUS }),
           width: daysInRange,
         });
         cur = addWeeks(cur, 1);
@@ -118,7 +138,7 @@ export function Timeline({ projectId, projectEndDate }: { projectId: number; pro
       const daysInRange = Math.max(1, daysBetween(effectiveStart, effectiveEnd));
       buckets.push({
         date: cur,
-        label: format(cur, 'MMM', { locale: es }),
+        label: format(cur, 'MMM', { locale: enUS }),
         sublabel: format(cur, 'yyyy'),
         width: daysInRange,
       });
@@ -140,7 +160,7 @@ export function Timeline({ projectId, projectEndDate }: { projectId: number; pro
     return (
       <div className="py-10 text-center text-[12px] text-muted-foreground inline-flex items-center justify-center gap-2">
         <Loader2 className="w-4 h-4 animate-spin" />
-        Cargando timeline...
+        Loading timeline...
       </div>
     );
   }
@@ -149,12 +169,12 @@ export function Timeline({ projectId, projectEndDate }: { projectId: number; pro
     return (
       <div className="py-12 text-center">
         <Target className="w-8 h-8 text-muted-foreground mx-auto mb-3 opacity-40" />
-        <p className="text-[12px] text-muted-foreground">No hay tareas con fecha para mostrar en el timeline.</p>
+        <p className="text-[12px] text-muted-foreground">No dated tasks to display on the timeline.</p>
       </div>
     );
   }
 
-  const ZOOM_LABELS: Record<ZoomLevel, string> = { day: 'D�a', week: 'Semana', month: 'Mes' };
+  const ZOOM_LABELS: Record<ZoomLevel, string> = { day: 'Day', week: 'Week', month: 'Month' };
   const ZOOM_LEVELS: ZoomLevel[] = ['day', 'week', 'month'];
 
   return (
@@ -163,7 +183,7 @@ export function Timeline({ projectId, projectEndDate }: { projectId: number; pro
         <div>
           <h2 className="text-[13px] font-semibold text-foreground">Timeline</h2>
           <p className="text-[11px] text-muted-foreground mt-0.5">
-            Historial de tareas ordenadas por fecha de inicio y vencimiento.
+            Task history ordered by start and due dates.
           </p>
         </div>
         <div className="flex items-center gap-1">
@@ -187,7 +207,7 @@ export function Timeline({ projectId, projectEndDate }: { projectId: number; pro
       <div className="flex-1 min-h-0 overflow-auto p-4">
         <div className="min-w-max space-y-3">
           <div className="grid grid-cols-1 gap-3 md:grid-cols-[360px_minmax(0,1fr)] md:items-start">
-            <div className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">Tarea</div>
+            <div className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">Task</div>
             <div className="overflow-x-auto scrollbar-app">
               <div className="relative flex w-full" style={{ minWidth: `${trackMinWidth}px` }}>
                 {showToday && (
@@ -217,16 +237,19 @@ export function Timeline({ projectId, projectEndDate }: { projectId: number; pro
             {timelineTasks.map((task, index) => {
               const start = getTaskStart(task) as Date;
               const due = getTaskEnd(task) as Date;
-              const firstAssignee = task.assigned_users?.[0]?.username ?? 'Sin asignar';
+              const firstAssignee = task.assigned_users?.[0]?.username ?? 'Unassigned';
               const assigneeExtraCount = Math.max(0, (task.assigned_users?.length ?? 0) - 1);
-              const statusName = task.status ? (statusById.get(task.status) ?? `Estado ${task.status}`) : 'Sin estado';
+              const statusName = task.status ? (statusById.get(task.status) ?? `Status ${task.status}`) : 'No status';
+              const boardColumnName = boardColumnNameById.get(task.board_column) ?? 'No board assigned';
               const normalizedStatus = statusName.toLowerCase();
               const isDone = Boolean(task.completed_at) || /(done|closed|complet|terminad|resuelt)/.test(normalizedStatus);
               const leftDays = daysBetween(range.min, start);
               const widthDays = Math.max(1, daysBetween(start, due) + 1);
               const leftPct = (leftDays / range.totalDays) * 100;
               const widthPct = (widthDays / range.totalDays) * 100;
-              const barColor = getTagColor(task, index);
+              const barColor = task.sprint != null
+                ? (sprintColorById.get(task.sprint) ?? DEFAULT_BAR_COLOR)
+                : DEFAULT_BAR_COLOR;
 
               return (
                 <div key={task.id_task} className="grid grid-cols-1 gap-2 md:grid-cols-[360px_minmax(0,1fr)] md:items-center md:gap-3">
@@ -242,11 +265,13 @@ export function Timeline({ projectId, projectEndDate }: { projectId: number; pro
                       <span className="shrink-0 text-[11px] text-muted-foreground">#{task.id_task}</span>
                     </div>
                     <div className="mt-1 flex items-center gap-2 text-[10px] text-muted-foreground">
-                      <span>{format(start, 'dd/MM/yy')} - {format(due, 'dd/MM/yy')}</span>
-                      <span>�</span>
+                      <span>
+                        {format(start, 'dd MMM yyyy', { locale: enUS })} - {format(due, 'dd MMM yyyy', { locale: enUS })}
+                      </span>
+                      <span>-</span>
                       <span className="truncate">{firstAssignee}{assigneeExtraCount > 0 ? ` +${assigneeExtraCount}` : ''}</span>
-                      <span>�</span>
-                      <span className="truncate">{statusName}</span>
+                      <span>-</span>
+                      <span className="truncate">{boardColumnName}</span>
                     </div>
                   </div>
 

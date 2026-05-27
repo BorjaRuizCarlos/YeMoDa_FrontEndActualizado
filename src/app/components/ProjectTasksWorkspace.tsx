@@ -45,6 +45,7 @@ interface ProjectTasksWorkspaceProps {
   forcedTab?: WorkspaceTab;
   initialTaskId?: number | null;
   onInitialTaskHandled?: (taskId: number) => void;
+  refreshSignal?: number | null;
 }
 
 const TAB_OPTIONS = ['backlog', 'sprints', 'boards', 'milestones'] as const;
@@ -278,6 +279,7 @@ export function ProjectTasksWorkspace({
   forcedTab,
   initialTaskId = null,
   onInitialTaskHandled,
+  refreshSignal = null,
 }: ProjectTasksWorkspaceProps) {
   const [activeTab, setActiveTab] = useState<WorkspaceTab>(forcedTab ?? 'backlog');
   const [selectedTask, setSelectedTask] = useState<ApiTask | null>(null);
@@ -343,6 +345,17 @@ export function ProjectTasksWorkspace({
 
   const taskIds = useMemo(() => (tasks ?? []).map((task) => task.id_task), [tasks]);
   const { data: taskAssignments, refetch: refetchTaskAssignments } = useApiTaskAssignments(taskIds);
+
+  useEffect(() => {
+    if (refreshSignal == null) return;
+    refetchTasks();
+    refetchBoards();
+    refetchColumns();
+    refetchSprints();
+    refetchMilestones();
+    refetchTags();
+    refetchTaskAssignments();
+  }, [refreshSignal, refetchTasks, refetchBoards, refetchColumns, refetchSprints, refetchMilestones, refetchTags, refetchTaskAssignments]);
 
   const loading = loadingTasks || loadingBoards || loadingColumns || loadingSprints || loadingMilestones || loadingTags;
 
@@ -981,8 +994,8 @@ export function ProjectTasksWorkspace({
           <table className="w-full min-w-[920px] text-[11px]">
             <thead>
               <tr className="border-b border-border bg-surface-secondary/50">
-                <th className="text-left px-4 py-2">Titulo</th>
-                <th className="text-left px-4 py-2">Prioridad</th>
+                <th className="text-left px-4 py-2">Title</th>
+                <th className="text-left px-4 py-2">Priority</th>
                 <th className="text-left px-4 py-2">Tags</th>
                 {canEditTasks && <th className="text-left px-4 py-2 w-[140px]">Sprint</th>}
               </tr>
@@ -992,16 +1005,15 @@ export function ProjectTasksWorkspace({
                 <tr key={task.id_task} className="border-b border-border/60 hover:bg-accent/20 cursor-pointer align-top" onClick={() => setSelectedTask(task)}>
                   <td className="px-4 py-3 min-w-[360px]">
                     <p className="text-[12px] font-semibold text-foreground">{task.title}</p>
-                    {task.description && <p className="mt-1 text-muted-foreground leading-relaxed">{task.description}</p>}
                   </td>
                   <td className="px-4 py-3">
                     <span className="text-[11px] font-medium text-foreground">
-                      {priorityById.get(task.priority)?.name ?? `Prioridad ${task.priority}`}
+                      {priorityById.get(task.priority)?.name ?? `Priority ${task.priority}`}
                     </span>
                   </td>
                   <td className="px-4 py-3">
                     {task.tags.length === 0 ? (
-                      <span className="text-[10px] text-muted-foreground">Sin tags</span>
+                      <span className="text-[10px] text-muted-foreground">No tags</span>
                     ) : (
                       <div className="flex flex-wrap items-center gap-2 max-w-[420px]">
                         {task.tags.slice(0, 4).map((tagId) => {
@@ -1044,7 +1056,7 @@ export function ProjectTasksWorkspace({
                         }}
                         className="h-6 px-2 rounded-[3px] border border-dashed border-border text-[10px] text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors inline-flex items-center gap-1"
                       >
-                        <Plus className="w-3 h-3" /> Mover
+                        <Plus className="w-3 h-3" /> Move
                       </button>
                     </td>
                   )}
@@ -1927,6 +1939,7 @@ export function ProjectTasksWorkspace({
         maxDueDate={projectEndDate ?? undefined}
         userMap={userMap}
         assignableUsers={assignableUsers}
+        sprints={sprints ?? []}
         boardColumnsByBoard={boardColumnsByBoard}
         boardNames={boardNameMap}
         taskAssignments={selectedTaskAssignments}

@@ -1,9 +1,9 @@
-﻿import { useState, useEffect, useMemo } from 'react';
+﻿import { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router';
 import { toast } from 'sonner';
 import {
   ArrowLeft, Calendar, Users, Clock, CheckCircle2,
-  AlertTriangle, UserPlus, RefreshCw, List, Trash2, Settings2,
+  AlertTriangle, UserPlus, List, Trash2, Settings2, RefreshCw,
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { StatusBadge } from '../components/StatusBadge';
@@ -54,8 +54,6 @@ export default function ProjectDetail() {
   const [reviewBranches, setReviewBranches] = useState('');
   const [projectTick, setProjectTick] = useState(0);
 
-  const reloadProject = () => setProjectTick((t) => t + 1);
-
   useEffect(() => {
     if (!projectId) return;
     setLoadingProject(true);
@@ -82,7 +80,7 @@ export default function ProjectDetail() {
     }
   }, [boards, selectedBoardId]);
   // ── Sprints (for project end date validation) ─────────────────────────────
-  const { data: sprints } = useApiSprints(projectId);
+  const { data: sprints, refetch: refetchSprints } = useApiSprints(projectId);
   const latestSprintEndDate = useMemo(() => {
     const dates = (sprints ?? [])
       .map((s) => s.end_date)
@@ -132,6 +130,8 @@ export default function ProjectDetail() {
 
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [bypassGithubCheck, setBypassGithubCheck] = useState(false);
+  const [sectionRefreshToken, setSectionRefreshToken] = useState<number | null>(null);
+  const refreshClickTimestamps = useRef<number[]>([]);
   const handleAddMember = async (userId: number, roleId: number | null) => {
     if (!canManageMembers) {
       throw new Error('Solo el Project Manager puede agregar miembros.');
@@ -164,6 +164,59 @@ export default function ProjectDetail() {
     () => (roles ?? []).filter((role) => getAllowedProjectRoleIdsForUser(null, projectRoleIds).includes(role.id_role) || role.id_role === projectRoleIds.stakeholderId),
     [projectRoleIds, roles],
   );
+
+  const handleRefreshActiveSection = () => {
+    const now = Date.now();
+    refreshClickTimestamps.current = refreshClickTimestamps.current.filter((timestamp) => now - timestamp < 60_000);
+
+    if (refreshClickTimestamps.current.length >= 30) {
+      toast.error('Límite de refresco alcanzado. Intenta de nuevo en un minuto.');
+      return;
+    }
+
+    refreshClickTimestamps.current.push(now);
+    setSectionRefreshToken((current) => (current == null ? 1 : current + 1));
+
+    if (activeTab === 'resumen') {
+      projectsService.get(projectId)
+        .then(setProject)
+        .catch(() => setProjectError('No se pudo cargar el proyecto.'));
+      refetchTasks();
+      refetchAllProjectTasks();
+      refetchMembers();
+      refetchUsers();
+      refetchBoards();
+      refetchSprints();
+      return;
+    }
+
+    if (activeTab === 'timeline') {
+      refetchTasks();
+      refetchAllProjectTasks();
+      refetchBoards();
+      refetchSprints();
+      return;
+    }
+
+    if (activeTab === 'scrum-poker') {
+      refetchAllProjectTasks();
+      return;
+    }
+
+    if (activeTab === 'equipo') {
+      refetchMembers();
+      refetchUsers();
+      return;
+    }
+
+    if (activeTab === 'configuracion') {
+      projectsService.get(projectId)
+        .then(setProject)
+        .catch(() => setProjectError('No se pudo cargar el proyecto.'));
+      refetchBoards();
+      refetchSprints();
+    }
+  };
 
   const memberUserMap = useMemo(() => {
     const nextMap = new Map<number, ApiUserAccount>();
@@ -492,7 +545,6 @@ export default function ProjectDetail() {
         <CommandBar
           actions={[
             { label: 'Volver', icon: <ArrowLeft className="w-3.5 h-3.5" />, onClick: () => navigate('/projects') },
-            { label: 'Actualizar', icon: <RefreshCw className="w-3.5 h-3.5" />, onClick: () => { reloadProject(); refetchTasks(); refetchAllProjectTasks(); refetchMembers(); refetchBoards(); } },
             ...(canManageProject ? [{ label: 'Asignar responsable', icon: <UserPlus className="w-3.5 h-3.5" />, onClick: () => setShowAssignModal(true) }] : []),
           ]}
           rightSlot={project ? <StatusBadge status={getProjectStatusBadge(project.status)} text={getProjectStatusLabel(project.status)} size="sm" /> : null}
@@ -539,6 +591,17 @@ export default function ProjectDetail() {
             ]}
             activeTab={activeTab}
             onTabChange={(id) => setActiveTab(id as typeof activeTab)}
+            rightSlot={(
+              <button
+                type="button"
+                onClick={handleRefreshActiveSection}
+                className="inline-flex h-full w-full min-w-8 items-center justify-center self-stretch rounded-[3px] border border-border bg-card text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                title="Refresh current section"
+                aria-label="Refresh current section"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+              </button>
+            )}
           />
         </div>
       </section>
@@ -629,6 +692,7 @@ export default function ProjectDetail() {
         {(activeTab === 'backlog' || activeTab === 'sprints' || activeTab === 'boards' || activeTab === 'milestones') && (
           <div className="flex-1 min-h-0 flex flex-col">
             <ProjectTasksWorkspace
+              refreshSignal={sectionRefreshToken}
               projectId={projectId}
               userMap={userMap}
               assignableUsers={(members ?? []).map((m) => ({
@@ -656,13 +720,14 @@ export default function ProjectDetail() {
 
         {activeTab === 'timeline' && (
           <div className="flex-1 min-h-0 flex flex-col">
-            <Timeline projectId={projectId} projectEndDate={project?.end_date} />
+            <Timeline key={`timeline-${sectionRefreshToken ?? 0}`} projectId={projectId} projectEndDate={project?.end_date} />
           </div>
         )}
 
         {/* SCRUM POKER */}
         {activeTab === 'scrum-poker' && (
           <ScrumPoker
+            key={`scrum-poker-${sectionRefreshToken ?? 0}`}
             tasks={allProjectTasks ?? []}
             canAssignPoints={canManageProject}
             onTaskUpdated={(_updated) => {
@@ -674,6 +739,7 @@ export default function ProjectDetail() {
         {/* CODE REVIEW */}
         {activeTab === 'code-review' && canCreateRepos && (
           <CodeReviewPanel
+            key={`code-review-${sectionRefreshToken ?? 0}`}
             projectId={projectId}
             repoFullName={project?.github_repo_full_name ?? null}
           />
@@ -681,7 +747,11 @@ export default function ProjectDetail() {
 
         {/* REPOSITORIOS */}
         {activeTab === 'repositorios' && (
-          <GitHubReposView projectId={projectId} canCreateRepos={canCreateRepos} />
+          <GitHubReposView
+            key={`repos-${sectionRefreshToken ?? 0}`}
+            projectId={projectId}
+            canCreateRepos={canCreateRepos}
+          />
         )}
 
         {/* EQUIPO */}

@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
 import { tasksService, githubService } from '../../services';
 import { ApiRequestError } from '../../services/api';
-import type { ApiTask, ApiTaskStatus, ApiTaskPriority, ApiTaskComment, ApiTaskWarning, ApiTaskAssignment, ApiTag, GitHubRepo, CreateBranchResponse, ApiBoardColumn } from '../../services';
+import type { ApiTask, ApiTaskStatus, ApiTaskPriority, ApiTaskComment, ApiTaskWarning, ApiTaskAssignment, ApiTag, GitHubRepo, CreateBranchResponse, ApiBoardColumn, ApiSprint } from '../../services';
 import { WarningBadge } from './WarningBadge';
 import { TaskAssigneePicker } from './TaskAssigneePicker';
 import { DatePickerField } from './DatePickerField';
@@ -50,6 +50,7 @@ interface TaskDetailPanelProps {
   repoFullName?: string | null;
   boardColumnsByBoard?: Map<number, ApiBoardColumn[]>;
   boardNames?: Map<number, string>;
+  sprints?: ApiSprint[];
   onClose: () => void;
   onDeleteTask?: (task: ApiTask) => Promise<void>;
   onTaskUpdated?: (updatedTask: ApiTask) => void;
@@ -72,6 +73,7 @@ export function TaskDetailPanel({
   projectId,
   boardColumnsByBoard,
   boardNames,
+  sprints = [],
   onClose,
   onDeleteTask,
   onTaskUpdated,
@@ -87,6 +89,7 @@ export function TaskDetailPanel({
   const [loadingComments, setLoadingComments] = useState(false);
   const [warnings, setWarnings] = useState<ApiTaskWarning[]>([]);
   const [loadingWarnings, setLoadingWarnings] = useState(false);
+  const [warningsPanelOpen, setWarningsPanelOpen] = useState(false);
   const [newComment, setNewComment] = useState('');
   const [sendingComment, setSendingComment] = useState(false);
   const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
@@ -113,6 +116,7 @@ export function TaskDetailPanel({
   const [deletingTask, setDeletingTask] = useState(false);
   const [deletingWarningId, setDeletingWarningId] = useState<number | null>(null);
   const [savingBoardColumn, setSavingBoardColumn] = useState(false);
+  const [savingSprint, setSavingSprint] = useState(false);
   const [selectedWarningIds, setSelectedWarningIds] = useState<Set<number>>(new Set());
   const [deletingSelectedWarnings, setDeletingSelectedWarnings] = useState(false);
   const [taskForm, setTaskForm] = useState({
@@ -208,6 +212,7 @@ export function TaskDetailPanel({
     setNewComment('');
     setComments([]);
     setWarnings([]);
+    setWarningsPanelOpen(false);
     setLoadingComments(true);
     setLoadingWarnings(true);
 
@@ -381,6 +386,20 @@ export function TaskDetailPanel({
     }
   };
 
+  const handleChangeSprint = async (sprintId: number | null) => {
+    if (!task || !canEditTask) return;
+    setSavingSprint(true);
+    try {
+      const updated = await tasksService.update(task.id_task, { sprint: sprintId });
+      onTaskUpdated?.(updated);
+      toast.success('Sprint actualizado.');
+    } catch {
+      toast.error('No se pudo actualizar el sprint.');
+    } finally {
+      setSavingSprint(false);
+    }
+  };
+
   const handleDeleteSelectedWarnings = async () => {
     if (selectedWarningIds.size === 0 || !canEditTask) return;
     setDeletingSelectedWarnings(true);
@@ -448,13 +467,12 @@ export function TaskDetailPanel({
     }
   };
 
-  const pr = task ? priorities.find((p) => p.id_priority === task.priority) : null;
   const assignedNames = currentTaskAssignments.length > 0
     ? currentTaskAssignments.map((assignment) => userMap.get(assignment.assigned_to) ?? `#${assignment.assigned_to}`)
     : task?.assigned_to ? [userMap.get(task.assigned_to) ?? `#${task.assigned_to}`] : [];
   const isOverdue = task && !task.completed_at && task.due_date && new Date(task.due_date) < new Date();
   const activeWarnings = warnings.filter((w) => w.status === 'active');
-  const showWarningsSidePanel = loadingWarnings || activeWarnings.length > 0;
+  const showWarningsSidePanel = warningsPanelOpen && (loadingWarnings || activeWarnings.length > 0);
 
   const selectedTaskTags = useMemo(() => {
     if (!task) return [] as ApiTag[];
@@ -496,12 +514,13 @@ export function TaskDetailPanel({
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-surface-secondary/50 shrink-0">
               <div className="flex items-center gap-2 min-w-0">
-                {pr && (
-                  <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-[0.06em]">
-                    {pr.name}
-                  </span>
-                )}
-                {activeWarnings.length > 0 && <WarningBadge count={activeWarnings.length} />}
+                <WarningBadge
+                  count={activeWarnings.length}
+                  showWhenZero
+                  onClick={activeWarnings.length > 0 ? () => setWarningsPanelOpen((s) => !s) : undefined}
+                  disabled={activeWarnings.length === 0}
+                  className={warningsPanelOpen ? 'ring-1 ring-warning/40' : ''}
+                />
               </div>
               <div className="flex items-center gap-1.5">
                 {!isEditingTask && canEditTask && (
@@ -655,6 +674,20 @@ export function TaskDetailPanel({
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] text-muted-foreground uppercase tracking-[0.06em]">Creada</span>
                   <span className="text-[11px] text-muted-foreground">{task.created_at.slice(0, 10)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-[0.06em]">Sprint</span>
+                  <select
+                    value={task.sprint ?? ''}
+                    disabled={!canEditTask || savingSprint}
+                    onChange={(e) => void handleChangeSprint(e.target.value ? Number(e.target.value) : null)}
+                    className="h-6 rounded-[3px] border border-border bg-surface-secondary px-1.5 text-[10px] disabled:opacity-60"
+                  >
+                    <option value="">Sin sprint</option>
+                    {sprints.map((sprint) => (
+                      <option key={sprint.id_sprint} value={sprint.id_sprint}>{sprint.name}</option>
+                    ))}
+                  </select>
                 </div>
                 {boardColumnsByBoard && boardColumnsByBoard.size > 0 && (() => {
                   const allBoards = Array.from(boardColumnsByBoard.entries());

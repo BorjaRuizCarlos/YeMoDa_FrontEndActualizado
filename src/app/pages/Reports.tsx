@@ -4,13 +4,14 @@ import {
 } from 'recharts';
 import {
   Download, FileDown, RefreshCw, Loader2, TrendingUp, TrendingDown,
-  CheckCircle2, AlertTriangle, Clock, ListChecks, ArrowRight,
+  CheckCircle2, AlertTriangle, Clock, ListChecks, ArrowRight, ChevronDown, Check,
 } from 'lucide-react';
 import { CommandBar } from '../components/CommandBar';
 import { ReportExportDialog } from '../components/ReportExportDialog';
 import {
-  useApiProjects, useApiTasks, useApiTaskWarnings, useApiBoards,
+  useApiProjects, useApiTasks, useApiTaskWarnings, useApiBoards, useApiProjectMembers,
 } from '../hooks/useProjectData';
+import { useAuth } from '../context/AuthContext';
 import { computeProjectProgress, getProjectHealth, type ProjectHealth } from '../utils/projectHealth';
 
 const COMPLETION_TARGET = 80;
@@ -71,11 +72,18 @@ function pctDelta(curr: number, prev: number): string {
 }
 
 export default function Reports() {
+  const { user } = useAuth();
+  const currentUserId = Number(user?.id ?? 0);
   const { data: projects, loading: loadingProjects, refetch: refetchProjects } = useApiProjects();
   const { data: tasks, loading: loadingTasks, statuses, priorities, refetch: refetchTasks } = useApiTasks();
   const { data: warnings, refetch: refetchWarnings } = useApiTaskWarnings();
   const { data: boards } = useApiBoards();
+  const { data: myMemberships } = useApiProjectMembers(
+    undefined,
+    Number.isNaN(currentUserId) || currentUserId <= 0 ? undefined : currentUserId,
+  );
   const [selectedProject, setSelectedProject] = useState<number | null>(null);
+  const [projectMenuOpen, setProjectMenuOpen] = useState(false);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
 
   const loading = loadingProjects || loadingTasks;
@@ -86,6 +94,18 @@ export default function Reports() {
   const boardList = boards ?? [];
   const warningList = warnings ?? [];
 
+  const accessibleProjectIds = useMemo(() => {
+    if (user?.role === 'admin') return new Set(projectList.map((p) => p.id_project));
+    const ids = new Set<number>();
+    (myMemberships ?? []).forEach((membership) => ids.add(membership.project));
+    return ids;
+  }, [myMemberships, projectList, user?.role]);
+
+  const accessibleProjects = useMemo(
+    () => projectList.filter((project) => accessibleProjectIds.has(project.id_project)),
+    [projectList, accessibleProjectIds],
+  );
+
   // Build board→project map for task filtering
   const boardProjectMap = useMemo(() => {
     const m = new Map<number, number>();
@@ -93,22 +113,33 @@ export default function Reports() {
     return m;
   }, [boardList]);
 
+  const isTaskAccessible = (task: (typeof taskList)[number]) => {
+    if (task.project != null && accessibleProjectIds.has(task.project)) return true;
+    const projectId = boardProjectMap.get(task.board ?? 0);
+    return projectId != null && accessibleProjectIds.has(projectId);
+  };
+
+  const selectedProjectName = useMemo(
+    () => accessibleProjects.find((project) => project.id_project === selectedProject)?.name ?? 'All',
+    [accessibleProjects, selectedProject],
+  );
+
   // Filter context (single project selection from CommandBar pills)
   const inScopeProjects = useMemo(
-    () => (selectedProject ? projectList.filter((p) => p.id_project === selectedProject) : projectList),
-    [projectList, selectedProject],
+    () => (selectedProject ? accessibleProjects.filter((p) => p.id_project === selectedProject) : accessibleProjects),
+    [accessibleProjects, selectedProject],
   );
 
   const filteredTasks = useMemo(() => {
-    if (!selectedProject) return taskList;
+    if (!selectedProject) return taskList.filter(isTaskAccessible);
     return taskList.filter((t) => {
       if (t.project === selectedProject) return true;
       return boardProjectMap.get(t.board ?? 0) === selectedProject;
     });
-  }, [taskList, selectedProject, boardProjectMap]);
+  }, [taskList, selectedProject, boardProjectMap, accessibleProjectIds]);
 
   const filteredWarnings = useMemo(() => {
-    if (!selectedProject) return warningList;
+    if (!selectedProject) return warningList.filter((w) => filteredTasks.some((task) => task.id_task === w.task));
     const ids = new Set(filteredTasks.map((t) => t.id_task));
     return warningList.filter((w) => ids.has(w.task));
   }, [warningList, selectedProject, filteredTasks]);
@@ -116,9 +147,10 @@ export default function Reports() {
   // ── Per-project health (for hero + ranking) ──
   const projectHealthList = useMemo(() => {
     return inScopeProjects.map((p) => {
-      const progress = computeProjectProgress(p.id_project, taskList, boardList);
+      const accessibleTasks = taskList.filter(isTaskAccessible);
+      const progress = computeProjectProgress(p.id_project, accessibleTasks, boardList);
       const health = getProjectHealth(p, progress);
-      const overdue = taskList.filter((t) => {
+      const overdue = accessibleTasks.filter((t) => {
         const belongs = t.project === p.id_project
           || boardProjectMap.get(t.board ?? 0) === p.id_project;
         if (!belongs) return false;
@@ -126,7 +158,7 @@ export default function Reports() {
       }).length;
       return { project: p, progress, health, overdue };
     });
-  }, [inScopeProjects, taskList, boardList, boardProjectMap]);
+  }, [inScopeProjects, taskList, boardList, boardProjectMap, accessibleProjectIds]);
 
   // ── Aggregate KPIs ──
   const kpis = useMemo(() => {
@@ -336,31 +368,67 @@ export default function Reports() {
   // ── Ranking de proyectos por salud (worst first) ──
   const projectRanking = useMemo(() => {
     const healthOrder: Record<ProjectHealth, number> = { red: 0, yellow: 1, green: 2 };
-    return [...projectHealthList]
+    return accessibleProjects.map((project) => {
+      const accessibleTasks = taskList.filter(isTaskAccessible);
+      const progress = computeProjectProgress(project.id_project, accessibleTasks, boardList);
+      const health = getProjectHealth(project, progress);
+      const overdue = accessibleTasks.filter((task) => {
+        const belongs = task.project === project.id_project
+          || boardProjectMap.get(task.board ?? 0) === project.id_project;
+        if (!belongs) return false;
+        return !task.completed_at && task.due_date && new Date(task.due_date) < new Date();
+      }).length;
+      return { project, progress, health, overdue };
+    })
       .sort((a, b) => {
         const h = healthOrder[a.health] - healthOrder[b.health];
         if (h !== 0) return h;
         return a.progress.percentage - b.progress.percentage;
       })
       .slice(0, 5);
-  }, [projectHealthList]);
+  }, [accessibleProjects, taskList, boardList, boardProjectMap, accessibleProjectIds]);
 
   // ── Project filter pills ──
-  const projectFilters = useMemo(() => {
-    return [
-      {
-        label: 'Todos',
-        active: selectedProject === null,
-        count: projectList.length,
-        onClick: () => setSelectedProject(null),
-      },
-      ...projectList.map((p) => ({
-        label: p.name,
-        active: selectedProject === p.id_project,
-        onClick: () => setSelectedProject(p.id_project),
-      })),
-    ];
-  }, [projectList, selectedProject]);
+  const projectDropdown = (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setProjectMenuOpen((open) => !open)}
+        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[3px] text-[12px] font-medium transition-colors bg-card border border-border text-foreground hover:bg-accent"
+      >
+        {selectedProjectName}
+        <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
+      </button>
+      {projectMenuOpen && (
+        <div className="absolute left-0 top-[calc(100%+6px)] z-30 w-64 max-h-72 overflow-y-auto rounded-[6px] border border-border bg-card shadow-lg py-1">
+          <button
+            type="button"
+            onClick={() => { setSelectedProject(null); setProjectMenuOpen(false); }}
+            className="flex w-full items-center justify-between px-3 py-2 text-left text-[12px] hover:bg-accent/40"
+          >
+            <span>All</span>
+            {selectedProject === null && <Check className="w-3.5 h-3.5 text-primary" />}
+          </button>
+          <div className="my-1 h-px bg-border" />
+          {accessibleProjects.length === 0 ? (
+            <div className="px-3 py-2 text-[11px] text-muted-foreground">No projects available</div>
+          ) : (
+            accessibleProjects.map((project) => (
+              <button
+                key={project.id_project}
+                type="button"
+                onClick={() => { setSelectedProject(project.id_project); setProjectMenuOpen(false); }}
+                className="flex w-full items-center justify-between px-3 py-2 text-left text-[12px] hover:bg-accent/40"
+              >
+                <span className="truncate pr-3">{project.name}</span>
+                {selectedProject === project.id_project && <Check className="w-3.5 h-3.5 text-primary shrink-0" />}
+              </button>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
 
   // ── Export CSV (kept as quick action) ──
   const exportCSV = () => {
@@ -410,14 +478,14 @@ export default function Reports() {
           { label: 'Exportar CSV', icon: <Download className="w-3.5 h-3.5" />, onClick: exportCSV },
           { label: 'Refrescar', icon: <RefreshCw className="w-3.5 h-3.5" />, onClick: refetchAll },
         ]}
-        filters={projectFilters}
+        afterActionsSlot={projectDropdown}
       />
 
       <ReportExportDialog
         open={exportDialogOpen}
         onOpenChange={setExportDialogOpen}
-        projects={projectList}
-        tasks={taskList}
+        projects={accessibleProjects}
+        tasks={filteredTasks}
         statuses={statuses}
         priorities={priorities}
         boards={boardList}

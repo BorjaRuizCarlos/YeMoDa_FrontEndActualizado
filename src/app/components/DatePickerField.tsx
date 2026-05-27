@@ -22,6 +22,15 @@ function parseDateValue(value: string) {
 
 const CURRENT_YEAR = new Date().getFullYear();
 const YEAR_RANGE_HALF = 10;
+const MONTH_NAMES = Array.from({ length: 12 }, (_, index) =>
+  format(new Date(2020, index, 1), 'LLLL', { locale: es }),
+);
+
+type ViewMode = 'calendar' | 'year' | 'month';
+
+function capitalize(value: string) {
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
 
 export function DatePickerField({
   value,
@@ -32,7 +41,7 @@ export function DatePickerField({
   maxDate,
 }: DatePickerFieldProps) {
   const [open, setOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<'calendar' | 'year'>('calendar');
+  const [viewMode, setViewMode] = useState<ViewMode>('calendar');
   const [calendarMonth, setCalendarMonth] = useState<Date>(() => parseDateValue(value) ?? new Date());
   const [yearPage, setYearPage] = useState(0);
 
@@ -51,10 +60,25 @@ export function DatePickerField({
 
   const yearRangeStart = CURRENT_YEAR - YEAR_RANGE_HALF + yearPage * 20;
   const years = Array.from({ length: 20 }, (_, i) => yearRangeStart + i);
+  const monthYearLabel = capitalize(format(calendarMonth, 'MMMM yyyy', { locale: es }));
+
+  const openYearView = () => {
+    setYearPage(Math.floor((calendarMonth.getFullYear() - CURRENT_YEAR + YEAR_RANGE_HALF) / 20));
+    setViewMode('year');
+  };
 
   const handleYearSelect = (year: number) => {
     const newMonth = new Date(calendarMonth);
+    newMonth.setDate(1);
     newMonth.setFullYear(year);
+    setCalendarMonth(newMonth);
+    setViewMode('calendar');
+  };
+
+  const handleMonthSelect = (monthIndex: number) => {
+    const newMonth = new Date(calendarMonth);
+    newMonth.setDate(1);
+    newMonth.setMonth(monthIndex);
     setCalendarMonth(newMonth);
     setViewMode('calendar');
   };
@@ -75,11 +99,21 @@ export function DatePickerField({
         {viewMode === 'year' ? (
           <div className="p-3 w-[240px]">
             <div className="flex items-center justify-between mb-2">
-              <button type="button" onClick={() => setYearPage((p) => p - 1)} className="p-1 rounded hover:bg-accent/60">
+              <button
+                type="button"
+                onClick={() => setYearPage((p) => p - 1)}
+                aria-label="Años anteriores"
+                className="p-1 rounded hover:bg-accent/60"
+              >
                 <ChevronLeft className="w-4 h-4" />
               </button>
               <span className="text-[12px] font-medium text-foreground">{yearRangeStart} – {yearRangeStart + 19}</span>
-              <button type="button" onClick={() => setYearPage((p) => p + 1)} className="p-1 rounded hover:bg-accent/60">
+              <button
+                type="button"
+                onClick={() => setYearPage((p) => p + 1)}
+                aria-label="Años siguientes"
+                className="p-1 rounded hover:bg-accent/60"
+              >
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
@@ -101,6 +135,67 @@ export function DatePickerField({
             </div>
             <button
               type="button"
+              onClick={() => setViewMode('month')}
+              className="mt-2 w-full h-7 text-[11px] text-muted-foreground hover:text-foreground border border-border rounded-[3px] hover:bg-accent/30 transition-colors"
+            >
+              Volver a meses
+            </button>
+          </div>
+        ) : viewMode === 'month' ? (
+          <div className="p-3 w-[280px]">
+            <div className="flex items-center justify-between mb-3">
+              <button
+                type="button"
+                onClick={() => setCalendarMonth((currentMonth) => {
+                  const nextMonth = new Date(currentMonth);
+                  nextMonth.setDate(1);
+                  nextMonth.setFullYear(currentMonth.getFullYear() - 1);
+                  return nextMonth;
+                })}
+                aria-label="Año anterior"
+                className="p-1 rounded hover:bg-accent/60"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={openYearView}
+                className="text-[12px] font-semibold text-foreground hover:text-primary transition-colors px-2 py-0.5 rounded hover:bg-accent/30"
+              >
+                {format(calendarMonth, 'yyyy')}
+              </button>
+              <button
+                type="button"
+                onClick={() => setCalendarMonth((currentMonth) => {
+                  const nextMonth = new Date(currentMonth);
+                  nextMonth.setDate(1);
+                  nextMonth.setFullYear(currentMonth.getFullYear() + 1);
+                  return nextMonth;
+                })}
+                aria-label="Año siguiente"
+                className="p-1 rounded hover:bg-accent/60"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="grid grid-cols-3 gap-1.5">
+              {MONTH_NAMES.map((monthName, monthIndex) => (
+                <button
+                  key={monthName}
+                  type="button"
+                  onClick={() => handleMonthSelect(monthIndex)}
+                  className={`h-8 rounded-[3px] text-[11px] font-medium transition-colors ${
+                    monthIndex === calendarMonth.getMonth()
+                      ? 'bg-primary text-primary-foreground'
+                      : 'hover:bg-accent/60 text-foreground'
+                  }`}
+                >
+                  {capitalize(monthName)}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
               onClick={() => setViewMode('calendar')}
               className="mt-2 w-full h-7 text-[11px] text-muted-foreground hover:text-foreground border border-border rounded-[3px] hover:bg-accent/30 transition-colors"
             >
@@ -109,13 +204,39 @@ export function DatePickerField({
           </div>
         ) : (
           <div>
-            <div className="flex items-center justify-center gap-2 px-3 pt-3 pb-1">
+            <div className="flex items-center justify-between gap-2 px-3 pt-3 pb-1">
               <button
                 type="button"
-                onClick={() => setViewMode('year')}
-                className="text-[12px] font-semibold text-foreground hover:text-primary transition-colors px-2 py-0.5 rounded hover:bg-accent/30"
+                onClick={() => setCalendarMonth((currentMonth) => {
+                  const nextMonth = new Date(currentMonth);
+                  nextMonth.setDate(1);
+                  nextMonth.setMonth(currentMonth.getMonth() - 1);
+                  return nextMonth;
+                })}
+                aria-label="Mes anterior"
+                className="p-1 rounded hover:bg-accent/60"
               >
-                {format(calendarMonth, 'yyyy')}
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('month')}
+                className="flex-1 text-[12px] font-semibold text-foreground hover:text-primary transition-colors px-2 py-0.5 rounded hover:bg-accent/30"
+              >
+                {monthYearLabel}
+              </button>
+              <button
+                type="button"
+                onClick={() => setCalendarMonth((currentMonth) => {
+                  const nextMonth = new Date(currentMonth);
+                  nextMonth.setDate(1);
+                  nextMonth.setMonth(currentMonth.getMonth() + 1);
+                  return nextMonth;
+                })}
+                aria-label="Mes siguiente"
+                className="p-1 rounded hover:bg-accent/60"
+              >
+                <ChevronRight className="w-4 h-4" />
               </button>
             </div>
             <Calendar
@@ -124,6 +245,7 @@ export function DatePickerField({
               month={calendarMonth}
               onMonthChange={setCalendarMonth}
               disabled={isDateDisabled}
+              classNames={{ caption: 'hidden', nav: 'hidden' }}
               onSelect={(date) => {
                 if (!date) return;
                 if (isDateDisabled(date)) return;

@@ -48,13 +48,10 @@ export function ScrumPoker({ tasks, canAssignPoints, onTaskUpdated }: ScrumPoker
       <div className="divide-y divide-border">
         {tasks.map((task) => (
           <div key={task.id_task} className="px-4 py-3 flex items-start gap-4">
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-0 pr-4">
               <p className="text-[12px] font-medium text-foreground truncate">{task.title}</p>
-              {task.description && (
-                <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">{task.description}</p>
-              )}
             </div>
-            <div className="flex items-center gap-1 flex-wrap justify-end shrink-0">
+            <div className="flex items-center gap-1 flex-wrap justify-end shrink-0 border-l border-border pl-4">
               {savingId === task.id_task ? (
                 <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
               ) : (

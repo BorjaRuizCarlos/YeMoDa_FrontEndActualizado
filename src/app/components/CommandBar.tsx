@@ -27,6 +27,7 @@ export interface CommandBarViewOption {
 
 interface CommandBarProps {
   actions?: CommandBarAction[];
+  afterActionsSlot?: ReactNode;
   filters?: CommandBarFilter[];
   viewMode?: string;
   viewOptions?: CommandBarViewOption[];
@@ -37,6 +38,7 @@ interface CommandBarProps {
 
 export function CommandBar({
   actions = [],
+  afterActionsSlot,
   filters = [],
   viewMode,
   viewOptions = [],
@@ -76,8 +78,10 @@ export function CommandBar({
         </div>
       )}
 
+      {afterActionsSlot && <div className="flex items-center gap-1">{afterActionsSlot}</div>}
+
       {/* Separator between actions and filters */}
-      {actions.length > 0 && filters.length > 0 && (
+      {((actions.length > 0 && filters.length > 0) || (actions.length > 0 && afterActionsSlot)) && (
         <div className="h-4 w-px bg-border" />
       )}
 
