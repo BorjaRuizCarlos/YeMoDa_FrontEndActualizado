@@ -94,10 +94,10 @@ async function handleResponse<T>(res: Response, authRequest = true): Promise<T> 
   if (res.status === 204) return undefined as T;
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    if (authRequest && status === 401 && (data as { code?: string })?.code === 'email_verification_required') {
+    if (authRequest && res.status === 401 && (data as { code?: string })?.code === 'email_verification_required') {
       tokenStore.clear();
       emitEmailBlocked();
-    } else if (authRequest && isSessionExpiredError(status, data as ApiError)) {
+    } else if (authRequest && isSessionExpiredError(res.status, data as ApiError)) {
       tokenStore.clear();
       emitSessionExpired();
     }
