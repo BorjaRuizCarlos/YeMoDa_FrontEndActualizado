@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Clock3, LogOut } from 'lucide-react';
-import { authService, tokenStore, AUTH_SESSION_EXPIRED_EVENT, ApiRequestError } from '../../services';
+import { authService, tokenStore, AUTH_SESSION_EXPIRED_EVENT, AUTH_EMAIL_BLOCKED_EVENT, ApiRequestError } from '../../services';
 import type { ApiUserAccount } from '../../services';
 import { mapUserRole } from '../utils/roles';
 import type { UserRole } from '../utils/roles';
@@ -96,6 +96,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     window.addEventListener(AUTH_SESSION_EXPIRED_EVENT, handleSessionExpired);
     return () => window.removeEventListener(AUTH_SESSION_EXPIRED_EVENT, handleSessionExpired);
+  }, []);
+
+  useEffect(() => {
+    const handleEmailBlocked = () => {
+      authService.logout();
+      persistUser(null);
+      window.location.href = '/login?reason=email_blocked';
+    };
+    window.addEventListener(AUTH_EMAIL_BLOCKED_EVENT, handleEmailBlocked);
+    return () => window.removeEventListener(AUTH_EMAIL_BLOCKED_EVENT, handleEmailBlocked);
   }, []);
 
   const login = async (email: string, password: string, role?: UserRole) => {

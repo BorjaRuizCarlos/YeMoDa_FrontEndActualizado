@@ -18,12 +18,12 @@ interface ProjectStatusOption {
 }
 
 const PROJECT_STATUS_MAP: Record<ProjectWorkflowStatus, ProjectStatusOption> = {
-  planning: { value: 'planning', label: 'Planeación', apiValue: 'Planeación', badge: 'planning' },
-  in_progress: { value: 'in_progress', label: 'En Progreso', apiValue: 'En Progreso', badge: 'info' },
-  review: { value: 'review', label: 'Revisión', apiValue: 'Revisión', badge: 'review' },
-  completed: { value: 'completed', label: 'Finalizado', apiValue: 'Finalizado', badge: 'success' },
-  retired: { value: 'retired', label: 'Retirado', apiValue: 'Retirado', badge: 'retired' },
-  cancelled: { value: 'cancelled', label: 'Cancelado', apiValue: 'Cancelado', badge: 'cancelled' },
+  planning:    { value: 'planning',    label: 'Planeación',  apiValue: 'Planning',     badge: 'planning' },
+  in_progress: { value: 'in_progress', label: 'En Progreso', apiValue: 'In Progress',  badge: 'info' },
+  review:      { value: 'review',      label: 'Revisión',    apiValue: 'Review',       badge: 'review' },
+  completed:   { value: 'completed',   label: 'Finalizado',  apiValue: 'Finished',     badge: 'success' },
+  retired:     { value: 'retired',     label: 'Retirado',    apiValue: 'Retired',      badge: 'retired' },
+  cancelled:   { value: 'cancelled',   label: 'Cancelado',   apiValue: 'Cancelled',    badge: 'cancelled' },
 };
 
 const PROJECT_STATUS_CHART_COLORS: Record<ProjectWorkflowStatus, string> = {
@@ -36,19 +36,24 @@ const PROJECT_STATUS_CHART_COLORS: Record<ProjectWorkflowStatus, string> = {
 };
 
 const PROJECT_STATUS_ALIASES: Record<string, ProjectWorkflowStatus> = {
+  // English (new DB values)
   planning: 'planning',
+  'in progress': 'in_progress',
+  in_progress: 'in_progress',
+  review: 'review',
+  finished: 'completed',
+  retired: 'retired',
+  cancelled: 'cancelled',
+  // Spanish (legacy / display labels)
   planeacion: 'planning',
   'planeación': 'planning',
   planificacion: 'planning',
   'planificación': 'planning',
-  in_progress: 'in_progress',
-  'in progress': 'in_progress',
   progreso: 'in_progress',
   'en progreso': 'in_progress',
   active: 'in_progress',
   activo: 'in_progress',
   on_track: 'in_progress',
-  review: 'review',
   revision: 'review',
   revisión: 'review',
   qa: 'review',
@@ -57,7 +62,6 @@ const PROJECT_STATUS_ALIASES: Record<string, ProjectWorkflowStatus> = {
   completado: 'completed',
   finalizado: 'completed',
   done: 'completed',
-  retired: 'retired',
   retirado: 'retired',
   on_hold: 'retired',
   'on hold': 'retired',
@@ -66,7 +70,6 @@ const PROJECT_STATUS_ALIASES: Record<string, ProjectWorkflowStatus> = {
   'en pausa': 'retired',
   at_risk: 'retired',
   delayed: 'retired',
-  cancelled: 'cancelled',
   cancelado: 'cancelled',
 };
 

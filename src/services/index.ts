@@ -1,5 +1,5 @@
 // Barrel export for all services
-export { api, tokenStore, ApiRequestError, AUTH_SESSION_EXPIRED_EVENT } from './api';
+export { api, tokenStore, ApiRequestError, AUTH_SESSION_EXPIRED_EVENT, AUTH_EMAIL_BLOCKED_EVENT } from './api';
 export { authService } from './auth.service';
 export { githubService } from './github.service';
 export { azureService } from './azure.service';
