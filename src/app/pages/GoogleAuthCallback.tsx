@@ -47,6 +47,27 @@ function buildUserFromAccessToken(accessToken: string): User | null {
   };
 }
 
+function getOAuthErrorMessage(errorCode: string): string {
+  switch (errorCode) {
+    case 'nickname_taken':
+      return 'Ese nickname ya está en uso. Intenta nuevamente con uno diferente.';
+    case 'missing_nickname':
+      return 'Necesitas ingresar un nickname antes de iniciar con Google.';
+    case 'invalid_state':
+      return 'La sesión OAuth expiró o es inválida. Intenta de nuevo.';
+    case 'token_exchange_failed':
+      return 'No se pudo completar la autenticación con Google. Intenta nuevamente.';
+    case 'no_access_token':
+      return 'Google no devolvió el token de acceso esperado.';
+    case 'userinfo_failed':
+      return 'No se pudo obtener la información de tu cuenta de Google.';
+    case 'no_email':
+      return 'Tu cuenta de Google no devolvió un correo válido.';
+    default:
+      return 'No se pudo completar el inicio de sesión con Google.';
+  }
+}
+
 export default function GoogleAuthCallback() {
   const [state, setState] = useState<CallbackState>('loading');
   const [message, setMessage] = useState('Procesando inicio de sesión con Google...');
@@ -54,6 +75,13 @@ export default function GoogleAuthCallback() {
   const searchParams = useMemo(() => new URLSearchParams(window.location.search), []);
 
   useEffect(() => {
+    const oauthError = (searchParams.get('error') || '').trim();
+    if (oauthError) {
+      setState('error');
+      setMessage(getOAuthErrorMessage(oauthError));
+      return;
+    }
+
     const accessToken = readToken(searchParams.get('access_token'));
     const refreshToken = readToken(searchParams.get('refresh_token'));
 
