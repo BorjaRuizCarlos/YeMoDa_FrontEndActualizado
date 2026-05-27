@@ -92,16 +92,9 @@ export default function Profile() {
     if (!userId) return;
 
     const trimmedName = formData.name.trim();
-    const trimmedEmail = formData.email.trim();
 
-    if (!trimmedName || !trimmedEmail) {
-      toast.error('Nombre y correo son obligatorios');
-      return;
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(trimmedEmail)) {
-      toast.error('Por favor ingresa un correo electrónico válido');
+    if (!trimmedName) {
+      toast.error('El nickname es obligatorio');
       return;
     }
 
@@ -109,7 +102,6 @@ export default function Profile() {
     try {
       const updatedUser = await usersService.update(userId, {
         username: trimmedName,
-        email: trimmedEmail,
       });
       syncUser(updatedUser);
       setEditing(false);
@@ -221,7 +213,7 @@ export default function Profile() {
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  disabled={!editing}
+                  disabled
                   className="w-full h-7 bg-surface-secondary border border-border rounded-[3px] px-2.5 text-[11px] text-foreground focus:outline-none focus:ring-1 focus:ring-primary/20 disabled:opacity-50"
                 />
               </div>

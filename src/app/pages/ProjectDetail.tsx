@@ -52,7 +52,6 @@ export default function ProjectDetail() {
   const [projectStatus, setProjectStatus] = useState('planning');
   const [projectEndDate, setProjectEndDate] = useState('');
   const [reviewBranches, setReviewBranches] = useState('');
-  const [projectTick, setProjectTick] = useState(0);
 
   useEffect(() => {
     if (!projectId) return;
@@ -62,7 +61,7 @@ export default function ProjectDetail() {
       .then(setProject)
       .catch(() => setProjectError('No se pudo cargar el proyecto.'))
       .finally(() => setLoadingProject(false));
-  }, [projectId, projectTick]);
+  }, [projectId]);
 
   useEffect(() => {
     setProjectStatus(normalizeProjectStatus(project?.status) ?? 'planning');

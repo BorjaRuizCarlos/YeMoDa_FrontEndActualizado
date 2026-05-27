@@ -55,8 +55,13 @@ export default function Login() {
   };
 
   const handleGoogleLogin = () => {
+    const nickname = window.prompt('Elige tu nickname para continuar con Google:')?.trim() ?? '';
+    if (!nickname) {
+      toast.error('Debes ingresar un nickname para continuar con Google.');
+      return;
+    }
     setIsGoogleLoading(true);
-    authService.startGoogleLogin();
+    authService.startGoogleLogin(nickname);
   };
 
   return (
