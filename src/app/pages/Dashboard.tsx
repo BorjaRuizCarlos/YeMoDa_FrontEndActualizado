@@ -36,9 +36,9 @@ const HEALTH_BORDER: Record<ProjectHealth, string> = {
   red: 'border-l-red-500',
 };
 const HEALTH_LABEL: Record<ProjectHealth, string> = {
-  green: 'Saludable',
-  yellow: 'En riesgo',
-  red: 'Crítico',
+  green: 'Healthy',
+  yellow: 'At risk',
+  red: 'Critical',
 };
 
 const PANEL_PAGE_SIZE = 8;
@@ -51,11 +51,11 @@ function relativeDueLabel(dueIso: string, now: Date): { label: string; tone: 'ov
   const diff = Math.round((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
   if (diff < 0) {
     const abs = Math.abs(diff);
-    return { label: abs === 1 ? 'vencida ayer' : `vencida hace ${abs}d`, tone: 'overdue' };
+    return { label: abs === 1 ? 'overdue yesterday' : `overdue ${abs}d ago`, tone: 'overdue' };
   }
-  if (diff === 0) return { label: 'HOY', tone: 'today' };
-  if (diff === 1) return { label: 'mañana', tone: 'tomorrow' };
-  return { label: `en ${diff}d`, tone: 'soon' };
+  if (diff === 0) return { label: 'TODAY', tone: 'today' };
+  if (diff === 1) return { label: 'tomorrow', tone: 'tomorrow' };
+  return { label: `in ${diff}d`, tone: 'soon' };
 }
 
 function taskStatusColor(name: string) {
@@ -260,9 +260,9 @@ export default function Dashboard() {
       counts[health] += 1;
     }
     const meta: { key: ProjectHealth; name: string; color: string }[] = [
-      { key: 'green', name: 'Saludable', color: '#10b981' },
-      { key: 'yellow', name: 'En riesgo', color: '#f59e0b' },
-      { key: 'red', name: 'Crítico', color: '#ef4444' },
+      { key: 'green', name: 'Healthy', color: '#10b981' },
+      { key: 'yellow', name: 'At risk', color: '#f59e0b' },
+      { key: 'red', name: 'Critical', color: '#ef4444' },
     ];
     return meta
       .filter((m) => counts[m.key] > 0)
@@ -309,7 +309,7 @@ export default function Dashboard() {
       <div className="px-4 pt-10 text-center">
         <AlertTriangle className="w-8 h-8 text-destructive mx-auto mb-2" />
         <p className="text-[13px] text-destructive">
-          {isAuthExpiredError ? 'Tu sesión venció. Vuelve a iniciar sesión.' : errorProjects}
+          {isAuthExpiredError ? 'Your session has expired. Please sign in again.' : errorProjects}
         </p>
         <button
           onClick={() => {
@@ -318,7 +318,7 @@ export default function Dashboard() {
           }}
           className="mt-3 text-[12px] text-primary hover:underline"
         >
-          {isAuthExpiredError ? 'Ir al inicio' : 'Reintentar'}
+          {isAuthExpiredError ? 'Go to home' : 'Retry'}
         </button>
       </div>
     );
@@ -328,32 +328,32 @@ export default function Dashboard() {
 
   const kpiList: KpiDef[] = [
     {
-      title: 'Proyectos', value: kpis.totalProjects, subtitle: 'activos',
+      title: 'Projects', value: kpis.totalProjects, subtitle: 'active',
       icon: <Briefcase className="w-4 h-4" />, accent: 'bg-primary',
       iconBg: 'bg-primary/10', iconColor: 'text-primary',
     },
     {
-      title: 'Tareas', value: kpis.totalTasks, subtitle: 'en tus proyectos',
+      title: 'Tasks', value: kpis.totalTasks, subtitle: 'in your projects',
       icon: <ListChecks className="w-4 h-4" />, accent: 'bg-sky-500',
       iconBg: 'bg-sky-500/10', iconColor: 'text-sky-500',
     },
     {
-      title: 'Completadas', value: kpis.completed, subtitle: 'tareas terminadas',
+      title: 'Completed', value: kpis.completed, subtitle: 'finished tasks',
       icon: <CheckCircle2 className="w-4 h-4" />, accent: 'bg-emerald-500',
       iconBg: 'bg-emerald-500/10', iconColor: 'text-emerald-500',
     },
     {
-      title: 'Pendientes', value: kpis.open, subtitle: 'tareas abiertas',
+      title: 'Open', value: kpis.open, subtitle: 'open tasks',
       icon: <Timer className="w-4 h-4" />, accent: 'bg-amber-500',
       iconBg: 'bg-amber-500/10', iconColor: 'text-amber-500',
     },
     {
-      title: 'Vencidas', value: kpis.overdue, subtitle: 'requieren atención',
+      title: 'Overdue', value: kpis.overdue, subtitle: 'need attention',
       icon: <AlertTriangle className="w-4 h-4" />, accent: 'bg-red-500',
       iconBg: 'bg-red-500/10', iconColor: 'text-red-500',
     },
     {
-      title: 'Warnings', value: activeWarningsCount, subtitle: 'alertas activas',
+      title: 'Warnings', value: activeWarningsCount, subtitle: 'active alerts',
       icon: <TrendingUp className="w-4 h-4" />, accent: 'bg-violet-500',
       iconBg: 'bg-violet-500/10', iconColor: 'text-violet-500',
     },
@@ -362,10 +362,10 @@ export default function Dashboard() {
   return (
     <div className="px-4 pb-6 pt-3 max-w-[1600px] min-h-full flex flex-col gap-4">
       <CommandBar
-        actions={[{ label: 'Actualizar', icon: <RefreshCw className="w-3.5 h-3.5" />, onClick: () => refetchAll() }]}
+        actions={[{ label: 'Refresh', icon: <RefreshCw className="w-3.5 h-3.5" />, onClick: () => refetchAll() }]}
         rightSlot={
           <span className="text-xs text-muted-foreground">
-            Hola, <span className="font-medium text-foreground">{firstName}</span>
+            Hi, <span className="font-medium text-foreground">{firstName}</span>
           </span>
         }
       />
@@ -382,7 +382,7 @@ export default function Dashboard() {
 
       {/* ───────── Charts row: Donut + Bar ───────── */}
       <div className="grid lg:grid-cols-2 gap-3 items-stretch">
-        {/* Salud del Portafolio (donut) */}
+        {/* Portfolio Health (donut) */}
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
@@ -390,7 +390,7 @@ export default function Dashboard() {
           className="bg-card border border-border rounded-[8px] p-4 flex flex-col"
         >
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-[13px] font-semibold text-foreground">Salud del Portafolio</h2>
+            <h2 className="text-[13px] font-semibold text-foreground">Portfolio Health</h2>
             <span className="text-[10px] text-muted-foreground">{portfolioHealthTotal} total</span>
           </div>
           {portfolioHealthData.length > 0 ? (
@@ -427,7 +427,7 @@ export default function Dashboard() {
                     {portfolioHealthTotal}
                   </span>
                   <span className="text-[9px] text-muted-foreground uppercase tracking-wider mt-1">
-                    proyectos
+                    projects
                   </span>
                 </div>
               </div>
@@ -454,11 +454,11 @@ export default function Dashboard() {
               </div>
             </div>
           ) : (
-            <p className="text-[12px] text-muted-foreground py-8 text-center">Sin proyectos.</p>
+            <p className="text-[12px] text-muted-foreground py-8 text-center">No projects.</p>
           )}
         </motion.div>
 
-        {/* Próximas a Vencer */}
+        {/* Due Soon */}
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
@@ -468,10 +468,10 @@ export default function Dashboard() {
           <div className="flex items-center justify-between px-4 py-2.5 border-b border-border">
             <div className="flex items-center gap-2">
               <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
-              <h2 className="text-[13px] font-semibold text-foreground">Próximas a Vencer</h2>
+              <h2 className="text-[13px] font-semibold text-foreground">Due Soon</h2>
             </div>
             <span className="text-[10px] text-muted-foreground">
-              {upcomingDueTasks.length} en 7 días
+              {upcomingDueTasks.length} in 7 days
             </span>
           </div>
           {upcomingDueTasks.length === 0 ? (
@@ -479,10 +479,10 @@ export default function Dashboard() {
               <div className="text-center">
                 <CheckCircle2 className="w-6 h-6 text-emerald-500 mx-auto mb-2" />
                 <p className="text-[12px] text-muted-foreground">
-                  Sin tareas próximas a vencer.
+                  No tasks due soon.
                 </p>
                 <p className="text-[10px] text-muted-foreground/70 mt-0.5">
-                  Estás al día.
+                  You are up to date.
                 </p>
               </div>
             </div>
@@ -494,7 +494,7 @@ export default function Dashboard() {
                   const projectId = task.project ?? boardProjectMap.get(task.board ?? 0);
                   const projectName = projectId
                     ? (projectById.get(projectId) ?? `Proyecto #${projectId}`)
-                    : 'Sin proyecto';
+                    : 'No project';
                   const dotColor =
                     rel.tone === 'overdue' ? 'bg-red-500'
                     : rel.tone === 'today' ? 'bg-amber-500'
@@ -529,7 +529,7 @@ export default function Dashboard() {
                   to="/backlog"
                   className="text-[11px] text-primary hover:underline font-medium inline-flex items-center gap-1"
                 >
-                  Ver todas <ArrowRight className="w-3 h-3" />
+                  View all <ArrowRight className="w-3 h-3" />
                 </Link>
               </div>
             </>
@@ -545,9 +545,9 @@ export default function Dashboard() {
         className="bg-card border border-border rounded-[8px] p-4"
       >
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-[13px] font-semibold text-foreground">Mis Proyectos</h2>
+          <h2 className="text-[13px] font-semibold text-foreground">My Projects</h2>
           <Link to="/projects" className="text-[11px] text-primary hover:underline font-medium inline-flex items-center gap-1">
-            Ver todos <ArrowRight className="w-3 h-3" />
+            View all <ArrowRight className="w-3 h-3" />
           </Link>
         </div>
         {loading ? (
@@ -558,7 +558,7 @@ export default function Dashboard() {
           </div>
         ) : projectCards.length === 0 ? (
           <div className="py-10 text-center text-[12px] text-muted-foreground">
-            No tienes proyectos asignados.
+            You have no assigned projects.
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -588,14 +588,14 @@ export default function Dashboard() {
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-                  <span>{progress.completed} de {progress.total} tareas</span>
+                  <span>{progress.completed} of {progress.total} tasks</span>
                   {overdue > 0 ? (
                     <span className="text-red-600 font-medium inline-flex items-center gap-1">
                       <AlertTriangle className="w-3 h-3" />
-                      {overdue} {overdue === 1 ? 'vencida' : 'vencidas'}
+                      {overdue} {overdue === 1 ? 'overdue task' : 'overdue tasks'}
                     </span>
                   ) : (
-                    <span className="text-emerald-600">Al día</span>
+                    <span className="text-emerald-600">Up to date</span>
                   )}
                 </div>
               </button>
@@ -617,7 +617,7 @@ export default function Dashboard() {
             <div className="flex items-center justify-between px-4 py-2.5 border-b border-border">
               <div className="flex items-center gap-2">
                 <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
-                <h2 className="text-[13px] font-semibold text-foreground">Mis Tareas Pendientes</h2>
+                <h2 className="text-[13px] font-semibold text-foreground">My Pending Tasks</h2>
                 {myTasks.length > 0 && (
                   <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">
                     {myTasks.length}
@@ -625,7 +625,7 @@ export default function Dashboard() {
                 )}
               </div>
               <Link to="/backlog" className="text-[11px] text-primary hover:underline font-medium inline-flex items-center gap-1">
-                Ver Backlog <ArrowRight className="w-3 h-3" />
+                View Backlog <ArrowRight className="w-3 h-3" />
               </Link>
             </div>
             {loadingTasks ? (
@@ -633,7 +633,7 @@ export default function Dashboard() {
                 {[1, 2, 3].map((i) => <div key={i} className="h-6 animate-pulse bg-secondary rounded" />)}
               </div>
             ) : myTasks.length === 0 ? (
-              <div className="py-8 text-center text-[12px] text-muted-foreground">Sin tareas pendientes.</div>
+              <div className="py-8 text-center text-[12px] text-muted-foreground">No pending tasks.</div>
             ) : (
               <>
                 <div className="flex-1 min-h-0 overflow-y-auto scrollbar-app divide-y divide-border">
@@ -642,10 +642,10 @@ export default function Dashboard() {
                     const projectId = task.project ?? boardProjectMap.get(task.board ?? 0);
                     const projectName = projectId
                       ? (projectById.get(projectId) ?? `Proyecto #${projectId}`)
-                      : 'Sin proyecto';
+                      : 'No project';
                     const statusLabel = task.status != null
-                      ? (taskStatusNameById.get(task.status) ?? 'Sin estado')
-                      : 'Sin estado';
+                      ? (taskStatusNameById.get(task.status) ?? 'No status')
+                      : 'No status';
                     const statusCol = taskStatusColor(statusLabel);
                     return (
                       <button
@@ -679,7 +679,7 @@ export default function Dashboard() {
                 {myTasksTotalPages > 1 && (
                   <div className="flex items-center justify-between px-4 py-1.5 border-t border-border">
                     <span className="text-[10px] text-muted-foreground">
-                      Página {myTasksPage + 1} de {myTasksTotalPages}
+                      Page {myTasksPage + 1} of {myTasksTotalPages}
                     </span>
                     <div className="flex items-center gap-1">
                       <button
@@ -687,13 +687,13 @@ export default function Dashboard() {
                         onClick={() => setMyTasksPage((p) => Math.max(0, p - 1))}
                         disabled={myTasksPage === 0}
                         className="h-6 px-2 border border-border rounded-[3px] text-[10px] hover:bg-accent disabled:opacity-50"
-                      >‹ Ant.</button>
+                      >‹ Prev.</button>
                       <button
                         type="button"
                         onClick={() => setMyTasksPage((p) => Math.min(myTasksTotalPages - 1, p + 1))}
                         disabled={myTasksPage >= myTasksTotalPages - 1}
                         className="h-6 px-2 border border-border rounded-[3px] text-[10px] hover:bg-accent disabled:opacity-50"
-                      >Sig. ›</button>
+                      >Next ›</button>
                     </div>
                   </div>
                 )}
@@ -710,10 +710,10 @@ export default function Dashboard() {
           >
             <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border">
               <GitCommit className="w-3.5 h-3.5 text-muted-foreground" />
-              <h2 className="text-[13px] font-semibold text-foreground">Actividad Reciente (Git)</h2>
+              <h2 className="text-[13px] font-semibold text-foreground">Recent Activity (Git)</h2>
             </div>
             {!pushes || pushes.length === 0 ? (
-              <div className="py-8 text-center text-[12px] text-muted-foreground">Sin push events recientes.</div>
+              <div className="py-8 text-center text-[12px] text-muted-foreground">No recent push events.</div>
             ) : (
               <>
                 <div className="max-h-[360px] overflow-y-auto scrollbar-app divide-y divide-border">
@@ -734,7 +734,7 @@ export default function Dashboard() {
                             </span>
                           </div>
                           <p className="text-[10px] text-muted-foreground mt-0.5">
-                            {commitCount} commit{commitCount !== 1 ? 's' : ''} · {new Date(push.received_at).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                            {commitCount} commit{commitCount !== 1 ? 's' : ''} · {new Date(push.received_at).toLocaleDateString('en-US', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                           </p>
                         </div>
                       </div>
@@ -744,7 +744,7 @@ export default function Dashboard() {
                 {pushesTotalPages > 1 && (
                   <div className="flex items-center justify-between px-4 py-1.5 border-t border-border">
                     <span className="text-[10px] text-muted-foreground">
-                      Página {pushesPage + 1} de {pushesTotalPages}
+                      Page {pushesPage + 1} of {pushesTotalPages}
                     </span>
                     <div className="flex items-center gap-1">
                       <button
@@ -752,13 +752,13 @@ export default function Dashboard() {
                         onClick={() => setPushesPage((p) => Math.max(0, p - 1))}
                         disabled={pushesPage === 0}
                         className="h-6 px-2 border border-border rounded-[3px] text-[10px] hover:bg-accent disabled:opacity-50"
-                      >‹ Ant.</button>
+                      >‹ Prev.</button>
                       <button
                         type="button"
                         onClick={() => setPushesPage((p) => Math.min(pushesTotalPages - 1, p + 1))}
                         disabled={pushesPage >= pushesTotalPages - 1}
                         className="h-6 px-2 border border-border rounded-[3px] text-[10px] hover:bg-accent disabled:opacity-50"
-                      >Sig. ›</button>
+                      >Next ›</button>
                     </div>
                   </div>
                 )}
