@@ -34,12 +34,6 @@ export default function VerifyEmail() {
     }
   };
 
-  // Auto-verify on mount
-  useEffect(() => {
-    if (token) void verify();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   // Countdown redirect after success
   useEffect(() => {
     if (status !== 'success') return;
