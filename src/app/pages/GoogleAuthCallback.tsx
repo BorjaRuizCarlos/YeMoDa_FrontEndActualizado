@@ -84,6 +84,7 @@ export default function GoogleAuthCallback() {
 
     const accessToken = readToken(searchParams.get('access_token'));
     const refreshToken = readToken(searchParams.get('refresh_token'));
+    const needsNickname = (searchParams.get('needs_nickname') || '').trim() === '1';
 
     if (!accessToken || !refreshToken) {
       setState('error');
@@ -95,6 +96,11 @@ export default function GoogleAuthCallback() {
     const user = buildUserFromAccessToken(accessToken);
     if (user) {
       localStorage.setItem('pip_user', JSON.stringify(user));
+    }
+    if (needsNickname) {
+      localStorage.setItem('pip_needs_nickname', '1');
+    } else {
+      localStorage.removeItem('pip_needs_nickname');
     }
 
     setState('success');
