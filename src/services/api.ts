@@ -7,10 +7,16 @@ const BASE_URL = import.meta.env.VITE_API_TARGET;
 const STORAGE_ACCESS = 'pip_access_token';
 const STORAGE_REFRESH = 'pip_refresh_token';
 export const AUTH_SESSION_EXPIRED_EVENT = 'pip:auth-session-expired';
+export const AUTH_EMAIL_BLOCKED_EVENT = 'pip:auth-email-blocked';
 
 function emitSessionExpired() {
   if (typeof window === 'undefined') return;
   window.dispatchEvent(new CustomEvent(AUTH_SESSION_EXPIRED_EVENT));
+}
+
+function emitEmailBlocked() {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent(AUTH_EMAIL_BLOCKED_EVENT));
 }
 
 function isSessionExpiredError(status: number, body: ApiError): boolean {
@@ -88,7 +94,10 @@ async function handleResponse<T>(res: Response, authRequest = true): Promise<T> 
   if (res.status === 204) return undefined as T;
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    if (authRequest && isSessionExpiredError(res.status, data as ApiError)) {
+    if (authRequest && res.status === 401 && (data as { code?: string })?.code === 'email_verification_required') {
+      tokenStore.clear();
+      emitEmailBlocked();
+    } else if (authRequest && isSessionExpiredError(res.status, data as ApiError)) {
       tokenStore.clear();
       emitSessionExpired();
     }

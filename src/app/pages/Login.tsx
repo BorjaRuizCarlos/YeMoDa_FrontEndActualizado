@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 import { Eye, EyeOff, Lock, Mail, ArrowRight, BarChart3, Bell, Brain, RefreshCw } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { LoadingButton } from '../components/LoadingButton';
@@ -12,7 +12,8 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const [emailNotVerified, setEmailNotVerified] = useState(false);
+  const [searchParams] = useSearchParams();
+  const [emailBlocked, setEmailBlocked] = useState(() => searchParams.get('reason') === 'email_blocked');
   const [resendLoading, setResendLoading] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuth();
@@ -23,15 +24,15 @@ export default function Login() {
       toast.error('Please fill in all fields');
       return;
     }
-    setEmailNotVerified(false);
+    setEmailBlocked(false);
     setIsLoading(true);
     try {
       await login(email, password);
       toast.success('Welcome back!');
       navigate('/dashboard');
     } catch (err) {
-      if (err instanceof ApiRequestError && err.body?.code === 'email_not_verified') {
-        setEmailNotVerified(true);
+      if (err instanceof ApiRequestError && err.body?.code === 'email_verification_required') {
+        setEmailBlocked(true);
       } else {
         const msg = err instanceof Error ? err.message : 'Sign-in failed. Please try again.';
         toast.error(msg);
@@ -177,12 +178,12 @@ export default function Login() {
               </a>
             </div>
 
-            {/* Email not verified banner */}
-            {emailNotVerified && (
-              <div className="rounded-[3px] border border-warning/30 bg-warning/5 px-3 py-2.5 flex items-start gap-2.5">
+            {/* Account blocked — email verification required */}
+            {emailBlocked && (
+              <div className="rounded-[3px] border border-destructive/30 bg-destructive/5 px-3 py-2.5 flex items-start gap-2.5">
                 <div className="flex-1 min-w-0">
-                  <p className="text-[12px] font-medium text-foreground mb-0.5">Email not verified</p>
-                  <p className="text-[11px] text-muted-foreground">Please verify your email before signing in.</p>
+                  <p className="text-[12px] font-medium text-foreground mb-0.5">Cuenta bloqueada</p>
+                  <p className="text-[11px] text-muted-foreground">Han pasado más de 7 días sin verificar tu correo. Verifica tu cuenta para continuar.</p>
                 </div>
                 <LoadingButton
                   type="button"
@@ -191,7 +192,7 @@ export default function Login() {
                   className="shrink-0 flex items-center gap-1.5 text-[11px] text-primary hover:underline font-medium transition-colors"
                 >
                   <RefreshCw className="w-3 h-3" />
-                  Resend
+                  Reenviar
                 </LoadingButton>
               </div>
             )}

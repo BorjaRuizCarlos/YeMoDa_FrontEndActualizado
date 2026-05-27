@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { tokenStore } from '../../services';
+import type { User } from '../context/AuthContext';
+import { mapUserRole } from '../utils/roles';
 
 type CallbackState = 'loading' | 'success' | 'error';
 
@@ -9,6 +11,40 @@ function readToken(value: string | null | undefined): string | null {
   if (!value) return null;
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
+}
+
+function parseJwtPayload(token: string): Record<string, unknown> | null {
+  const parts = token.split('.');
+  if (parts.length < 2) return null;
+
+  try {
+    const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = b64.padEnd(Math.ceil(b64.length / 4) * 4, '=');
+    const decoded = window.atob(padded);
+    return JSON.parse(decoded) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
+function buildUserFromAccessToken(accessToken: string): User | null {
+  const payload = parseJwtPayload(accessToken);
+  if (!payload) return null;
+
+  const id = typeof payload.sub === 'string' ? payload.sub : null;
+  const email = typeof payload.email === 'string' ? payload.email : null;
+  if (!id || !email) return null;
+
+  const fallbackName = email.split('@')[0] || 'User';
+  const systemRoleId = typeof payload.system_role === 'number' ? payload.system_role : null;
+  const systemRoleName = typeof payload.system_role_name === 'string' ? payload.system_role_name : null;
+
+  return {
+    id,
+    email,
+    name: fallbackName,
+    role: mapUserRole(systemRoleId, systemRoleName),
+  };
 }
 
 export default function GoogleAuthCallback() {
@@ -28,6 +64,11 @@ export default function GoogleAuthCallback() {
     }
 
     tokenStore.set(accessToken, refreshToken);
+    const user = buildUserFromAccessToken(accessToken);
+    if (user) {
+      localStorage.setItem('pip_user', JSON.stringify(user));
+    }
+
     setState('success');
     setMessage('Sesión lista. Redirigiendo al dashboard...');
 
