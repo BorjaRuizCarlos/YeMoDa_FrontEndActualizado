@@ -295,3 +295,74 @@
     line-height: var(--line-height-normal);
   }
 }
+
+/* Code review syntax highlighting (Prism tokens) */
+.code-tokenized .token.comment,
+.code-tokenized .token.prolog,
+.code-tokenized .token.doctype,
+.code-tokenized .token.cdata {
+  color: #7f8ea3;
+}
+
+.code-tokenized .token.punctuation {
+  color: #9aa5b1;
+}
+
+.code-tokenized .token.property,
+.code-tokenized .token.tag,
+.code-tokenized .token.constant,
+.code-tokenized .token.symbol,
+.code-tokenized .token.deleted {
+  color: #ef6b73;
+}
+
+.code-tokenized .token.boolean,
+.code-tokenized .token.number {
+  color: #f59e0b;
+}
+
+.code-tokenized .token.selector,
+.code-tokenized .token.attr-name,
+.code-tokenized .token.string,
+.code-tokenized .token.char,
+.code-tokenized .token.builtin,
+.code-tokenized .token.inserted {
+  color: #34c38f;
+}
+
+.code-tokenized .token.operator,
+.code-tokenized .token.entity,
+.code-tokenized .token.url,
+.code-tokenized .language-css .token.string,
+.code-tokenized .style .token.string {
+  color: #f0f3f7;
+}
+
+.code-tokenized .token.atrule,
+.code-tokenized .token.attr-value,
+.code-tokenized .token.keyword,
+.code-tokenized .token.import,
+.code-tokenized .token.export {
+  color: #b084f5;
+}
+
+.code-tokenized .token.function,
+.code-tokenized .token.class-name,
+.code-tokenized .token.variable,
+.code-tokenized .token.parameter {
+  color: #63a6ff;
+}
+
+.code-tokenized .token.regex,
+.code-tokenized .token.important {
+  color: #f2bf62;
+}
+
+.code-tokenized .token.important,
+.code-tokenized .token.bold {
+  font-weight: 600;
+}
+
+.code-tokenized .token.italic {
+  font-style: italic;
+}

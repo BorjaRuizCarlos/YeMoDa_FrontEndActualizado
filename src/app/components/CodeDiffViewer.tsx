@@ -1,4 +1,17 @@
 import { useMemo } from 'react';
+import Prism from 'prismjs';
+import 'prismjs/components/prism-bash';
+import 'prismjs/components/prism-csharp';
+import 'prismjs/components/prism-go';
+import 'prismjs/components/prism-java';
+import 'prismjs/components/prism-json';
+import 'prismjs/components/prism-jsx';
+import 'prismjs/components/prism-markdown';
+import 'prismjs/components/prism-python';
+import 'prismjs/components/prism-sql';
+import 'prismjs/components/prism-tsx';
+import 'prismjs/components/prism-typescript';
+import 'prismjs/components/prism-yaml';
 
 interface CodeDiffViewerProps {
   patch: string;
@@ -10,6 +23,50 @@ interface DiffLine {
   content: string;
   oldLine?: number;
   newLine?: number;
+}
+
+const LANGUAGE_BY_EXTENSION: Record<string, string> = {
+  py: 'python',
+  ts: 'typescript',
+  tsx: 'tsx',
+  js: 'javascript',
+  jsx: 'jsx',
+  json: 'json',
+  css: 'css',
+  scss: 'css',
+  less: 'css',
+  html: 'markup',
+  htm: 'markup',
+  xml: 'markup',
+  yml: 'yaml',
+  yaml: 'yaml',
+  md: 'markdown',
+  sh: 'bash',
+  sql: 'sql',
+  go: 'go',
+  java: 'java',
+  cs: 'csharp',
+};
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function detectLanguage(filename: string): string | null {
+  const lowerName = filename.toLowerCase();
+  if (lowerName.endsWith('.dockerfile') || lowerName === 'dockerfile') return 'bash';
+  const ext = lowerName.split('.').pop() ?? '';
+  return LANGUAGE_BY_EXTENSION[ext] ?? null;
+}
+
+function highlightLine(content: string, language: string | null): string {
+  if (!language) return escapeHtml(content);
+  const grammar = Prism.languages[language];
+  if (!grammar) return escapeHtml(content);
+  return Prism.highlight(content, grammar, language);
 }
 
 function parsePatch(patch: string): DiffLine[] {
@@ -53,9 +110,9 @@ const gutterStyles: Record<DiffLine['type'], string> = {
 
 export function CodeDiffViewer({ patch, filename }: CodeDiffViewerProps) {
   const parsedLines = useMemo(() => (patch ? parsePatch(patch) : []), [patch]);
+  const language = useMemo(() => detectLanguage(filename), [filename]);
 
-  const ext = filename.split('.').pop() ?? '';
-  const isCode = ['ts', 'tsx', 'js', 'jsx', 'py', 'css', 'html', 'json', 'yml', 'yaml', 'md'].includes(ext);
+  const isCode = language != null;
 
   return (
     <div className="rounded-[4px] border border-border overflow-hidden text-[11px] leading-[18px]">
@@ -86,7 +143,16 @@ export function CodeDiffViewer({ patch, filename }: CodeDiffViewerProps) {
                   {line.type === 'add' ? '+' : line.type === 'remove' ? '-' : ''}
                 </td>
                 {/* Content */}
-                <td className="px-2 whitespace-pre">{line.content}</td>
+                <td className="px-2 whitespace-pre">
+                  {line.type === 'header' ? (
+                    line.content
+                  ) : (
+                    <span
+                      className="code-tokenized"
+                      dangerouslySetInnerHTML={{ __html: highlightLine(line.content, language) }}
+                    />
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>
