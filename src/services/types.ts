@@ -271,6 +271,20 @@ export interface ApiTaskWarning {
   resolved_in_push: number | null;
 }
 
+export interface ApiTaskAiFixPromptWarning {
+  id_warning: number;
+  severity: 'critical' | 'warning' | 'info';
+  message: string;
+}
+
+export interface ApiTaskAiFixPromptResponse {
+  task_id: number;
+  task_title: string;
+  warnings_count: number;
+  warnings: ApiTaskAiFixPromptWarning[];
+  copy_prompt: string;
+}
+
 // ─── GitHub Push Events ──────────────────────────────────────────────────────
 
 export interface ApiGithubPushEvent {

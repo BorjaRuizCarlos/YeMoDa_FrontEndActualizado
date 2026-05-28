@@ -6,6 +6,7 @@ import type {
   ApiTaskComment,
   ApiBoard,
   ApiTaskWarning,
+  ApiTaskAiFixPromptResponse,
   ApiTaskAssignment,
   ApiBoardColumn,
   ApiSprint,
@@ -291,5 +292,10 @@ export const tasksService = {
   /** GET /api/tasks/:id/history/ — push matches linked to a task by the AI agent */
   getTaskHistory(taskId: number): Promise<ApiTaskPushMatch[]> {
     return api.get<ApiTaskPushMatch[]>(`/tasks/${taskId}/history/`);
+  },
+
+  /** GET /api/tasks/:id/ai-fix-prompt/ — build AI fix prompt from active warnings */
+  getAiFixPrompt(taskId: number): Promise<ApiTaskAiFixPromptResponse> {
+    return api.get<ApiTaskAiFixPromptResponse>(`/tasks/${taskId}/ai-fix-prompt/`);
   },
 };

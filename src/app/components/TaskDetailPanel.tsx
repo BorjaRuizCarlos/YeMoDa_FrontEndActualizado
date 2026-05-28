@@ -113,6 +113,7 @@ export function TaskDetailPanel({
   const [branchCreating, setBranchCreating] = useState(false);
   const [branchResult, setBranchResult] = useState<CreateBranchResponse | null>(null);
   const [branchCopied, setBranchCopied] = useState(false);
+  const [generatingAiPrompt, setGeneratingAiPrompt] = useState(false);
   const [deletingTask, setDeletingTask] = useState(false);
   const [deletingWarningId, setDeletingWarningId] = useState<number | null>(null);
   const [savingBoardColumn, setSavingBoardColumn] = useState(false);
@@ -182,6 +183,29 @@ export function TaskDetailPanel({
       setTimeout(() => setBranchCopied(false), 2000);
     } catch {
       toast.error('No se pudo copiar al portapapeles');
+    }
+  };
+
+  const handleGenerateAiPrompt = async () => {
+    if (!task) return;
+    setGeneratingAiPrompt(true);
+    try {
+      const payload = await tasksService.getAiFixPrompt(task.id_task);
+      if (!payload.copy_prompt?.trim()) {
+        toast.error('El backend no devolvió un prompt para copiar.');
+        return;
+      }
+      await navigator.clipboard.writeText(payload.copy_prompt);
+      toast.success('Prompt IA copiado al portapapeles.', {
+        description: `${payload.warnings_count} warning(s) incluidos para la tarea #${payload.task_id}.`,
+      });
+    } catch (err) {
+      const detail = err instanceof ApiRequestError
+        ? (err.body?.detail ?? 'Error desconocido')
+        : err instanceof Error ? err.message : 'Error desconocido';
+      toast.error('No se pudo generar el prompt IA.', { description: detail });
+    } finally {
+      setGeneratingAiPrompt(false);
     }
   };
 
@@ -539,6 +563,15 @@ export function TaskDetailPanel({
                     <GitBranch className="w-3 h-3" /> Branch
                   </button>
                 )}
+                <button
+                  onClick={() => void handleGenerateAiPrompt()}
+                  disabled={generatingAiPrompt}
+                  className="inline-flex items-center gap-1 h-6 px-2 border border-border rounded-[3px] text-[10px] text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors disabled:opacity-50"
+                  title="Genera el prompt con warnings activos y lo copia al portapapeles"
+                >
+                  {generatingAiPrompt ? <Loader2 className="w-3 h-3 animate-spin" /> : <Copy className="w-3 h-3" />}
+                  {generatingAiPrompt ? 'Generando...' : 'Prompt IA'}
+                </button>
                 <button onClick={onClose} className="p-1 rounded-[3px] hover:bg-surface-secondary transition-colors">
                   <X className="w-3.5 h-3.5 text-muted-foreground" />
                 </button>
