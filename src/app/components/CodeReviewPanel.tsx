@@ -39,6 +39,39 @@ interface TaskHistoryState {
   error: string | null;
 }
 
+function buildMatchFingerprint(match: ApiTaskPushMatch): string {
+  const commits = [...(match.push_commits ?? [])]
+    .map((commit) => commit.id)
+    .filter(Boolean)
+    .sort()
+    .join('|');
+
+  return [
+    match.push_repo ?? '',
+    match.push_ref ?? '',
+    match.push_pusher ?? '',
+    match.push_received_at ?? '',
+    match.coverage ?? '',
+    match.reason ?? '',
+    commits,
+    match.push_diff_text ?? '',
+  ].join('::');
+}
+
+function dedupeMatches(matches: ApiTaskPushMatch[]): ApiTaskPushMatch[] {
+  const seen = new Set<string>();
+  const unique: ApiTaskPushMatch[] = [];
+
+  for (const match of matches) {
+    const fingerprint = buildMatchFingerprint(match);
+    if (seen.has(fingerprint)) continue;
+    seen.add(fingerprint);
+    unique.push(match);
+  }
+
+  return unique;
+}
+
 export function CodeReviewPanel({ projectId, repoFullName }: CodeReviewPanelProps) {
   const [tasks, setTasks] = useState<ApiTask[]>([]);
   const [loadingTasks, setLoadingTasks] = useState(true);
@@ -71,7 +104,8 @@ export function CodeReviewPanel({ projectId, repoFullName }: CodeReviewPanelProp
       setTaskHistories(prev => new Map(prev).set(taskId, { matches: null, loading: true, error: null }));
       try {
         const matches = await tasksService.getTaskHistory(taskId);
-        setTaskHistories(prev => new Map(prev).set(taskId, { matches, loading: false, error: null }));
+        const dedupedMatches = dedupeMatches(matches);
+        setTaskHistories(prev => new Map(prev).set(taskId, { matches: dedupedMatches, loading: false, error: null }));
       } catch {
         setTaskHistories(prev => new Map(prev).set(taskId, { matches: [], loading: false, error: 'No se pudo cargar el historial' }));
       }
@@ -218,7 +252,7 @@ export function CodeReviewPanel({ projectId, repoFullName }: CodeReviewPanelProp
                             </span>
                             <span className={`text-[10px] px-1.5 py-0.5 rounded-[2px] font-medium ${
                               match.coverage === 'full'
-                                ? 'bg-emerald-500/10 text-emerald-500'
+                                ? 'bg-emerald-500/8 text-emerald-300'
                                 : 'bg-amber-500/10 text-amber-500'
                             }`}>
                               {match.coverage === 'full' ? 'Completa' : 'Parcial'}

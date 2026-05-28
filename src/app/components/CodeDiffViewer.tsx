@@ -95,14 +95,14 @@ function parsePatch(patch: string): DiffLine[] {
 }
 
 const lineStyles: Record<DiffLine['type'], string> = {
-  add: 'bg-emerald-500/10 text-emerald-400',
+  add: 'bg-emerald-500/6 text-emerald-300',
   remove: 'bg-red-500/10 text-red-400',
   context: 'text-muted-foreground',
   header: 'bg-primary/5 text-primary font-medium',
 };
 
 const gutterStyles: Record<DiffLine['type'], string> = {
-  add: 'bg-emerald-500/5 text-emerald-500/50',
+  add: 'bg-emerald-500/4 text-emerald-400/45',
   remove: 'bg-red-500/5 text-red-500/50',
   context: 'text-muted-foreground/40',
   header: 'bg-primary/5 text-primary/40',

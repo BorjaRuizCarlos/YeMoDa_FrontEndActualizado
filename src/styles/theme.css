@@ -327,7 +327,7 @@
 .code-tokenized .token.char,
 .code-tokenized .token.builtin,
 .code-tokenized .token.inserted {
-  color: #34c38f;
+  color: #6fb596;
 }
 
 .code-tokenized .token.operator,
