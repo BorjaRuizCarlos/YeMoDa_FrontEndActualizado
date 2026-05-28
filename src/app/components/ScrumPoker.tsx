@@ -14,19 +14,34 @@ interface ScrumPokerProps {
 
 export function ScrumPoker({ tasks, canAssignPoints, onTaskUpdated }: ScrumPokerProps) {
   const [savingId, setSavingId] = useState<number | null>(null);
+  const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
+  const [draftPoints, setDraftPoints] = useState<number | null>(null);
 
-  const handleSetPoints = async (taskId: number, points: number | null) => {
+  const handleSavePoints = async (taskId: number, points: number | null) => {
     if (!canAssignPoints) return;
     setSavingId(taskId);
     try {
       const updated = await tasksService.update(taskId, { story_points: points });
       onTaskUpdated(updated);
       toast.success(points != null ? `${points} puntos asignados.` : 'Puntos eliminados.');
+      setEditingTaskId(null);
+      setDraftPoints(null);
     } catch {
       toast.error('No se pudo actualizar los story points.');
     } finally {
       setSavingId(null);
     }
+  };
+
+  const startEditing = (task: ApiTask) => {
+    if (!canAssignPoints) return;
+    setEditingTaskId(task.id_task);
+    setDraftPoints(task.story_points ?? null);
+  };
+
+  const cancelEditing = () => {
+    setEditingTaskId(null);
+    setDraftPoints(null);
   };
 
   if (tasks.length === 0) {
@@ -51,33 +66,67 @@ export function ScrumPoker({ tasks, canAssignPoints, onTaskUpdated }: ScrumPoker
             <div className="flex-1 min-w-0 pr-4">
               <p className="text-[12px] font-medium text-foreground truncate">{task.title}</p>
             </div>
+            <div className="shrink-0 pt-0.5">
+              {canAssignPoints && editingTaskId !== task.id_task && savingId !== task.id_task && (
+                <button
+                  type="button"
+                  onClick={() => startEditing(task)}
+                  className="h-7 px-2.5 rounded-[3px] border border-border text-[10px] font-medium text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors"
+                >
+                  Editar
+                </button>
+              )}
+            </div>
             <div className="flex items-center gap-1 flex-wrap justify-end shrink-0 border-l border-border pl-4">
               {savingId === task.id_task ? (
                 <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
               ) : (
                 <>
                   {FIBONACCI.map((n) => {
-                    const isSelected = task.story_points === n;
+                    const isEditingCurrent = editingTaskId === task.id_task;
+                    const currentPoints = isEditingCurrent ? draftPoints : task.story_points;
+                    const isSelected = currentPoints === n;
                     return (
                       <button
                         key={n}
                         type="button"
-                        disabled={!canAssignPoints}
-                        onClick={() => void handleSetPoints(task.id_task, isSelected ? null : n)}
+                        disabled={!canAssignPoints || !isEditingCurrent}
+                        onClick={() => {
+                          if (!isEditingCurrent) return;
+                          setDraftPoints(isSelected ? null : n);
+                        }}
                         className={`h-7 w-8 rounded-[3px] border text-[11px] font-semibold transition-colors disabled:opacity-40 ${
                           isSelected
                             ? 'bg-primary border-primary text-primary-foreground'
                             : 'border-border text-muted-foreground hover:border-primary/50 hover:text-foreground hover:bg-accent/30'
                         }`}
-                        title={isSelected ? 'Click para quitar' : `Asignar ${n} puntos`}
+                        title={!isEditingCurrent ? 'Presiona Editar para cambiar puntos' : isSelected ? 'Click para quitar' : `Asignar ${n} puntos`}
                       >
                         {n}
                       </button>
                     );
                   })}
-                  {task.story_points != null && (
+                  {editingTaskId === task.id_task ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => void handleSavePoints(task.id_task, draftPoints)}
+                        className="h-7 px-2.5 rounded-[3px] bg-primary text-primary-foreground text-[10px] font-medium"
+                      >
+                        Guardar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={cancelEditing}
+                        className="h-7 px-2.5 rounded-[3px] border border-border text-[10px] font-medium text-muted-foreground hover:text-foreground"
+                      >
+                        Cancelar
+                      </button>
+                    </>
+                  ) : null}
+                  {(editingTaskId === task.id_task ? draftPoints : task.story_points) != null && (
                     <span className="ml-1 text-[10px] text-primary font-semibold px-1.5 py-0.5 bg-primary/10 border border-primary/30 rounded-[3px]">
-                      {task.story_points} pts
+                      {editingTaskId === task.id_task ? draftPoints : task.story_points} pts
                     </span>
                   )}
                 </>
