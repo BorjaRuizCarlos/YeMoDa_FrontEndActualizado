@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Github, Plus, ExternalLink, Lock, Unlock, X, Trash2, Loader2 } from 'lucide-react';
+import { Github, Plus, ExternalLink, Lock, Unlock, X, Trash2, Loader2, Folder, FileCode2, ChevronRight, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { githubService } from '../../services/github.service';
 import { ApiRequestError } from '../../services/api';
 import { useAuth } from '../context/AuthContext';
-import type { GitHubRepo } from '../../services/types';
+import type { ApiGithubContent, GitHubCommitFileChange, GitHubRepo } from '../../services/types';
 
 interface CreateRepoForm {
   name: string;
@@ -44,6 +44,17 @@ export function GitHubReposView({ projectId, canCreateRepos = true }: GitHubRepo
   const [repos, setRepos] = useState<GitHubRepo[]>([]);
   const [loadingRepos, setLoadingRepos] = useState(false);
   const [deletingRepoId, setDeletingRepoId] = useState<number | null>(null);
+  const [ideRepo, setIdeRepo] = useState('');
+  const [branches, setBranches] = useState<string[]>([]);
+  const [loadingBranches, setLoadingBranches] = useState(false);
+  const [selectedBranch, setSelectedBranch] = useState('main');
+  const [currentPath, setCurrentPath] = useState('');
+  const [listing, setListing] = useState<ApiGithubContent[]>([]);
+  const [loadingListing, setLoadingListing] = useState(false);
+  const [selectedFilePath, setSelectedFilePath] = useState('');
+  const [editorContent, setEditorContent] = useState('');
+  const [commitMessage, setCommitMessage] = useState('feat: cambios desde IDE');
+  const [savingCommit, setSavingCommit] = useState(false);
 
   const fetchRepos = async () => {
     if (!projectId || !connected) {
@@ -79,6 +90,94 @@ export function GitHubReposView({ projectId, canCreateRepos = true }: GitHubRepo
   useEffect(() => {
     void fetchRepos();
   }, [connected, projectId]);
+
+  useEffect(() => {
+    if (!ideRepo && repos.length > 0) {
+      setIdeRepo(repos[0].full_name);
+    }
+  }, [repos, ideRepo]);
+
+  useEffect(() => {
+    if (!ideRepo) {
+      setBranches([]);
+      setSelectedBranch('main');
+      return;
+    }
+
+    setLoadingBranches(true);
+    githubService.getBranches(ideRepo)
+      .then((items) => {
+        const names = items.map((branch) => branch.name).filter(Boolean);
+        setBranches(names);
+        setSelectedBranch((current) => (current && names.includes(current) ? current : (names[0] ?? 'main')));
+      })
+      .catch(() => {
+        setBranches([]);
+        setSelectedBranch('main');
+      })
+      .finally(() => setLoadingBranches(false));
+  }, [ideRepo]);
+
+  useEffect(() => {
+    if (!ideRepo || !selectedBranch) return;
+
+    setLoadingListing(true);
+    githubService.getContents(ideRepo, currentPath, selectedBranch)
+      .then((data) => {
+        const list = Array.isArray(data) ? data : [data];
+        const dirs = list.filter((item) => item.type === 'dir');
+        const files = list.filter((item) => item.type === 'file');
+        setListing([...dirs, ...files]);
+      })
+      .catch(() => setListing([]))
+      .finally(() => setLoadingListing(false));
+  }, [ideRepo, selectedBranch, currentPath]);
+
+  const openFileInEditor = async (path: string) => {
+    if (!ideRepo || !selectedBranch) return;
+    try {
+      const data = await githubService.getContents(ideRepo, path, selectedBranch);
+      const fileData = Array.isArray(data) ? data[0] : data;
+      const decoded = fileData.content ? atob(fileData.content.replace(/\n/g, '')) : '';
+      setSelectedFilePath(path);
+      setEditorContent(decoded);
+    } catch {
+      toast.error('No se pudo abrir el archivo seleccionado.');
+    }
+  };
+
+  const navigateUp = () => {
+    if (!currentPath) return;
+    const segments = currentPath.split('/').filter(Boolean);
+    segments.pop();
+    setCurrentPath(segments.join('/'));
+  };
+
+  const handleCommitFromIde = async () => {
+    if (!ideRepo || !selectedBranch || !selectedFilePath) {
+      toast.error('Selecciona un repositorio y un archivo para hacer commit.');
+      return;
+    }
+
+    setSavingCommit(true);
+    try {
+      const files: GitHubCommitFileChange[] = [{ path: selectedFilePath, content: editorContent }];
+      await githubService.commitChanges({
+        repo: ideRepo,
+        branch: selectedBranch,
+        message: commitMessage.trim() || 'feat: cambios desde IDE',
+        files,
+      });
+      toast.success('Commit enviado correctamente.');
+    } catch (err) {
+      const detail = err instanceof ApiRequestError
+        ? String(err.body?.detail ?? 'Error desconocido')
+        : err instanceof Error ? err.message : 'Error desconocido';
+      toast.error('No se pudo confirmar el commit.', { description: detail });
+    } finally {
+      setSavingCommit(false);
+    }
+  };
 
   const handleDeleteRepo = async (idRepo: number, repoName: string) => {
     if (!window.confirm(`Delete the repository "${repoName}" from YeMoDa? This does not delete it on GitHub, it only unlinks it.`)) return;
@@ -331,6 +430,113 @@ export function GitHubReposView({ projectId, canCreateRepos = true }: GitHubRepo
             ))}
           </div>
         )}
+      </div>
+
+      <div className="bg-card border border-border rounded-[4px] p-4 mt-2 space-y-3">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <h2 className="text-[12px] font-semibold text-foreground">IDE rápido</h2>
+          <div className="flex items-center gap-2">
+            <select
+              value={ideRepo}
+              onChange={(e) => {
+                setIdeRepo(e.target.value);
+                setCurrentPath('');
+                setSelectedFilePath('');
+                setEditorContent('');
+              }}
+              className="h-7 rounded-[3px] border border-border bg-surface-secondary px-2 text-[11px] min-w-[180px]"
+            >
+              {repos.map((repo) => (
+                <option key={repo.id_repo} value={repo.full_name}>{repo.full_name}</option>
+              ))}
+            </select>
+            <select
+              value={selectedBranch}
+              onChange={(e) => {
+                setSelectedBranch(e.target.value);
+                setCurrentPath('');
+              }}
+              className="h-7 rounded-[3px] border border-border bg-surface-secondary px-2 text-[11px] min-w-[120px]"
+              disabled={loadingBranches}
+            >
+              {branches.map((branch) => (
+                <option key={branch} value={branch}>{branch}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)] gap-3">
+          <div className="rounded-[4px] border border-border bg-surface-secondary/20 min-h-[260px]">
+            <div className="flex items-center justify-between px-2.5 py-2 border-b border-border">
+              <p className="text-[10px] text-muted-foreground">/{currentPath || ''}</p>
+              <button
+                type="button"
+                onClick={navigateUp}
+                className="text-[10px] text-primary disabled:opacity-40"
+                disabled={!currentPath}
+              >
+                Subir
+              </button>
+            </div>
+            <div className="p-2 space-y-1 max-h-[300px] overflow-y-auto">
+              {loadingListing ? (
+                <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground"><Loader2 className="w-3 h-3 animate-spin" /> Cargando…</div>
+              ) : listing.length === 0 ? (
+                <p className="text-[11px] text-muted-foreground">Sin contenido</p>
+              ) : (
+                listing.map((item) => (
+                  <button
+                    type="button"
+                    key={item.path}
+                    onClick={() => {
+                      if (item.type === 'dir') {
+                        setCurrentPath(item.path);
+                        return;
+                      }
+                      void openFileInEditor(item.path);
+                    }}
+                    className="w-full h-7 px-2 rounded-[3px] border border-transparent hover:border-border hover:bg-card text-left text-[11px] text-foreground flex items-center gap-1.5"
+                  >
+                    {item.type === 'dir' ? <Folder className="w-3.5 h-3.5 text-primary" /> : <FileCode2 className="w-3.5 h-3.5 text-muted-foreground" />}
+                    <span className="truncate">{item.name}</span>
+                    {item.type === 'dir' && <ChevronRight className="w-3 h-3 text-muted-foreground ml-auto" />}
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-[4px] border border-border overflow-hidden min-h-[260px] flex flex-col">
+            <div className="px-3 py-2 border-b border-border bg-surface-secondary/40 text-[10px] text-muted-foreground truncate">
+              {selectedFilePath || 'Selecciona un archivo para editar'}
+            </div>
+            <textarea
+              value={editorContent}
+              onChange={(e) => setEditorContent(e.target.value)}
+              disabled={!selectedFilePath}
+              className="flex-1 min-h-[180px] bg-card p-3 text-[11px] font-mono text-foreground resize-y focus:outline-none disabled:opacity-60"
+            />
+            <div className="px-3 py-2 border-t border-border bg-surface-secondary/20 flex flex-col sm:flex-row sm:items-center gap-2">
+              <input
+                type="text"
+                value={commitMessage}
+                onChange={(e) => setCommitMessage(e.target.value)}
+                className="flex-1 h-7 rounded-[3px] border border-border bg-card px-2 text-[11px]"
+                placeholder="Mensaje de commit"
+              />
+              <button
+                type="button"
+                onClick={() => void handleCommitFromIde()}
+                disabled={savingCommit || !selectedFilePath}
+                className="h-7 px-3 bg-primary text-primary-foreground rounded-[3px] text-[11px] inline-flex items-center gap-1.5 disabled:opacity-50"
+              >
+                {savingCommit ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+                Commit
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Create Repo Modal */}

@@ -7,6 +7,7 @@ export { paymentsService } from './payments.service';
 export { projectsService } from './projects.service';
 export { tasksService } from './tasks.service';
 export { usersService } from './users.service';
+export { chatService } from './chat.service';
 export type * from './types';
 
 // Re-export specific service payload types used by consumers

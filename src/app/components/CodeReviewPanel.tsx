@@ -1,10 +1,12 @@
 ﻿import { useState, useEffect, useCallback } from 'react';
 import {
   GitCommit, ChevronDown, ChevronRight, FileCode2,
-  Loader2, RefreshCw, Clock, User, AlertCircle,
+  Loader2, RefreshCw, Clock, User, AlertCircle, Send,
 } from 'lucide-react';
-import { tasksService, githubService } from '../../services';
-import type { ApiTask, ApiTaskPushMatch } from '../../services';
+import { toast } from 'sonner';
+import { chatService, tasksService, githubService, usersService } from '../../services';
+import { ApiRequestError } from '../../services/api';
+import type { AIProvider, ApiTask, ApiTaskPushMatch, ChatModelsResponse } from '../../services';
 import { CodeDiffViewer } from './CodeDiffViewer';
 
 interface CodeReviewPanelProps {
@@ -37,6 +39,11 @@ interface TaskHistoryState {
   matches: ApiTaskPushMatch[] | null;
   loading: boolean;
   error: string | null;
+}
+
+interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
 }
 
 function buildMatchFingerprint(match: ApiTaskPushMatch): string {
@@ -79,6 +86,14 @@ export function CodeReviewPanel({ projectId, repoFullName }: CodeReviewPanelProp
   const [taskHistories, setTaskHistories] = useState<Map<number, TaskHistoryState>>(new Map());
   const [expandedMatches, setExpandedMatches] = useState<Set<number>>(new Set());
   const [matchDiffs, setMatchDiffs] = useState<Map<number, MatchDiffState>>(new Map());
+  const [aiProvider, setAiProvider] = useState<AIProvider>('copilot');
+  const [aiModels, setAiModels] = useState<ChatModelsResponse>({ copilot: [], yemoda: [] });
+  const [loadingAiModels, setLoadingAiModels] = useState(false);
+  const [aiModel, setAiModel] = useState('');
+  const [githubToken, setGithubToken] = useState<string | null>(null);
+  const [chatInputByTask, setChatInputByTask] = useState<Map<number, string>>(new Map());
+  const [chatByTask, setChatByTask] = useState<Map<number, ChatMessage[]>>(new Map());
+  const [sendingTaskId, setSendingTaskId] = useState<number | null>(null);
 
   const fetchTasks = useCallback(async () => {
     setLoadingTasks(true);
@@ -93,6 +108,23 @@ export function CodeReviewPanel({ projectId, repoFullName }: CodeReviewPanelProp
   }, [projectId]);
 
   useEffect(() => { fetchTasks(); }, [fetchTasks]);
+
+  useEffect(() => {
+    setLoadingAiModels(true);
+    chatService.getModels()
+      .then((models) => setAiModels(models))
+      .catch(() => setAiModels({ copilot: [], yemoda: [] }))
+      .finally(() => setLoadingAiModels(false));
+
+    usersService.me()
+      .then((me) => setGithubToken(me.github_token ?? null))
+      .catch(() => setGithubToken(null));
+  }, []);
+
+  useEffect(() => {
+    const options = aiProvider === 'copilot' ? (aiModels.copilot ?? []) : (aiModels.yemoda ?? []);
+    setAiModel((current) => (current && options.includes(current) ? current : (options[0] ?? '')));
+  }, [aiProvider, aiModels]);
 
   const toggleTask = async (taskId: number) => {
     setExpandedTasks(prev => {
@@ -139,6 +171,97 @@ export function CodeReviewPanel({ projectId, repoFullName }: CodeReviewPanelProp
     }
   };
 
+  const sendCodeReviewMessage = async (task: ApiTask) => {
+    const input = (chatInputByTask.get(task.id_task) ?? '').trim();
+    if (!input) return;
+
+    const history = taskHistories.get(task.id_task)?.matches ?? [];
+    const primaryMatch = history[0] ?? null;
+    const branchName = primaryMatch?.push_ref?.replace('refs/heads/', '') ?? 'main';
+    const diff = primaryMatch?.push_diff_text
+      ?? history.map((item) => item.push_diff_text).filter(Boolean).join('\n\n')
+      ?? null;
+
+    const nextUserMessage: ChatMessage = { role: 'user', content: input };
+    const pendingAssistant: ChatMessage = { role: 'assistant', content: '' };
+
+    setChatByTask((prev) => {
+      const current = prev.get(task.id_task) ?? [];
+      return new Map(prev).set(task.id_task, [...current, nextUserMessage, pendingAssistant]);
+    });
+    setChatInputByTask((prev) => new Map(prev).set(task.id_task, ''));
+    setSendingTaskId(task.id_task);
+
+    try {
+      const payload = {
+        provider: aiProvider,
+        model: aiModel || undefined,
+        message: input,
+        stream: aiProvider === 'copilot',
+        ...(aiProvider === 'copilot' && githubToken ? { github_token: githubToken } : {}),
+        context_type: 'code_review' as const,
+        context_data: {
+          diff,
+          repo: repoFullName,
+          branch: branchName,
+          task_title: task.title,
+        },
+      };
+
+      if (aiProvider === 'copilot') {
+        const streamed = await chatService.stream(payload, (chunk) => {
+          setChatByTask((prev) => {
+            const current = [...(prev.get(task.id_task) ?? [])];
+            if (current.length === 0) return prev;
+            const last = current[current.length - 1];
+            if (last.role !== 'assistant') return prev;
+            current[current.length - 1] = { ...last, content: `${last.content}${chunk}` };
+            return new Map(prev).set(task.id_task, current);
+          });
+        });
+
+        if (!streamed.trim()) {
+          setChatByTask((prev) => {
+            const current = [...(prev.get(task.id_task) ?? [])];
+            if (current.length === 0) return prev;
+            current[current.length - 1] = { role: 'assistant', content: 'No hubo respuesta del proveedor.' };
+            return new Map(prev).set(task.id_task, current);
+          });
+        }
+      } else {
+        const response = await chatService.send(payload);
+        setChatByTask((prev) => {
+          const current = [...(prev.get(task.id_task) ?? [])];
+          if (current.length === 0) return prev;
+          current[current.length - 1] = { role: 'assistant', content: response || 'No hubo respuesta del proveedor.' };
+          return new Map(prev).set(task.id_task, current);
+        });
+      }
+    } catch (err) {
+      if (err instanceof ApiRequestError && aiProvider === 'copilot' && (err.status === 401 || err.status === 403)) {
+        toast.error('Tu cuenta no tiene acceso activo a GitHub Copilot. Cambia a Yemoda AI o activa Copilot.');
+      } else {
+        const detail = err instanceof ApiRequestError
+          ? String(err.body?.detail ?? '')
+          : err instanceof Error ? err.message : '';
+        if (aiProvider === 'yemoda' && /unavailable|temporarily|down|service/i.test(detail)) {
+          toast.error('Servicio de IA temporalmente no disponible.');
+        } else {
+          toast.error('No se pudo enviar el mensaje de revisión.');
+        }
+      }
+
+      setChatByTask((prev) => {
+        const current = [...(prev.get(task.id_task) ?? [])];
+        if (current.length === 0) return prev;
+        current[current.length - 1] = { role: 'assistant', content: 'No se pudo completar la solicitud.' };
+        return new Map(prev).set(task.id_task, current);
+      });
+    } finally {
+      setSendingTaskId(null);
+    }
+  };
+
   if (!repoFullName) {
     return (
       <div className="text-center py-16">
@@ -169,6 +292,44 @@ export function CodeReviewPanel({ projectId, repoFullName }: CodeReviewPanelProp
 
   return (
     <div className="space-y-2">
+      <div className="rounded-[4px] border border-border bg-card p-2.5 space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-[0.06em]">Proveedor IA</p>
+          {loadingAiModels && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />}
+        </div>
+        <div className="grid grid-cols-2 gap-1.5">
+          <button
+            type="button"
+            onClick={() => setAiProvider('copilot')}
+            className={`h-7 rounded-[3px] border text-[10px] ${aiProvider === 'copilot' ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:text-foreground'}`}
+          >
+            Usar mi GitHub Copilot
+          </button>
+          <button
+            type="button"
+            onClick={() => setAiProvider('yemoda')}
+            className={`h-7 rounded-[3px] border text-[10px] ${aiProvider === 'yemoda' ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:text-foreground'}`}
+          >
+            Usar Yemoda AI
+          </button>
+        </div>
+        <div>
+          <label className="block text-[10px] text-muted-foreground mb-1">Modelo</label>
+          <select
+            value={aiModel}
+            onChange={(e) => setAiModel(e.target.value)}
+            className="w-full h-7 rounded-[3px] border border-border bg-surface-secondary px-2 text-[10px]"
+          >
+            {(aiProvider === 'copilot' ? (aiModels.copilot ?? []) : (aiModels.yemoda ?? [])).map((model) => (
+              <option key={model} value={model}>{model}</option>
+            ))}
+            {((aiProvider === 'copilot' ? (aiModels.copilot ?? []) : (aiModels.yemoda ?? [])).length === 0) && (
+              <option value="">Sin modelos disponibles</option>
+            )}
+          </select>
+        </div>
+      </div>
+
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
@@ -308,6 +469,38 @@ export function CodeReviewPanel({ projectId, repoFullName }: CodeReviewPanelProp
                     </div>
                   );
                 })}
+
+                <div className="px-3 py-3 bg-card space-y-2">
+                  <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-[0.06em]">Chat de Code Review</p>
+                  <div className="max-h-44 overflow-y-auto rounded-[4px] border border-border bg-surface-secondary/30 p-2 space-y-1.5">
+                    {(chatByTask.get(task.id_task) ?? []).length === 0 ? (
+                      <p className="text-[11px] text-muted-foreground">Pregunta sobre el diff para iniciar la conversación.</p>
+                    ) : (
+                      (chatByTask.get(task.id_task) ?? []).map((message, index) => (
+                        <div key={`${task.id_task}-${index}`} className={`rounded-[3px] px-2 py-1.5 text-[11px] ${message.role === 'user' ? 'bg-primary/10 text-foreground' : 'bg-card border border-border text-muted-foreground'}`}>
+                          {message.content || (sendingTaskId === task.id_task && message.role === 'assistant' ? 'Escribiendo…' : '')}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="text"
+                      value={chatInputByTask.get(task.id_task) ?? ''}
+                      onChange={(e) => setChatInputByTask((prev) => new Map(prev).set(task.id_task, e.target.value))}
+                      placeholder="Preguntar sobre cambios, riesgos o mejoras…"
+                      className="flex-1 h-7 rounded-[3px] border border-border bg-surface-secondary px-2 text-[11px]"
+                    />
+                    <button
+                      type="button"
+                      disabled={sendingTaskId === task.id_task || !(chatInputByTask.get(task.id_task) ?? '').trim()}
+                      onClick={() => void sendCodeReviewMessage(task)}
+                      className="h-7 w-7 rounded-[3px] bg-primary text-primary-foreground inline-flex items-center justify-center disabled:opacity-50"
+                    >
+                      {sendingTaskId === task.id_task ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
           </div>

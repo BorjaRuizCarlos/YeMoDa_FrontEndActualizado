@@ -13,6 +13,7 @@ export interface ApiUserAccount {
   is_github_connected?: boolean;
   github_login?: string | null;
   github_username?: string | null;
+  github_token?: string | null;
 }
 
 export interface ApiSystemRole {
@@ -343,6 +344,57 @@ export interface ApiGithubContent {
   sha?: string;
   content?: string;
   download_url?: string;
+}
+
+export interface ApiGithubBranch {
+  name: string;
+}
+
+export interface GitHubCommitFileChange {
+  path: string;
+  content?: string;
+  deleted?: boolean;
+}
+
+export interface GitHubCommitPayload {
+  repo: string;
+  branch: string;
+  message: string;
+  files: GitHubCommitFileChange[];
+}
+
+export interface GitHubCommitResponse {
+  commit_sha?: string;
+  message?: string;
+}
+
+export type AIProvider = 'copilot' | 'yemoda';
+
+export interface ChatMessage {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+}
+
+export interface ChatRequestPayload {
+  provider: AIProvider;
+  model?: string;
+  message: string;
+  stream?: boolean;
+  github_token?: string;
+  context_type?: 'ai_fix' | 'code_review' | string;
+  context_data?: Record<string, unknown>;
+}
+
+export interface ChatResponsePayload {
+  message?: string;
+  response?: string;
+  content?: string;
+}
+
+export interface ChatModelsResponse {
+  copilot?: string[];
+  yemoda?: string[];
+  [provider: string]: string[] | undefined;
 }
 
 // ─── Branch creation ─────────────────────────────────────────────────────────

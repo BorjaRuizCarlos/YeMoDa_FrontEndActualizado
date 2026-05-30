@@ -14,6 +14,10 @@ import type {
   CreateBranchResponse,
   ApiPullRequest,
   ApiPRFile,
+  ApiGithubContent,
+  ApiGithubBranch,
+  GitHubCommitPayload,
+  GitHubCommitResponse,
 } from './types';
 
 // Per-user localStorage key for repos cache only
@@ -99,11 +103,21 @@ export const githubService = {
   },
 
   /** GET /api/github/contents/ → browse repo file tree */
-  async getContents(repo: string, path = '', ref?: string): Promise<unknown[]> {
+  async getContents(repo: string, path = '', ref?: string): Promise<ApiGithubContent[] | ApiGithubContent> {
     const params = new URLSearchParams({ repo });
     if (path) params.set('path', path);
     if (ref) params.set('ref', ref);
-    return api.get<unknown[]>(`/github/contents/?${params.toString()}`);
+    return api.get<ApiGithubContent[] | ApiGithubContent>(`/github/contents/?${params.toString()}`);
+  },
+
+  /** GET /api/github/branches/ → list repository branches */
+  async getBranches(repo: string): Promise<ApiGithubBranch[]> {
+    return api.get<ApiGithubBranch[]>(`/github/branches/?repo=${encodeURIComponent(repo)}`);
+  },
+
+  /** POST /api/github/commit/ → commit one or more file changes */
+  async commitChanges(payload: GitHubCommitPayload): Promise<GitHubCommitResponse> {
+    return api.post<GitHubCommitResponse>('/github/commit/', payload);
   },
 
   /** GET /api/github/repos/ → list repos from backend, optionally filtered by project */

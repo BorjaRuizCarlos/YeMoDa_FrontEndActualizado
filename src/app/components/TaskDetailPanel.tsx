@@ -6,9 +6,9 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
-import { tasksService, githubService } from '../../services';
+import { chatService, tasksService, githubService, usersService } from '../../services';
 import { ApiRequestError } from '../../services/api';
-import type { ApiTask, ApiTaskStatus, ApiTaskPriority, ApiTaskComment, ApiTaskWarning, ApiTaskAssignment, ApiTag, GitHubRepo, CreateBranchResponse, ApiBoardColumn, ApiSprint } from '../../services';
+import type { AIProvider, ApiTask, ApiTaskStatus, ApiTaskPriority, ApiTaskComment, ApiTaskWarning, ApiTaskAssignment, ApiTag, ChatModelsResponse, GitHubRepo, CreateBranchResponse, ApiBoardColumn, ApiSprint } from '../../services';
 import { WarningBadge } from './WarningBadge';
 import { TaskAssigneePicker } from './TaskAssigneePicker';
 import { DatePickerField } from './DatePickerField';
@@ -71,6 +71,7 @@ export function TaskDetailPanel({
   canEditTask = true,
   canDeleteTask = false,
   projectId,
+  repoFullName,
   boardColumnsByBoard,
   boardNames,
   sprints = [],
@@ -120,6 +121,13 @@ export function TaskDetailPanel({
   const [savingSprint, setSavingSprint] = useState(false);
   const [selectedWarningIds, setSelectedWarningIds] = useState<Set<number>>(new Set());
   const [deletingSelectedWarnings, setDeletingSelectedWarnings] = useState(false);
+  const [aiProvider, setAiProvider] = useState<AIProvider>('copilot');
+  const [aiModels, setAiModels] = useState<ChatModelsResponse>({ copilot: [], yemoda: [] });
+  const [loadingAiModels, setLoadingAiModels] = useState(false);
+  const [aiModel, setAiModel] = useState('');
+  const [githubToken, setGithubToken] = useState<string | null>(null);
+  const [sendingToAi, setSendingToAi] = useState(false);
+  const [aiFixResponse, setAiFixResponse] = useState<string>('');
   const [taskForm, setTaskForm] = useState({
     title: '',
     description: '',
@@ -206,6 +214,85 @@ export function TaskDetailPanel({
       toast.error('No se pudo generar el prompt IA.', { description: detail });
     } finally {
       setGeneratingAiPrompt(false);
+    }
+  };
+
+  useEffect(() => {
+    setLoadingAiModels(true);
+    chatService.getModels()
+      .then((models) => setAiModels(models))
+      .catch(() => setAiModels({ copilot: [], yemoda: [] }))
+      .finally(() => setLoadingAiModels(false));
+
+    usersService.me()
+      .then((me) => setGithubToken(me.github_token ?? null))
+      .catch(() => setGithubToken(null));
+  }, []);
+
+  useEffect(() => {
+    const options = aiProvider === 'copilot' ? (aiModels.copilot ?? []) : (aiModels.yemoda ?? []);
+    setAiModel((current) => (current && options.includes(current) ? current : (options[0] ?? '')));
+  }, [aiProvider, aiModels]);
+
+  const handleSendWarningsToAi = async () => {
+    if (!task) return;
+    const activeWarningsPayload = warnings.filter((w) => w.status === 'active').map((w) => ({
+      id_warning: w.id_warning,
+      severity: w.severity,
+      message: w.message,
+      created_at: w.created_at,
+    }));
+
+    if (activeWarningsPayload.length === 0) {
+      toast.error('No hay warnings activos para enviar.');
+      return;
+    }
+
+    setSendingToAi(true);
+    setAiFixResponse('');
+    try {
+      let latestDiff: string | null = null;
+      try {
+        const history = await tasksService.getTaskHistory(task.id_task);
+        latestDiff = history[0]?.push_diff_text ?? null;
+      } catch {
+        latestDiff = null;
+      }
+
+      const response = await chatService.send({
+        provider: aiProvider,
+        model: aiModel || undefined,
+        message: `Analiza y propone correcciones para la tarea ${task.title}`,
+        stream: false,
+        ...(aiProvider === 'copilot' && githubToken ? { github_token: githubToken } : {}),
+        context_type: 'ai_fix',
+        context_data: {
+          task_id: task.id_task,
+          task_title: task.title,
+          repo: repoFullName,
+          warnings: activeWarningsPayload,
+          file_content: '',
+          diff: latestDiff,
+        },
+      });
+
+      setAiFixResponse(response || 'La IA no devolvió contenido.');
+      toast.success('Respuesta recibida desde IA.');
+    } catch (err) {
+      if (err instanceof ApiRequestError && aiProvider === 'copilot' && (err.status === 401 || err.status === 403)) {
+        toast.error('Tu cuenta no tiene acceso activo a GitHub Copilot. Cambia a Yemoda AI o activa Copilot.');
+      } else {
+        const detail = err instanceof ApiRequestError
+          ? String(err.body?.detail ?? '')
+          : err instanceof Error ? err.message : '';
+        if (aiProvider === 'yemoda' && /unavailable|temporarily|down|service/i.test(detail)) {
+          toast.error('Servicio de IA temporalmente no disponible.');
+        } else {
+          toast.error('No se pudo enviar el prompt a IA.');
+        }
+      }
+    } finally {
+      setSendingToAi(false);
     }
   };
 
@@ -570,7 +657,16 @@ export function TaskDetailPanel({
                   title="Genera el prompt con warnings activos y lo copia al portapapeles"
                 >
                   {generatingAiPrompt ? <Loader2 className="w-3 h-3 animate-spin" /> : <Copy className="w-3 h-3" />}
-                  {generatingAiPrompt ? 'Generando...' : 'Prompt IA'}
+                  {generatingAiPrompt ? 'Generando...' : 'Copiar prompt'}
+                </button>
+                <button
+                  onClick={() => void handleSendWarningsToAi()}
+                  disabled={sendingToAi}
+                  className="inline-flex items-center gap-1 h-6 px-2 border border-border rounded-[3px] text-[10px] text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors disabled:opacity-50"
+                  title="Envía warnings activos al chat IA"
+                >
+                  {sendingToAi ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
+                  {sendingToAi ? 'Enviando...' : 'Enviar a IA'}
                 </button>
                 <button onClick={onClose} className="p-1 rounded-[3px] hover:bg-surface-secondary transition-colors">
                   <X className="w-3.5 h-3.5 text-muted-foreground" />
@@ -981,6 +1077,44 @@ export function TaskDetailPanel({
                     </div>
                   </div>
                   <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                    <div className="rounded-[4px] border border-border bg-surface-secondary/30 p-2.5 space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-[0.06em]">Proveedor IA</p>
+                        {loadingAiModels && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />}
+                      </div>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setAiProvider('copilot')}
+                          className={`h-7 rounded-[3px] border text-[10px] ${aiProvider === 'copilot' ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:text-foreground'}`}
+                        >
+                          Usar mi GitHub Copilot
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setAiProvider('yemoda')}
+                          className={`h-7 rounded-[3px] border text-[10px] ${aiProvider === 'yemoda' ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:text-foreground'}`}
+                        >
+                          Usar Yemoda AI
+                        </button>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] text-muted-foreground mb-1">Modelo</label>
+                        <select
+                          value={aiModel}
+                          onChange={(e) => setAiModel(e.target.value)}
+                          className="w-full h-7 rounded-[3px] border border-border bg-card px-2 text-[10px]"
+                        >
+                          {(aiProvider === 'copilot' ? (aiModels.copilot ?? []) : (aiModels.yemoda ?? [])).map((model) => (
+                            <option key={model} value={model}>{model}</option>
+                          ))}
+                          {((aiProvider === 'copilot' ? (aiModels.copilot ?? []) : (aiModels.yemoda ?? [])).length === 0) && (
+                            <option value="">Sin modelos disponibles</option>
+                          )}
+                        </select>
+                      </div>
+                    </div>
+
                     {loadingWarnings ? (
                       <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
                         <Loader2 className="w-3 h-3 animate-spin" /> Cargando warnings…
@@ -1041,6 +1175,13 @@ export function TaskDetailPanel({
                       </div>
                     ) : (
                       <p className="text-[11px] text-muted-foreground">Sin warnings activos.</p>
+                    )}
+
+                    {aiFixResponse && (
+                      <div className="rounded-[4px] border border-primary/20 bg-primary/5 p-2.5">
+                        <p className="text-[10px] font-medium uppercase tracking-[0.06em] text-primary mb-1">Respuesta IA</p>
+                        <p className="text-[11px] text-foreground whitespace-pre-wrap leading-relaxed">{aiFixResponse}</p>
+                      </div>
                     )}
 
 
