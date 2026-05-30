@@ -174,6 +174,10 @@ export function CodeReviewPanel({ projectId, repoFullName }: CodeReviewPanelProp
   const sendCodeReviewMessage = async (task: ApiTask) => {
     const input = (chatInputByTask.get(task.id_task) ?? '').trim();
     if (!input) return;
+    const effectiveProvider: AIProvider = aiProvider === 'copilot' && !githubToken ? 'yemoda' : aiProvider;
+    if (effectiveProvider !== aiProvider) {
+      toast.info('Copilot no está disponible en tu cuenta. Se usará Yemoda AI para esta solicitud.');
+    }
 
     const history = taskHistories.get(task.id_task)?.matches ?? [];
     const primaryMatch = history[0] ?? null;
@@ -201,11 +205,11 @@ export function CodeReviewPanel({ projectId, repoFullName }: CodeReviewPanelProp
 
     try {
       const payload = {
-        provider: aiProvider,
+        provider: effectiveProvider,
         model: aiModel || undefined,
         messages: requestMessages,
-        stream: aiProvider === 'copilot',
-        ...(aiProvider === 'copilot' && githubToken ? { github_token: githubToken } : {}),
+        stream: effectiveProvider === 'copilot',
+        ...(effectiveProvider === 'copilot' && githubToken ? { github_token: githubToken } : {}),
         context_type: 'code_review' as const,
         context_data: {
           diff,
@@ -215,7 +219,7 @@ export function CodeReviewPanel({ projectId, repoFullName }: CodeReviewPanelProp
         },
       };
 
-      if (aiProvider === 'copilot') {
+      if (effectiveProvider === 'copilot') {
         const streamed = await chatService.stream(payload, (chunk) => {
           setChatByTask((prev) => {
             const current = [...(prev.get(task.id_task) ?? [])];
@@ -246,7 +250,7 @@ export function CodeReviewPanel({ projectId, repoFullName }: CodeReviewPanelProp
       }
     } catch (err) {
       const streamStatus = err instanceof Error ? Number(err.message.split(':')[0]) : NaN;
-      const isCopilotAuthError = aiProvider === 'copilot' && (
+      const isCopilotAuthError = effectiveProvider === 'copilot' && (
         (err instanceof ApiRequestError && (err.status === 401 || err.status === 403))
         || streamStatus === 401
         || streamStatus === 403

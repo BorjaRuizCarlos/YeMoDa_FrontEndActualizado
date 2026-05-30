@@ -250,6 +250,10 @@ export function TaskDetailPanel({
 
     setSendingToAi(true);
     setAiFixResponse('');
+    const effectiveProvider: AIProvider = aiProvider === 'copilot' && !githubToken ? 'yemoda' : aiProvider;
+    if (effectiveProvider !== aiProvider) {
+      toast.info('Copilot no está disponible en tu cuenta. Se usará Yemoda AI para esta solicitud.');
+    }
     try {
       let latestDiff: string | null = null;
       try {
@@ -260,11 +264,11 @@ export function TaskDetailPanel({
       }
 
       const response = await chatService.send({
-        provider: aiProvider,
+        provider: effectiveProvider,
         model: aiModel || undefined,
         messages: [{ role: 'user', content: `Analiza y propone correcciones para la tarea ${task.title}` }],
         stream: false,
-        ...(aiProvider === 'copilot' && githubToken ? { github_token: githubToken } : {}),
+        ...(effectiveProvider === 'copilot' && githubToken ? { github_token: githubToken } : {}),
         context_type: 'ai_fix',
         context_data: {
           task_id: task.id_task,
@@ -279,7 +283,7 @@ export function TaskDetailPanel({
       setAiFixResponse(response || 'La IA no devolvió contenido.');
       toast.success('Respuesta recibida desde IA.');
     } catch (err) {
-      if (err instanceof ApiRequestError && aiProvider === 'copilot' && (err.status === 401 || err.status === 403)) {
+      if (err instanceof ApiRequestError && effectiveProvider === 'copilot' && (err.status === 401 || err.status === 403)) {
         toast.error('Tu cuenta no tiene acceso activo a GitHub Copilot. Cambia a Yemoda AI o activa Copilot.');
       } else {
         const detail = err instanceof ApiRequestError
