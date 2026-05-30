@@ -169,7 +169,6 @@ export function TaskDetailPanel({
   const [aiSourcePath, setAiSourcePath] = useState('');
   const [aiSourceContent, setAiSourceContent] = useState('');
   const [aiSuggestedContent, setAiSuggestedContent] = useState('');
-  const [aiRawResponse, setAiRawResponse] = useState('');
   const [aiModalPrompt, setAiModalPrompt] = useState('');
   const [committingAiFix, setCommittingAiFix] = useState(false);
   const [taskForm, setTaskForm] = useState({
@@ -293,7 +292,6 @@ export function TaskDetailPanel({
     }
 
     setSendingToAi(true);
-    setAiRawResponse('');
     setAiSuggestedContent('');
     const effectiveProvider: AIProvider = aiProvider === 'copilot' && !githubToken ? 'yemoda' : aiProvider;
     if (effectiveProvider !== aiProvider) {
@@ -332,7 +330,6 @@ export function TaskDetailPanel({
         let aggregated = '';
         await chatService.stream(payload, (chunk) => {
           aggregated += chunk;
-          setAiRawResponse(aggregated);
           setAiSuggestedContent(extractBestCodeCandidate(aggregated));
         });
         if (!extractBestCodeCandidate(aggregated).trim()) {
@@ -341,7 +338,6 @@ export function TaskDetailPanel({
       } else {
         const response = await chatService.send(payload);
         const raw = response || '';
-        setAiRawResponse(raw);
         const extracted = extractBestCodeCandidate(raw);
         setAiSuggestedContent(extracted);
         if (!extracted.trim()) {
@@ -378,7 +374,6 @@ export function TaskDetailPanel({
 
     setShowAiCodeModal(true);
     setAiSuggestedContent('');
-    setAiRawResponse('');
     setAiSourceLoading(true);
 
     let nextBranch = 'main';
