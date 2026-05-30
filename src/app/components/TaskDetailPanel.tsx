@@ -33,6 +33,18 @@ function formatCommentTimestamp(value: string) {
   });
 }
 
+function extractFirstFilePathFromDiff(diffText: string | null): string {
+  if (!diffText) return '';
+  const match = diffText.match(/^diff --git a\/.+ b\/(.+)$/m);
+  return match?.[1]?.trim() ?? '';
+}
+
+function unwrapCodeBlock(content: string): string {
+  const trimmed = content.trim();
+  const block = trimmed.match(/^```(?:\w+)?\n([\s\S]*?)\n```$/);
+  return block ? block[1] : content;
+}
+
 interface TaskDetailPanelProps {
   task: ApiTask | null;
   statuses: ApiTaskStatus[];
@@ -127,7 +139,14 @@ export function TaskDetailPanel({
   const [aiModel, setAiModel] = useState('');
   const [githubToken, setGithubToken] = useState<string | null>(null);
   const [sendingToAi, setSendingToAi] = useState(false);
-  const [aiFixResponse, setAiFixResponse] = useState<string>('');
+  const [showAiCodeModal, setShowAiCodeModal] = useState(false);
+  const [aiSourceLoading, setAiSourceLoading] = useState(false);
+  const [aiSourceBranch, setAiSourceBranch] = useState('main');
+  const [aiSourcePath, setAiSourcePath] = useState('');
+  const [aiSourceContent, setAiSourceContent] = useState('');
+  const [aiSuggestedContent, setAiSuggestedContent] = useState('');
+  const [aiModalPrompt, setAiModalPrompt] = useState('Corrige este archivo y devuelve el código completo final.');
+  const [committingAiFix, setCommittingAiFix] = useState(false);
   const [taskForm, setTaskForm] = useState({
     title: '',
     description: '',
@@ -249,7 +268,6 @@ export function TaskDetailPanel({
     }
 
     setSendingToAi(true);
-    setAiFixResponse('');
     const effectiveProvider: AIProvider = aiProvider === 'copilot' && !githubToken ? 'yemoda' : aiProvider;
     if (effectiveProvider !== aiProvider) {
       toast.info('Copilot no está disponible en tu cuenta. Se usará Yemoda AI para esta solicitud.');
@@ -263,24 +281,35 @@ export function TaskDetailPanel({
         latestDiff = null;
       }
 
-      const response = await chatService.send({
+      const userMessage = `${aiModalPrompt.trim() || `Analiza y propone correcciones para la tarea ${task.title}`}\n\nDevuelve el archivo completo corregido.`;
+      const payload = {
         provider: effectiveProvider,
         model: aiModel || undefined,
-        messages: [{ role: 'user', content: `Analiza y propone correcciones para la tarea ${task.title}` }],
-        stream: false,
+        messages: [{ role: 'user' as const, content: userMessage }],
+        stream: effectiveProvider === 'copilot',
         ...(effectiveProvider === 'copilot' && githubToken ? { github_token: githubToken } : {}),
         context_type: 'ai_fix',
         context_data: {
           task_id: task.id_task,
           task_title: task.title,
           repo: repoFullName,
+          branch: aiSourceBranch,
+          file_path: aiSourcePath,
           warnings: activeWarningsPayload,
-          file_content: '',
+          file_content: aiSourceContent,
           diff: latestDiff,
         },
-      });
+      };
 
-      setAiFixResponse(response || 'La IA no devolvió contenido.');
+      if (effectiveProvider === 'copilot') {
+        setAiSuggestedContent('');
+        await chatService.stream(payload, (chunk) => {
+          setAiSuggestedContent((prev) => `${prev}${chunk}`);
+        });
+      } else {
+        const response = await chatService.send(payload);
+        setAiSuggestedContent(response || 'La IA no devolvió contenido.');
+      }
       toast.success('Respuesta recibida desde IA.');
     } catch (err) {
       if (err instanceof ApiRequestError && effectiveProvider === 'copilot' && (err.status === 401 || err.status === 403)) {
@@ -297,6 +326,71 @@ export function TaskDetailPanel({
       }
     } finally {
       setSendingToAi(false);
+    }
+  };
+
+  const openAiCodeModal = async () => {
+    if (!task) return;
+    const activeWarningsPayload = warnings.filter((w) => w.status === 'active');
+    if (activeWarningsPayload.length === 0) {
+      toast.error('No hay warnings activos para enviar.');
+      return;
+    }
+
+    setShowAiCodeModal(true);
+    setAiSuggestedContent('');
+    setAiSourceLoading(true);
+
+    let nextBranch = 'main';
+    let nextPath = '';
+    let nextContent = '';
+    try {
+      const history = await tasksService.getTaskHistory(task.id_task);
+      nextBranch = history[0]?.push_ref?.replace('refs/heads/', '') || 'main';
+      nextPath = extractFirstFilePathFromDiff(history[0]?.push_diff_text ?? null);
+
+      if (repoFullName && nextPath) {
+        const result = await githubService.getContents(repoFullName, nextPath, nextBranch);
+        const fileData = Array.isArray(result) ? result[0] : result;
+        nextContent = fileData.content ? atob(fileData.content.replace(/\n/g, '')) : '';
+      }
+    } catch {
+      // Keep defaults if source retrieval fails; user can still request AI using warnings context.
+    } finally {
+      setAiSourceBranch(nextBranch);
+      setAiSourcePath(nextPath);
+      setAiSourceContent(nextContent);
+      setAiSourceLoading(false);
+    }
+  };
+
+  const handleCommitAiFix = async () => {
+    if (!task || !repoFullName) {
+      toast.error('No hay repositorio vinculado para hacer commit.');
+      return;
+    }
+    if (!aiSourcePath || !aiSuggestedContent.trim()) {
+      toast.error('No hay propuesta de código para confirmar.');
+      return;
+    }
+
+    setCommittingAiFix(true);
+    try {
+      await githubService.commitChanges({
+        repo: repoFullName,
+        branch: aiSourceBranch || 'main',
+        message: `feat: ai fix tarea #${task.id_task}`,
+        files: [{ path: aiSourcePath, content: unwrapCodeBlock(aiSuggestedContent) }],
+      });
+      toast.success('Commit / push realizado con los cambios de IA.');
+      setShowAiCodeModal(false);
+    } catch (err) {
+      const detail = err instanceof ApiRequestError
+        ? String(err.body?.detail ?? 'Error desconocido')
+        : err instanceof Error ? err.message : 'Error desconocido';
+      toast.error('No se pudo confirmar el commit / push.', { description: detail });
+    } finally {
+      setCommittingAiFix(false);
     }
   };
 
@@ -664,13 +758,13 @@ export function TaskDetailPanel({
                   {generatingAiPrompt ? 'Generando...' : 'Copiar prompt'}
                 </button>
                 <button
-                  onClick={() => void handleSendWarningsToAi()}
-                  disabled={sendingToAi}
+                  onClick={() => void openAiCodeModal()}
+                  disabled={sendingToAi || loadingWarnings}
                   className="inline-flex items-center gap-1 h-6 px-2 border border-border rounded-[3px] text-[10px] text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors disabled:opacity-50"
-                  title="Envía warnings activos al chat IA"
+                  title="Abre la revisión de código con IA"
                 >
-                  {sendingToAi ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
-                  {sendingToAi ? 'Enviando...' : 'Enviar a IA'}
+                  <Send className="w-3 h-3" />
+                  Enviar a IA
                 </button>
                 <button onClick={onClose} className="p-1 rounded-[3px] hover:bg-surface-secondary transition-colors">
                   <X className="w-3.5 h-3.5 text-muted-foreground" />
@@ -1181,20 +1275,106 @@ export function TaskDetailPanel({
                       <p className="text-[11px] text-muted-foreground">Sin warnings activos.</p>
                     )}
 
-                    {aiFixResponse && (
-                      <div className="rounded-[4px] border border-primary/20 bg-primary/5 p-2.5">
-                        <p className="text-[10px] font-medium uppercase tracking-[0.06em] text-primary mb-1">Respuesta IA</p>
-                        <p className="text-[11px] text-foreground whitespace-pre-wrap leading-relaxed">{aiFixResponse}</p>
-                      </div>
-                    )}
-
-
                   </div>
                 </div>
               )}
           </div>
         )}
       </div>
+
+      {showAiCodeModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+          <div className="w-full max-w-6xl h-[82vh] rounded-[8px] border border-border bg-card shadow-xl flex flex-col overflow-hidden">
+            <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+              <div>
+                <h2 className="text-[13px] font-semibold text-foreground">Revisión de cambios IA</h2>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Código actual a la izquierda y respuesta IA en escucha a la derecha.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAiCodeModal(false)}
+                className="h-8 px-3 border border-border rounded-[4px] text-[11px] hover:bg-accent"
+              >
+                Cerrar
+              </button>
+            </div>
+
+            <div className="px-4 py-3 border-b border-border bg-surface-secondary/20 space-y-2">
+              <div className="grid grid-cols-1 lg:grid-cols-[1fr_160px_160px_auto] gap-2 items-center">
+                <input
+                  type="text"
+                  value={aiModalPrompt}
+                  onChange={(e) => setAiModalPrompt(e.target.value)}
+                  className="h-8 rounded-[4px] border border-border bg-card px-2.5 text-[11px]"
+                  placeholder="Qué quieres que corrija la IA..."
+                />
+                <select
+                  value={aiProvider}
+                  onChange={(e) => setAiProvider(e.target.value as AIProvider)}
+                  className="h-8 rounded-[4px] border border-border bg-card px-2 text-[11px]"
+                >
+                  <option value="copilot">Usar mi GitHub Copilot</option>
+                  <option value="yemoda">Usar Yemoda AI</option>
+                </select>
+                <select
+                  value={aiModel}
+                  onChange={(e) => setAiModel(e.target.value)}
+                  className="h-8 rounded-[4px] border border-border bg-card px-2 text-[11px]"
+                >
+                  {(aiProvider === 'copilot' ? (aiModels.copilot ?? []) : (aiModels.yemoda ?? [])).map((model) => (
+                    <option key={model} value={model}>{model}</option>
+                  ))}
+                  {((aiProvider === 'copilot' ? (aiModels.copilot ?? []) : (aiModels.yemoda ?? [])).length === 0) && (
+                    <option value="">Sin modelos disponibles</option>
+                  )}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => void handleSendWarningsToAi()}
+                  disabled={sendingToAi || aiSourceLoading}
+                  className="h-8 px-3 bg-primary text-primary-foreground rounded-[4px] text-[11px] inline-flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  {sendingToAi ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
+                  {sendingToAi ? 'En escucha...' : 'Mandar a IA'}
+                </button>
+              </div>
+              <p className="text-[10px] text-muted-foreground">{aiSourcePath ? `${aiSourcePath} @ ${aiSourceBranch}` : 'No se detectó archivo del diff; se enviará contexto de warnings.'}</p>
+            </div>
+
+            <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-2">
+              <div className="border-r border-border min-h-0 flex flex-col">
+                <div className="px-3 py-2 border-b border-border bg-surface-secondary/30 text-[10px] text-muted-foreground">Código actual</div>
+                <textarea
+                  value={aiSourceLoading ? 'Cargando código actual...' : aiSourceContent}
+                  readOnly
+                  className="flex-1 min-h-0 bg-card p-3 text-[11px] font-mono text-muted-foreground resize-none focus:outline-none"
+                />
+              </div>
+              <div className="min-h-0 flex flex-col">
+                <div className="px-3 py-2 border-b border-border bg-surface-secondary/30 text-[10px] text-muted-foreground">Respuesta IA (código propuesto)</div>
+                <textarea
+                  value={aiSuggestedContent}
+                  readOnly
+                  className="flex-1 min-h-0 bg-card p-3 text-[11px] font-mono text-foreground resize-none focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="px-4 py-3 border-t border-border flex items-center justify-between gap-2">
+              <p className="text-[10px] text-muted-foreground">Si te gusta la propuesta, confirma commit/push desde aquí.</p>
+              <button
+                type="button"
+                onClick={() => void handleCommitAiFix()}
+                disabled={committingAiFix || !aiSuggestedContent.trim() || !aiSourcePath}
+                className="h-8 px-3 bg-primary text-primary-foreground rounded-[4px] text-[11px] inline-flex items-center gap-1.5 disabled:opacity-50"
+              >
+                {committingAiFix ? <Loader2 className="w-3 h-3 animate-spin" /> : <GitCommit className="w-3 h-3" />}
+                {committingAiFix ? 'Confirmando...' : 'Commit / Push'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Branch creation modal */}
       {showBranchModal && (
