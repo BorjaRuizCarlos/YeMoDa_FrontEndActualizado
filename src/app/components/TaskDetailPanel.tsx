@@ -145,7 +145,7 @@ export function TaskDetailPanel({
   const [aiSourcePath, setAiSourcePath] = useState('');
   const [aiSourceContent, setAiSourceContent] = useState('');
   const [aiSuggestedContent, setAiSuggestedContent] = useState('');
-  const [aiModalPrompt, setAiModalPrompt] = useState('Corrige este archivo y devuelve el código completo final.');
+  const [aiModalPrompt, setAiModalPrompt] = useState('');
   const [committingAiFix, setCommittingAiFix] = useState(false);
   const [taskForm, setTaskForm] = useState({
     title: '',
@@ -281,11 +281,11 @@ export function TaskDetailPanel({
         latestDiff = null;
       }
 
-      const userMessage = `${aiModalPrompt.trim() || `Analiza y propone correcciones para la tarea ${task.title}`}\n\nDevuelve el archivo completo corregido.`;
+      const promptToSend = aiModalPrompt.trim() || `Analiza y propone correcciones para la tarea ${task.title}`;
       const payload = {
         provider: effectiveProvider,
         model: aiModel || undefined,
-        messages: [{ role: 'user' as const, content: userMessage }],
+        messages: [{ role: 'user' as const, content: promptToSend }],
         stream: effectiveProvider === 'copilot',
         ...(effectiveProvider === 'copilot' && githubToken ? { github_token: githubToken } : {}),
         context_type: 'ai_fix',
@@ -345,6 +345,13 @@ export function TaskDetailPanel({
     let nextPath = '';
     let nextContent = '';
     try {
+      try {
+        const aiFixPayload = await tasksService.getAiFixPrompt(task.id_task);
+        setAiModalPrompt(aiFixPayload.copy_prompt?.trim() || '');
+      } catch {
+        setAiModalPrompt('');
+      }
+
       const history = await tasksService.getTaskHistory(task.id_task);
       nextBranch = history[0]?.push_ref?.replace('refs/heads/', '') || 'main';
       nextPath = extractFirstFilePathFromDiff(history[0]?.push_diff_text ?? null);
@@ -1301,13 +1308,9 @@ export function TaskDetailPanel({
 
             <div className="px-4 py-3 border-b border-border bg-surface-secondary/20 space-y-2">
               <div className="grid grid-cols-1 lg:grid-cols-[1fr_160px_160px_auto] gap-2 items-center">
-                <input
-                  type="text"
-                  value={aiModalPrompt}
-                  onChange={(e) => setAiModalPrompt(e.target.value)}
-                  className="h-8 rounded-[4px] border border-border bg-card px-2.5 text-[11px]"
-                  placeholder="Qué quieres que corrija la IA..."
-                />
+                <div className="h-8 rounded-[4px] border border-border bg-card px-2.5 text-[11px] text-muted-foreground flex items-center truncate">
+                  {aiModalPrompt || 'Cargando prompt de corrección para esta tarea...'}
+                </div>
                 <select
                   value={aiProvider}
                   onChange={(e) => setAiProvider(e.target.value as AIProvider)}
@@ -1331,7 +1334,7 @@ export function TaskDetailPanel({
                 <button
                   type="button"
                   onClick={() => void handleSendWarningsToAi()}
-                  disabled={sendingToAi || aiSourceLoading}
+                  disabled={sendingToAi || aiSourceLoading || !aiModalPrompt.trim()}
                   className="h-8 px-3 bg-primary text-primary-foreground rounded-[4px] text-[11px] inline-flex items-center gap-1.5 disabled:opacity-50"
                 >
                   {sendingToAi ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
