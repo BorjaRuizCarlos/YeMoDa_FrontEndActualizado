@@ -39,10 +39,34 @@ function extractFirstFilePathFromDiff(diffText: string | null): string {
   return match?.[1]?.trim() ?? '';
 }
 
-function unwrapCodeBlock(content: string): string {
+function extractFilePathFromWarningMessage(message: string): string {
+  const patterns = [
+    /^([A-Za-z0-9_./-]+)\s+line\s+\d+:/i,
+    /file\s+([A-Za-z0-9_./-]+)/i,
+  ];
+  for (const pattern of patterns) {
+    const match = message.match(pattern);
+    if (match?.[1]) return match[1].trim();
+  }
+  return '';
+}
+
+function extractBestCodeCandidate(content: string): string {
+  const fencedBlockRegex = /```[a-zA-Z0-9_-]*\n([\s\S]*?)```/g;
+  let best = '';
+  let match: RegExpExecArray | null = null;
+  while (true) {
+    match = fencedBlockRegex.exec(content);
+    if (!match) break;
+    const candidate = match[1]?.trim() ?? '';
+    if (candidate.length > best.length) best = candidate;
+  }
+  if (best) return best;
+
   const trimmed = content.trim();
-  const block = trimmed.match(/^```(?:\w+)?\n([\s\S]*?)\n```$/);
-  return block ? block[1] : content;
+  const looksLikeAnalysis = /(^#\s|\|\s*ID\s*\||Resumen Ejecutivo|\*\*|```)/im.test(trimmed);
+  if (looksLikeAnalysis) return '';
+  return trimmed;
 }
 
 interface TaskDetailPanelProps {
@@ -145,6 +169,7 @@ export function TaskDetailPanel({
   const [aiSourcePath, setAiSourcePath] = useState('');
   const [aiSourceContent, setAiSourceContent] = useState('');
   const [aiSuggestedContent, setAiSuggestedContent] = useState('');
+  const [aiRawResponse, setAiRawResponse] = useState('');
   const [aiModalPrompt, setAiModalPrompt] = useState('');
   const [committingAiFix, setCommittingAiFix] = useState(false);
   const [taskForm, setTaskForm] = useState({
@@ -268,6 +293,8 @@ export function TaskDetailPanel({
     }
 
     setSendingToAi(true);
+    setAiRawResponse('');
+    setAiSuggestedContent('');
     const effectiveProvider: AIProvider = aiProvider === 'copilot' && !githubToken ? 'yemoda' : aiProvider;
     if (effectiveProvider !== aiProvider) {
       toast.info('Copilot no está disponible en tu cuenta. Se usará Yemoda AI para esta solicitud.');
@@ -302,14 +329,26 @@ export function TaskDetailPanel({
       };
 
       if (effectiveProvider === 'copilot') {
-        setAiSuggestedContent('');
+        let aggregated = '';
         await chatService.stream(payload, (chunk) => {
-          setAiSuggestedContent((prev) => `${prev}${chunk}`);
+          aggregated += chunk;
+          setAiRawResponse(aggregated);
+          setAiSuggestedContent(extractBestCodeCandidate(aggregated));
         });
+        if (!extractBestCodeCandidate(aggregated).trim()) {
+          toast.error('La IA no devolvió código aplicable. Reintenta o cambia proveedor/modelo.');
+        }
       } else {
         const response = await chatService.send(payload);
-        setAiSuggestedContent(response || 'La IA no devolvió contenido.');
+        const raw = response || '';
+        setAiRawResponse(raw);
+        const extracted = extractBestCodeCandidate(raw);
+        setAiSuggestedContent(extracted);
+        if (!extracted.trim()) {
+          toast.error('La IA no devolvió código aplicable. Reintenta o cambia proveedor/modelo.');
+        }
       }
+
       toast.success('Respuesta recibida desde IA.');
     } catch (err) {
       if (err instanceof ApiRequestError && effectiveProvider === 'copilot' && (err.status === 401 || err.status === 403)) {
@@ -339,6 +378,7 @@ export function TaskDetailPanel({
 
     setShowAiCodeModal(true);
     setAiSuggestedContent('');
+    setAiRawResponse('');
     setAiSourceLoading(true);
 
     let nextBranch = 'main';
@@ -356,6 +396,13 @@ export function TaskDetailPanel({
       nextBranch = history[0]?.push_ref?.replace('refs/heads/', '') || 'main';
       nextPath = extractFirstFilePathFromDiff(history[0]?.push_diff_text ?? null);
 
+      if (!nextPath) {
+        const warningPath = activeWarningsPayload
+          .map((warning) => extractFilePathFromWarningMessage(warning.message))
+          .find(Boolean);
+        if (warningPath) nextPath = warningPath;
+      }
+
       if (repoFullName && nextPath) {
         const result = await githubService.getContents(repoFullName, nextPath, nextBranch);
         const fileData = Array.isArray(result) ? result[0] : result;
@@ -367,6 +414,28 @@ export function TaskDetailPanel({
       setAiSourceBranch(nextBranch);
       setAiSourcePath(nextPath);
       setAiSourceContent(nextContent);
+      setAiSourceLoading(false);
+      if (!nextPath) {
+        toast.error('No se detectó el archivo automáticamente. Indica la ruta manualmente en el modal.');
+      }
+    }
+  };
+
+  const handleLoadSourceFile = async () => {
+    if (!repoFullName || !aiSourcePath.trim()) {
+      toast.error('Indica la ruta del archivo para cargar el código actual.');
+      return;
+    }
+    setAiSourceLoading(true);
+    try {
+      const result = await githubService.getContents(repoFullName, aiSourcePath.trim(), aiSourceBranch || 'main');
+      const fileData = Array.isArray(result) ? result[0] : result;
+      const content = fileData.content ? atob(fileData.content.replace(/\n/g, '')) : '';
+      setAiSourceContent(content);
+      toast.success('Código actual cargado.');
+    } catch {
+      toast.error('No se pudo cargar ese archivo. Verifica ruta y branch.');
+    } finally {
       setAiSourceLoading(false);
     }
   };
@@ -387,7 +456,7 @@ export function TaskDetailPanel({
         repo: repoFullName,
         branch: aiSourceBranch || 'main',
         message: `feat: ai fix tarea #${task.id_task}`,
-        files: [{ path: aiSourcePath, content: unwrapCodeBlock(aiSuggestedContent) }],
+        files: [{ path: aiSourcePath, content: aiSuggestedContent }],
       });
       toast.success('Commit / push realizado con los cambios de IA.');
       setShowAiCodeModal(false);
@@ -1334,14 +1403,37 @@ export function TaskDetailPanel({
                 <button
                   type="button"
                   onClick={() => void handleSendWarningsToAi()}
-                  disabled={sendingToAi || aiSourceLoading || !aiModalPrompt.trim()}
+                  disabled={sendingToAi || aiSourceLoading || !aiModalPrompt.trim() || !aiSourcePath.trim() || !aiSourceContent.trim()}
                   className="h-8 px-3 bg-primary text-primary-foreground rounded-[4px] text-[11px] inline-flex items-center gap-1.5 disabled:opacity-50"
                 >
                   {sendingToAi ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
                   {sendingToAi ? 'En escucha...' : 'Mandar a IA'}
                 </button>
               </div>
-              <p className="text-[10px] text-muted-foreground">{aiSourcePath ? `${aiSourcePath} @ ${aiSourceBranch}` : 'No se detectó archivo del diff; se enviará contexto de warnings.'}</p>
+              <div className="grid grid-cols-1 lg:grid-cols-[1fr_120px_auto] gap-2 items-center">
+                <input
+                  type="text"
+                  value={aiSourcePath}
+                  onChange={(e) => setAiSourcePath(e.target.value)}
+                  placeholder="Ruta del archivo (ej. app.py)"
+                  className="h-8 rounded-[4px] border border-border bg-card px-2.5 text-[11px]"
+                />
+                <input
+                  type="text"
+                  value={aiSourceBranch}
+                  onChange={(e) => setAiSourceBranch(e.target.value)}
+                  placeholder="branch"
+                  className="h-8 rounded-[4px] border border-border bg-card px-2.5 text-[11px]"
+                />
+                <button
+                  type="button"
+                  onClick={() => void handleLoadSourceFile()}
+                  disabled={aiSourceLoading || !aiSourcePath.trim()}
+                  className="h-8 px-3 border border-border rounded-[4px] text-[11px] hover:bg-accent disabled:opacity-50"
+                >
+                  {aiSourceLoading ? 'Cargando...' : 'Cargar código actual'}
+                </button>
+              </div>
             </div>
 
             <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-2">
@@ -1364,11 +1456,11 @@ export function TaskDetailPanel({
             </div>
 
             <div className="px-4 py-3 border-t border-border flex items-center justify-between gap-2">
-              <p className="text-[10px] text-muted-foreground">Si te gusta la propuesta, confirma commit/push desde aquí.</p>
+              <p className="text-[10px] text-muted-foreground">Si te gusta la propuesta, confirma commit/push. Solo se permite cuando la IA devuelve código aplicable.</p>
               <button
                 type="button"
                 onClick={() => void handleCommitAiFix()}
-                disabled={committingAiFix || !aiSuggestedContent.trim() || !aiSourcePath}
+                disabled={committingAiFix || !aiSuggestedContent.trim() || !aiSourcePath || aiSuggestedContent === aiSourceContent}
                 className="h-8 px-3 bg-primary text-primary-foreground rounded-[4px] text-[11px] inline-flex items-center gap-1.5 disabled:opacity-50"
               >
                 {committingAiFix ? <Loader2 className="w-3 h-3 animate-spin" /> : <GitCommit className="w-3 h-3" />}
