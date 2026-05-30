@@ -73,7 +73,7 @@ export default function Alerts() {
 
   const handleDeleteWarning = async (warningId: number, projectId: number | null) => {
     if (!canDeleteWarningInProject(projectId)) {
-      toast.error('Solo PM y PO pueden eliminar alertas de tareas en este proyecto.');
+      toast.error('Only PM and PO can delete task alerts in this project.');
       return;
     }
 
@@ -84,9 +84,9 @@ export default function Alerts() {
       setDeletedIds((prev) => new Set([...prev, warningId]));
       if (selectedWarning === warningId) setSelectedWarning(null);
       setSelectedIds((prev) => { const n = new Set(prev); n.delete(warningId); return n; });
-      toast.success('Alerta eliminada.');
+      toast.success('Alert deleted.');
     } catch {
-      toast.error('No se pudo eliminar la alerta.');
+      toast.error('Could not delete alert.');
     } finally {
       setDeletingWarningId(null);
     }
@@ -101,9 +101,9 @@ export default function Alerts() {
       setDeletedIds((prev) => new Set([...prev, ...ids]));
       setSelectedIds(new Set());
       if (selectedWarning != null && ids.includes(selectedWarning)) setSelectedWarning(null);
-      toast.success(`${ids.length} alerta${ids.length > 1 ? 's' : ''} eliminada${ids.length > 1 ? 's' : ''}.`);
+      toast.success(`${ids.length} alert${ids.length > 1 ? 's' : ''} deleted.`);
     } catch {
-      toast.error('No se pudieron eliminar algunas alertas.');
+      toast.error('Could not delete some alerts.');
     } finally {
       setBulkDeleting(false);
     }
@@ -139,11 +139,11 @@ export default function Alerts() {
   const relativeTime = (iso: string) => {
     const diff = Date.now() - new Date(iso).getTime();
     const mins = Math.floor(diff / 60000);
-    if (mins < 60) return `hace ${mins}m`;
+    if (mins < 60) return `${mins}m ago`;
     const hours = Math.floor(mins / 60);
-    if (hours < 24) return `hace ${hours}h`;
+    if (hours < 24) return `${hours}h ago`;
     const days = Math.floor(hours / 24);
-    return `hace ${days}d`;
+    return `${days}d ago`;
   };
 
   // Date grouping
@@ -153,10 +153,10 @@ export default function Alerts() {
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const yesterday = new Date(today.getTime() - 86_400_000);
     const weekAgo = new Date(today.getTime() - 7 * 86_400_000);
-    if (d >= today) return 'Hoy';
-    if (d >= yesterday) return 'Ayer';
-    if (d >= weekAgo) return 'Esta semana';
-    return 'Anterior';
+    if (d >= today) return 'Today';
+    if (d >= yesterday) return 'Yesterday';
+    if (d >= weekAgo) return 'This week';
+    return 'Earlier';
   };
 
   const groupedWarnings = useMemo(() => {
@@ -174,7 +174,7 @@ export default function Alerts() {
     return (
       <div className="flex items-center justify-center h-full gap-2 text-muted-foreground">
         <Loader2 className="w-5 h-5 animate-spin" />
-        <span className="text-[13px]">Cargando alertas…</span>
+        <span className="text-[13px]">Loading alerts…</span>
       </div>
     );
   }
@@ -183,25 +183,25 @@ export default function Alerts() {
     <div className="flex flex-col h-full">
       <CommandBar
         actions={[
-          { label: 'Refrescar', icon: <RefreshCw className="w-3.5 h-3.5" />, onClick: () => { setDeletedIds(new Set()); refetch(); } },
+          { label: 'Refresh', icon: <RefreshCw className="w-3.5 h-3.5" />, onClick: () => { setDeletedIds(new Set()); refetch(); } },
           ...(selectedIds.size > 0 ? [{
-            label: bulkDeleting ? 'Eliminando…' : `Eliminar ${selectedIds.size} seleccionada${selectedIds.size > 1 ? 's' : ''}`,
+            label: bulkDeleting ? 'Deleting…' : `Delete ${selectedIds.size} selected`,
             icon: bulkDeleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />,
             onClick: () => void handleBulkDelete(),
             variant: 'destructive' as const,
           }] : []),
         ]}
         filters={[
-          { label: 'Todos', active: severity === 'all', count: counts.total, onClick: () => setSeverity('all') },
-          { label: 'Activos', active: severity === 'active', count: counts.active, onClick: () => setSeverity('active') },
-          { label: 'Resueltos', active: severity === 'resolved', count: counts.resolved, onClick: () => setSeverity('resolved') },
+          { label: 'All', active: severity === 'all', count: counts.total, onClick: () => setSeverity('all') },
+          { label: 'Active', active: severity === 'active', count: counts.active, onClick: () => setSeverity('active') },
+          { label: 'Resolved', active: severity === 'resolved', count: counts.resolved, onClick: () => setSeverity('resolved') },
         ]}
         rightSlot={
           <div className="relative">
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Buscar alertas…"
+              placeholder="Search alerts…"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="h-7 pl-7 pr-2 text-[12px] bg-card border border-border rounded-[4px] text-foreground placeholder:text-muted-foreground w-48 focus:outline-none focus:ring-1 focus:ring-primary"
@@ -216,12 +216,12 @@ export default function Alerts() {
           <div className="flex items-center gap-1.5">
             <AlertTriangle className="w-3.5 h-3.5 text-warning" />
             <span className="text-[12px] font-medium text-foreground">{counts.active}</span>
-            <span className="text-[11px] text-muted-foreground">activos</span>
+            <span className="text-[11px] text-muted-foreground">active</span>
           </div>
           <div className="flex items-center gap-1.5">
             <CheckCircle2 className="w-3.5 h-3.5 text-success" />
             <span className="text-[12px] font-medium text-foreground">{counts.resolved}</span>
-            <span className="text-[11px] text-muted-foreground">resueltos</span>
+            <span className="text-[11px] text-muted-foreground">resolved</span>
           </div>
           <div className="flex items-center gap-1.5">
             <Clock className="w-3.5 h-3.5 text-muted-foreground" />
@@ -235,7 +235,7 @@ export default function Alerts() {
           <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
             <AlertTriangle className="w-8 h-8 mb-2 opacity-40" />
             <span className="text-[13px]">
-              {searchQuery ? 'Sin resultados para la búsqueda' : 'No hay alertas'}
+              {searchQuery ? 'No results for search' : 'No alerts'}
             </span>
           </div>
         ) : (
@@ -290,7 +290,7 @@ export default function Alerts() {
                       <span className="text-[12px] font-medium text-foreground">{w.message}</span>
                         <StatusBadge
                           status={isActive ? 'warning' : 'success'}
-                          text={isActive ? 'Activo' : 'Resuelto'}
+                          text={isActive ? 'Active' : 'Resolved'}
                           size="sm"
                         />
                       </div>
@@ -298,13 +298,13 @@ export default function Alerts() {
                         {taskInfo && (
                           <span className="flex items-center gap-1 truncate max-w-[200px]">
                             <ExternalLink className="w-3 h-3 shrink-0" />
-                            Tarea: {taskInfo.title}
+                            Task: {taskInfo.title}
                           </span>
                         )}
                         <span>{relativeTime(w.created_at)}</span>
                         {w.resolved_at && (
                           <span className="text-success">
-                            Resuelto {relativeTime(w.resolved_at)}
+                            Resolved {relativeTime(w.resolved_at)}
                           </span>
                         )}
                       </div>
@@ -312,16 +312,16 @@ export default function Alerts() {
                       {isSelected && (
                         <div className="mt-2 p-3 bg-card border border-border rounded-[4px] text-[11px] space-y-1">
                           <div><span className="text-muted-foreground">ID:</span> {w.id_warning}</div>
-                          <div><span className="text-muted-foreground">Tarea ID:</span> {w.task}</div>
-                          <div><span className="text-muted-foreground">Creado:</span> {new Date(w.created_at).toLocaleString('es-ES')}</div>
+                          <div><span className="text-muted-foreground">Task ID:</span> {w.task}</div>
+                          <div><span className="text-muted-foreground">Created:</span> {new Date(w.created_at).toLocaleString('en-US')}</div>
                           {w.resolved_at && (
-                            <div><span className="text-muted-foreground">Resuelto:</span> {new Date(w.resolved_at).toLocaleString('es-ES')}</div>
+                            <div><span className="text-muted-foreground">Resolved:</span> {new Date(w.resolved_at).toLocaleString('en-US')}</div>
                           )}
                           {w.resolved_in_push && (
-                            <div><span className="text-muted-foreground">Push de resolución:</span> #{w.resolved_in_push}</div>
+                            <div><span className="text-muted-foreground">Resolution push:</span> #{w.resolved_in_push}</div>
                           )}
                           {!canDeleteWarning && (
-                            <div className="text-muted-foreground">Solo PM y PO del proyecto pueden eliminar esta alerta.</div>
+                            <div className="text-muted-foreground">Only PM and PO of the project can delete this alert.</div>
                           )}
                         </div>
                       )}
@@ -331,7 +331,7 @@ export default function Alerts() {
                   {canDeleteWarning && (
                     <button
                       type="button"
-                      title="Eliminar alerta"
+                      title="Delete alert"
                       onClick={(e) => {
                         e.stopPropagation();
                         void handleDeleteWarning(w.id_warning, taskInfo?.project ?? null);
@@ -340,7 +340,7 @@ export default function Alerts() {
                       className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 h-7 px-2 rounded-[4px] border border-destructive/30 bg-destructive/10 text-destructive text-[10px] inline-flex items-center gap-1.5 transition-opacity disabled:opacity-50"
                     >
                       {isDeleting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
-                      Eliminar
+                      Delete
                     </button>
                   )}
                 </div>

@@ -75,11 +75,11 @@ const NAV_ITEMS: Array<{
 ];
 
 const DEMO_PROYECTOS = [
-  { id: 1, nombre: 'E-Commerce Redesign',   estado: 'En progreso', progreso: 72, dias: '12d', tareas: '8 de 11', fecha: '7 jun 2026'  },
-  { id: 2, nombre: 'Mobile App v2',          estado: 'En progreso', progreso: 45, dias: '8d',  tareas: '4 de 9',  fecha: '3 jun 2026'  },
-  { id: 3, nombre: 'API Gateway Migration',  estado: 'Planeación',  progreso: 20, dias: '21d', tareas: '2 de 10', fecha: '16 jun 2026' },
-  { id: 4, nombre: 'Admin Dashboard',        estado: 'Planeación',  progreso: 0,  dias: '30d', tareas: '0 de 6',  fecha: '25 jun 2026' },
-  { id: 5, nombre: 'Analytics Platform',     estado: 'En progreso', progreso: 88, dias: '4d',  tareas: '7 de 8',  fecha: '30 may 2026' },
+  { id: 1, nombre: 'E-Commerce Redesign',   estado: 'In Progress', progreso: 72, dias: '12d', tareas: '8 of 11', fecha: '7 Jun 2026'  },
+  { id: 2, nombre: 'Mobile App v2',          estado: 'In Progress', progreso: 45, dias: '8d',  tareas: '4 of 9',  fecha: '3 Jun 2026'  },
+  { id: 3, nombre: 'API Gateway Migration',  estado: 'Planning',     progreso: 20, dias: '21d', tareas: '2 of 10', fecha: '16 Jun 2026' },
+  { id: 4, nombre: 'Admin Dashboard',        estado: 'Planning',     progreso: 0,  dias: '30d', tareas: '0 of 6',  fecha: '25 Jun 2026' },
+  { id: 5, nombre: 'Analytics Platform',     estado: 'In Progress', progreso: 88, dias: '4d',  tareas: '7 of 8',  fecha: '30 May 2026' },
 ];
 
 const DEMO_ALERTAS = [
@@ -87,50 +87,50 @@ const DEMO_ALERTAS = [
     id: 1, tipo: 'warning', activo: true,
     titulo: 'Deprecated dependency detected in package.json',
     tarea: 'Project scaffolding review',
-    tiempo: 'hace 1d',
-    etiqueta: 'Activo',
+    tiempo: '1d ago',
+    etiqueta: 'Active',
   },
   {
     id: 2, tipo: 'danger', activo: true,
     titulo: 'Critical: API endpoint exposed without authentication',
     tarea: 'API Gateway setup task',
-    tiempo: 'hace 5h',
-    etiqueta: 'Activo',
+    tiempo: '5h ago',
+    etiqueta: 'Active',
   },
   {
     id: 3, tipo: 'danger', activo: true,
     titulo: 'Critical: Missing input validation on checkout form',
     tarea: 'Build checkout flow',
-    tiempo: 'hace 2h',
-    etiqueta: 'Activo',
+    tiempo: '2h ago',
+    etiqueta: 'Active',
   },
   {
     id: 4, tipo: 'warning', activo: false,
     titulo: 'Unused environment variable in production config',
     tarea: 'Deploy staging environment',
-    tiempo: 'hace 3d',
-    etiqueta: 'Resuelto',
+    tiempo: '3d ago',
+    etiqueta: 'Resolved',
   },
   {
     id: 5, tipo: 'warning', activo: false,
     titulo: 'High memory usage detected in background worker',
     tarea: 'Performance optimization sprint',
-    tiempo: 'hace 5d',
-    etiqueta: 'Resuelto',
+    tiempo: '5d ago',
+    etiqueta: 'Resolved',
   },
 ];
 
 const PROXIMAS_VENCER = [
-  { id: 1, titulo: 'Implement payment gateway',   proyecto: 'E-Commerce Redesign',  tag: 'mañana' },
-  { id: 2, titulo: 'Auth flow unit tests',         proyecto: 'Mobile App v2',         tag: 'en 4d'  },
-  { id: 3, titulo: 'Load balancer configuration',  proyecto: 'API Gateway Migration', tag: 'en 4d'  },
-  { id: 4, titulo: 'User role permissions UI',     proyecto: 'Admin Dashboard',       tag: 'en 6d'  },
+  { id: 1, titulo: 'Implement payment gateway',   proyecto: 'E-Commerce Redesign',  tag: 'tomorrow' },
+  { id: 2, titulo: 'Auth flow unit tests',         proyecto: 'Mobile App v2',         tag: 'in 4d'     },
+  { id: 3, titulo: 'Load balancer configuration',  proyecto: 'API Gateway Migration', tag: 'in 4d'     },
+  { id: 4, titulo: 'User role permissions UI',     proyecto: 'Admin Dashboard',       tag: 'in 6d'     },
 ];
 
 const TAG_COLOR: Record<string, string> = {
-  'mañana': 'bg-warning/15 text-warning',
-  'en 4d': 'bg-primary/15 text-primary',
-  'en 6d': 'bg-info/15 text-info',
+  'tomorrow': 'bg-warning/15 text-warning',
+  'in 4d': 'bg-primary/15 text-primary',
+  'in 6d': 'bg-info/15 text-info',
 };
 
 const ALERT_DOT: Record<string, string> = {
@@ -152,12 +152,12 @@ const VIEW_LABEL: Record<DemoView, string> = {
 
 function DashboardView({ onNavigate }: { onNavigate: (v: DemoView) => void }) {
   const kpis = [
-    { label: 'PROYECTOS',   value: '5',  sub: 'activos',           tone: 'primary' },
-    { label: 'TAREAS',      value: '34', sub: 'en tus proyectos',  tone: 'info'    },
-    { label: 'COMPLETADAS', value: '21', sub: 'tareas terminadas',  tone: 'success' },
-    { label: 'PENDIENTES',  value: '13', sub: 'tareas abiertas',   tone: 'warning' },
-    { label: 'VENCIDAS',    value: '3',  sub: 'requieren atención', tone: 'muted'   },
-    { label: 'WARNINGS',    value: '2',  sub: 'alertas activas',   tone: 'danger'  },
+    { label: 'PROJECTS',    value: '5',  sub: 'active',            tone: 'primary' },
+    { label: 'TASKS',       value: '34', sub: 'in your projects',  tone: 'info'    },
+    { label: 'COMPLETED',   value: '21', sub: 'tasks finished',    tone: 'success' },
+    { label: 'PENDING',     value: '13', sub: 'open tasks',        tone: 'warning' },
+    { label: 'OVERDUE',     value: '3',  sub: 'need attention',    tone: 'muted'   },
+    { label: 'WARNINGS',    value: '2',  sub: 'active alerts',     tone: 'danger'  },
   ];
   const toneClass: Record<string, string> = {
     primary: 'text-primary',
@@ -170,11 +170,11 @@ function DashboardView({ onNavigate }: { onNavigate: (v: DemoView) => void }) {
 
   return (
     <div className="p-2.5 space-y-2 overflow-y-auto h-full">
-      {/* Hola */}
+      {/* Greeting */}
       <div className="flex items-center justify-between">
-        <span className="text-[9px] text-muted-foreground">Hola, <span className="font-semibold text-foreground">Alex</span></span>
+        <span className="text-[9px] text-muted-foreground">Hi, <span className="font-semibold text-foreground">Alex</span></span>
         <button className="text-[8px] flex items-center gap-1 px-2 py-0.5 rounded-[3px] border border-border text-muted-foreground">
-          ↻ Actualizar
+          ↻ Refresh
         </button>
       </div>
 
@@ -191,9 +191,9 @@ function DashboardView({ onNavigate }: { onNavigate: (v: DemoView) => void }) {
 
       {/* Salud + Próximas */}
       <div className="grid grid-cols-2 gap-1.5">
-        {/* Salud del Portafolio */}
+        {/* Portfolio Health */}
         <div className="rounded-[3px] border border-border bg-background p-2">
-          <div className="text-[8px] font-semibold text-foreground mb-1.5">Salud del Portafolio</div>
+          <div className="text-[8px] font-semibold text-foreground mb-1.5">Portfolio Health</div>
           <div className="flex items-center justify-center py-1">
             <div className="relative w-16 h-16">
               <svg viewBox="0 0 36 36" className="w-16 h-16 -rotate-90">
@@ -232,10 +232,10 @@ function DashboardView({ onNavigate }: { onNavigate: (v: DemoView) => void }) {
           </div>
         </div>
 
-        {/* Próximas a vencer */}
+        {/* Upcoming due */}
         <div className="rounded-[3px] border border-border bg-background p-2 flex flex-col">
           <div className="flex items-center justify-between mb-1">
-            <div className="text-[8px] font-semibold text-foreground">Próximas a Vencer</div>
+            <div className="text-[8px] font-semibold text-foreground">Upcoming Due</div>
             <span className="text-[7px] text-muted-foreground">7 en 7 días</span>
           </div>
           <div className="space-y-1 flex-1 overflow-hidden">
@@ -253,12 +253,12 @@ function DashboardView({ onNavigate }: { onNavigate: (v: DemoView) => void }) {
         </div>
       </div>
 
-      {/* Mis proyectos */}
+      {/* My projects */}
       <div className="rounded-[3px] border border-border bg-background p-2">
         <div className="flex items-center justify-between mb-1.5">
-          <div className="text-[8px] font-semibold text-foreground">Mis Proyectos</div>
+          <div className="text-[8px] font-semibold text-foreground">My Projects</div>
           <button onClick={() => onNavigate('proyectos')} className="text-[7px] text-primary hover:underline flex items-center gap-0.5">
-            Ver todos <ChevronRight className="w-2 h-2" />
+            View all <ChevronRight className="w-2 h-2" />
           </button>
         </div>
         <div className="grid grid-cols-2 gap-1">
@@ -305,11 +305,11 @@ function ProyectosView() {
         <table className="w-full text-[9px]">
           <thead>
             <tr className="border-b border-border bg-surface-secondary/30">
-              <th className="text-left px-3 py-1.5 text-muted-foreground font-medium">PROYECTO</th>
-              <th className="text-left px-2 py-1.5 text-muted-foreground font-medium">ESTADO</th>
-              <th className="text-right px-2 py-1.5 text-muted-foreground font-medium">SALUD</th>
-              <th className="text-right px-2 py-1.5 text-muted-foreground font-medium">FECHA FIN</th>
-              <th className="text-right px-3 py-1.5 text-muted-foreground font-medium">TIEMPO REST.</th>
+              <th className="text-left px-3 py-1.5 text-muted-foreground font-medium">PROJECT</th>
+              <th className="text-left px-2 py-1.5 text-muted-foreground font-medium">STATUS</th>
+              <th className="text-right px-2 py-1.5 text-muted-foreground font-medium">HEALTH</th>
+              <th className="text-right px-2 py-1.5 text-muted-foreground font-medium">END DATE</th>
+              <th className="text-right px-3 py-1.5 text-muted-foreground font-medium">TIME LEFT</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border/50">
@@ -362,18 +362,18 @@ function ReportesView() {
       {/* Cabecera salud */}
       <div className="rounded-[3px] border border-warning/30 bg-warning/5 p-2.5">
         <div className="flex items-center justify-between mb-1">
-          <span className="text-[7px] px-1.5 py-0.5 rounded-[3px] bg-warning/15 text-warning font-semibold uppercase tracking-wider">Requiere Atención</span>
+          <span className="text-[7px] px-1.5 py-0.5 rounded-[3px] bg-warning/15 text-warning font-semibold uppercase tracking-wider">Requires Attention</span>
           <span className="text-[8px] text-muted-foreground">5 proyectos</span>
         </div>
-        <div className="text-[22px] font-bold text-foreground leading-none mb-1">48% <span className="text-[9px] font-normal text-muted-foreground">SALUD DEL PORTAFOLIO</span></div>
+        <div className="text-[22px] font-bold text-foreground leading-none mb-1">48% <span className="text-[9px] font-normal text-muted-foreground">PORTFOLIO HEALTH</span></div>
         <div className="space-y-0.5">
           <div className="flex items-center gap-1 text-[8px] text-muted-foreground">
             <TrendingDown className="w-2.5 h-2.5 text-destructive shrink-0" />
-            Velocidad −18% vs periodo anterior
+            Velocity −18% vs previous period
           </div>
           <div className="flex items-center gap-1 text-[8px] text-muted-foreground">
             <TrendingDown className="w-2.5 h-2.5 text-warning shrink-0" />
-            Tasa de completado 62% bajo la meta de 80%
+            Completion rate 62% below 80% target
           </div>
           <div className="flex items-center gap-1 text-[8px] text-muted-foreground">
             <AlertTriangle className="w-2.5 h-2.5 text-warning shrink-0" />
@@ -404,7 +404,7 @@ function ReportesView() {
       {/* Tendencia + Atención */}
       <div className="grid grid-cols-2 gap-1.5">
         <div className="rounded-[3px] border border-border bg-background p-2">
-          <div className="text-[8px] text-muted-foreground uppercase tracking-wider mb-0.5">Tendencia · 2 Semanas</div>
+          <div className="text-[8px] text-muted-foreground uppercase tracking-wider mb-0.5">Trend · 2 Weeks</div>
           <div className="text-[9px] font-semibold text-foreground mb-1.5">Tareas completadas por semana</div>
           {/* Sparkline */}
           <svg viewBox="0 0 120 50" className="w-full h-14">
@@ -434,7 +434,7 @@ function ReportesView() {
           </svg>
         </div>
         <div className="rounded-[3px] border border-border bg-background p-2">
-          <div className="text-[8px] font-semibold text-foreground mb-1.5">Atención Prioritaria</div>
+          <div className="text-[8px] font-semibold text-foreground mb-1.5">Priority Attention</div>
           <div className="space-y-1 overflow-hidden">
             {attProyectos.map((p) => (
               <div key={p.nombre} className="flex items-center gap-1">
@@ -459,10 +459,10 @@ function AlertasView() {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-card/60 shrink-0">
-        <button className="text-[8px] flex items-center gap-1 px-2 py-0.5 rounded-[3px] border border-border text-muted-foreground">↻ Refrescar</button>
-        <span className="text-[8px] px-2 py-0.5 rounded-full bg-primary/15 text-primary font-medium">Todos 5</span>
-        <span className="text-[8px] px-2 py-0.5 rounded-full border border-border text-muted-foreground">Activos 3</span>
-        <span className="text-[8px] px-2 py-0.5 rounded-full border border-border text-muted-foreground">Resueltos 2</span>
+        <button className="text-[8px] flex items-center gap-1 px-2 py-0.5 rounded-[3px] border border-border text-muted-foreground">↻ Refresh</button>
+        <span className="text-[8px] px-2 py-0.5 rounded-full bg-primary/15 text-primary font-medium">All 5</span>
+        <span className="text-[8px] px-2 py-0.5 rounded-full border border-border text-muted-foreground">Active 3</span>
+        <span className="text-[8px] px-2 py-0.5 rounded-full border border-border text-muted-foreground">Resolved 2</span>
       </div>
       <div className="flex items-center gap-4 px-3 py-1.5 border-b border-border/50 bg-background/30 shrink-0 text-[8px] text-muted-foreground">
         <span className="text-warning font-medium">▲ 3 activos</span>
@@ -471,7 +471,7 @@ function AlertasView() {
       </div>
       <div className="flex-1 overflow-y-auto">
         <div className="px-3 py-1.5 border-b border-border/30 bg-surface-secondary/20">
-          <span className="text-[8px] text-muted-foreground font-medium uppercase tracking-wider">Ayer</span>
+          <span className="text-[8px] text-muted-foreground font-medium uppercase tracking-wider">Yesterday</span>
         </div>
         <div className="divide-y divide-border/50">
           {DEMO_ALERTAS.filter(a => a.activo).map((a) => (
@@ -489,7 +489,7 @@ function AlertasView() {
           ))}
         </div>
         <div className="px-3 py-1.5 border-b border-border/30 border-t border-t-border/50 bg-surface-secondary/20 mt-1">
-          <span className="text-[8px] text-muted-foreground font-medium uppercase tracking-wider">Esta Semana</span>
+          <span className="text-[8px] text-muted-foreground font-medium uppercase tracking-wider">This Week</span>
         </div>
         <div className="divide-y divide-border/50">
           {DEMO_ALERTAS.filter(a => !a.activo).map((a) => (
@@ -516,14 +516,14 @@ function AlertasView() {
 function PerfilView() {
   return (
     <div className="flex flex-col h-full overflow-y-auto p-2.5 space-y-2">
-      <div className="text-[11px] font-semibold text-foreground">Mi Perfil</div>
+      <div className="text-[11px] font-semibold text-foreground">My Profile</div>
 
       <div className="grid grid-cols-2 gap-2">
         {/* Info personal */}
         <div className="rounded-[3px] border border-border bg-background p-2.5 space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-[9px] font-semibold text-foreground">Información Personal</span>
-            <button className="text-[7px] px-1.5 py-0.5 rounded-[3px] bg-primary text-primary-foreground">Editar</button>
+            <span className="text-[9px] font-semibold text-foreground">Personal Info</span>
+            <button className="text-[7px] px-1.5 py-0.5 rounded-[3px] bg-primary text-primary-foreground">Edit</button>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
@@ -536,9 +536,9 @@ function PerfilView() {
           </div>
           <div className="space-y-1">
             {[
-              { icon: User, label: 'Nombre',  val: 'Alex García' },
-              { icon: Activity, label: 'Correo', val: 'alex.garcia@techco.io' },
-              { icon: CheckCircle2, label: 'Rol', val: 'Tech Lead' },
+              { icon: User, label: 'Name',  val: 'Alex García' },
+              { icon: Activity, label: 'Email', val: 'alex.garcia@techco.io' },
+              { icon: CheckCircle2, label: 'Role', val: 'Tech Lead' },
             ].map(({ icon: Icon, label, val }) => (
               <div key={label}>
                 <div className="flex items-center gap-1 text-[7px] text-muted-foreground mb-0.5">
@@ -553,7 +553,7 @@ function PerfilView() {
         {/* Preferencias + integraciones */}
         <div className="space-y-2">
           <div className="rounded-[3px] border border-border bg-background p-2">
-            <div className="text-[9px] font-semibold text-foreground mb-1.5">Preferencias</div>
+            <div className="text-[9px] font-semibold text-foreground mb-1.5">Preferences</div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
                 <Clock className="w-3 h-3 text-muted-foreground" />
@@ -571,11 +571,11 @@ function PerfilView() {
               <div className="flex items-center gap-1.5">
                 <Github className="w-3 h-3 text-foreground" />
                 <div>
-                  <p className="text-[8px] text-success font-medium">● Ya estás conectado</p>
+                  <p className="text-[8px] text-success font-medium">● Connected</p>
                   <p className="text-[7px] text-muted-foreground">alexdev2024</p>
                 </div>
               </div>
-              <button className="text-[7px] px-1.5 py-0.5 rounded-[3px] border border-destructive/40 text-destructive">Desconectar</button>
+              <button className="text-[7px] px-1.5 py-0.5 rounded-[3px] border border-destructive/40 text-destructive">Disconnect</button>
             </div>
           </div>
 
@@ -584,9 +584,9 @@ function PerfilView() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
                 <Cloud className="w-3 h-3 text-muted-foreground" />
-                <span className="text-[8px] text-muted-foreground">Conectar Azure</span>
+                <span className="text-[8px] text-muted-foreground">Connect Azure</span>
               </div>
-              <button className="text-[7px] px-1.5 py-0.5 rounded-[3px] bg-primary text-primary-foreground">Acceder</button>
+              <button className="text-[7px] px-1.5 py-0.5 rounded-[3px] bg-primary text-primary-foreground">Sign in</button>
             </div>
           </div>
         </div>
@@ -594,14 +594,14 @@ function PerfilView() {
 
       {/* Mis proyectos table */}
       <div className="rounded-[3px] border border-border bg-background p-2">
-        <div className="text-[9px] font-semibold text-foreground mb-1.5">Mis Proyectos</div>
+        <div className="text-[9px] font-semibold text-foreground mb-1.5">My Projects</div>
         <table className="w-full text-[8px]">
           <thead>
             <tr className="border-b border-border/50">
-              <th className="text-left pb-1 text-muted-foreground font-medium">PROYECTO</th>
-              <th className="text-left pb-1 text-muted-foreground font-medium">ESTADO</th>
-              <th className="text-right pb-1 text-muted-foreground font-medium">FECHA FIN</th>
-              <th className="text-right pb-1 text-muted-foreground font-medium">DÍAS REST.</th>
+              <th className="text-left pb-1 text-muted-foreground font-medium">PROJECT</th>
+              <th className="text-left pb-1 text-muted-foreground font-medium">STATUS</th>
+              <th className="text-right pb-1 text-muted-foreground font-medium">END DATE</th>
+              <th className="text-right pb-1 text-muted-foreground font-medium">DAYS LEFT</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border/30">
@@ -641,7 +641,7 @@ export function DashboardShowcase() {
         >
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-[3px] border border-primary/20 bg-primary/10 text-primary text-[11px] font-medium">
             <Sparkles className="w-3 h-3" />
-            Demo interactiva — explore the platform
+            Interactive Demo — explore the platform
           </div>
 
           <h2 className="text-[2rem] md:text-[2.35rem] font-semibold text-foreground leading-[1.15] tracking-tight">
@@ -860,18 +860,18 @@ const PROJ_TIMELINE_ITEMS = [
 ];
 
 const PROJ_SPRINT = [
-  { id:1,  titulo:'Implement payment gateway', estado:'En progreso', av:'AG', eColor:'text-warning' },
-  { id:4,  titulo:'Mobile responsive layout',  estado:'En revisión', av:'AL', eColor:'text-primary' },
-  { id:5,  titulo:'User checkout flow',        estado:'En progreso', av:'AG', eColor:'text-warning' },
-  { id:10, titulo:'Security audit',            estado:'En progreso', av:'AG', eColor:'text-warning' },
-  { id:9,  titulo:'Performance optimization',  estado:'Pendiente',   av:'—',  eColor:'text-muted-foreground' },
-  { id:11, titulo:'Developer documentation',   estado:'Pendiente',   av:'—',  eColor:'text-muted-foreground' },
+  { id:1,  titulo:'Implement payment gateway', estado:'In progress', av:'AG', eColor:'text-warning' },
+  { id:4,  titulo:'Mobile responsive layout',  estado:'In review',   av:'AL', eColor:'text-primary' },
+  { id:5,  titulo:'User checkout flow',        estado:'In progress', av:'AG', eColor:'text-warning' },
+  { id:10, titulo:'Security audit',            estado:'In progress', av:'AG', eColor:'text-warning' },
+  { id:9,  titulo:'Performance optimization',  estado:'Pending',     av:'—',  eColor:'text-muted-foreground' },
+  { id:11, titulo:'Developer documentation',   estado:'Pending',     av:'—',  eColor:'text-muted-foreground' },
 ];
 
 const PROJ_MILESTONES = [
-  { titulo:'Alpha Release',     fecha:'30 abr 2026', progreso:100, mColor:'text-success',          bColor:'bg-success' },
-  { titulo:'Beta Launch',       fecha:'25 may 2026', progreso:75,  mColor:'text-warning',          bColor:'bg-warning' },
-  { titulo:'Production Deploy', fecha:'7 jun 2026',  progreso:20,  mColor:'text-muted-foreground', bColor:'bg-primary/50' },
+  { titulo:'Alpha Release',     fecha:'30 Apr 2026', progreso:100, mColor:'text-success',          bColor:'bg-success' },
+  { titulo:'Beta Launch',       fecha:'25 May 2026', progreso:75,  mColor:'text-warning',          bColor:'bg-warning' },
+  { titulo:'Production Deploy', fecha:'7 Jun 2026',  progreso:20,  mColor:'text-muted-foreground', bColor:'bg-primary/50' },
 ];
 
 const PROJ_PRS = [
@@ -1003,8 +1003,8 @@ function ProjTimelineTab() {
           ))}
         </div>
         <div className="mt-2.5 flex justify-center gap-4 text-[7px] text-muted-foreground">
-          <span className="flex items-center gap-1"><span className="w-3 h-1.5 rounded-[1px] bg-primary/25 border border-primary/30 inline-block" />Planificado</span>
-          <span className="flex items-center gap-1"><span className="w-3 h-1.5 rounded-[1px] bg-primary/75 inline-block" />Completado</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-1.5 rounded-[1px] bg-primary/25 border border-primary/30 inline-block" />Planned</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-1.5 rounded-[1px] bg-primary/75 inline-block" />Completed</span>
         </div>
       </div>
     </div>
@@ -1017,9 +1017,9 @@ function ProjSprintsTab() {
       <div className="rounded-[3px] border border-primary/30 bg-primary/5 p-2.5">
         <div className="flex items-center justify-between mb-1">
           <span className="text-[9px] font-semibold text-foreground">Sprint 3</span>
-          <span className="text-[7px] px-1.5 py-0.5 rounded-full bg-primary/15 text-primary font-medium">Activo</span>
+          <span className="text-[7px] px-1.5 py-0.5 rounded-full bg-primary/15 text-primary font-medium">Active</span>
         </div>
-        <div className="text-[7px] text-muted-foreground mb-2">26 may – 9 jun 2026 · 6 tareas</div>
+        <div className="text-[7px] text-muted-foreground mb-2">26 May – 9 Jun 2026 · 6 tasks</div>
         <div className="space-y-0.5">
           {PROJ_SPRINT.map(t => (
             <div key={t.id} className="flex items-center justify-between py-1 border-b border-border/30 last:border-0">
@@ -1034,7 +1034,7 @@ function ProjSprintsTab() {
           ))}
         </div>
       </div>
-      <div className="text-[7px] text-center text-muted-foreground">Sprint 1 (cerrado · 100%) · Sprint 2 (cerrado · 100%)</div>
+      <div className="text-[7px] text-center text-muted-foreground">Sprint 1 (closed · 100%) · Sprint 2 (closed · 100%)</div>
     </div>
   );
 }
@@ -1249,7 +1249,7 @@ function ProjEquipoTab() {
         </div>
       ))}
       <div className="text-center pt-1">
-        <button className="text-[8px] text-primary hover:underline">+ Agregar miembro</button>
+        <button className="text-[8px] text-primary hover:underline">+ Add member</button>
       </div>
     </div>
   );

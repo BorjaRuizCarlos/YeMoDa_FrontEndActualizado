@@ -43,7 +43,7 @@ export default function Backlog() {
 
   const createTag = async () => {
     if (!selectedProjectId || !newTagName.trim()) {
-      toast.error('Selecciona un proyecto y escribe el nombre del tag.');
+      toast.error('Select a project and enter the tag name.');
       return;
     }
 
@@ -52,9 +52,9 @@ export default function Backlog() {
       setNewTagName('');
       setNewTag({ color: '#56697f' });
       refetchTags();
-      toast.success('Tag creado.');
+      toast.success('Tag created.');
     } catch {
-      toast.error('No se pudo crear el tag.');
+      toast.error('Could not create the tag.');
     }
   };
 
@@ -67,7 +67,7 @@ export default function Backlog() {
         <div className="flex items-center justify-between gap-4 px-4 py-3 border-b border-border">
           <div>
             <h1 className="text-[14px] font-semibold text-foreground">Product Backlog</h1>
-            <p className="text-[11px] text-muted-foreground mt-0.5">Tareas sin sprint asignado.</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Tasks without an assigned sprint.</p>
           </div>
 
           {/* Right: project selector + new tag form */}
@@ -80,7 +80,7 @@ export default function Backlog() {
               }}
               className="h-8 min-w-[180px] rounded-[3px] border border-border bg-surface-secondary px-2 text-[11px] text-foreground"
             >
-              <option value="">Todos los proyectos</option>
+              <option value="">All projects</option>
               {(projects ?? []).map((project) => (
                 <option key={project.id_project} value={project.id_project}>{project.name}</option>
               ))}
@@ -92,7 +92,7 @@ export default function Backlog() {
               value={newTagName}
               onChange={(e) => setNewTagName(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') void createTag(); }}
-              placeholder="Nuevo tag…"
+              placeholder="New tag…"
               className="h-8 w-32 rounded-[3px] border border-border bg-surface-secondary px-2 text-[11px] placeholder:text-muted-foreground/60 disabled:opacity-50"
               disabled={!selectedProjectId}
             />
@@ -105,7 +105,7 @@ export default function Backlog() {
               disabled={!selectedProjectId || !newTagName.trim()}
               className="h-8 px-2.5 rounded-[3px] border border-border bg-surface-secondary text-[11px] disabled:opacity-40 inline-flex items-center gap-1 hover:bg-accent transition-colors"
             >
-              <Plus className="w-3 h-3" /> Crear tag
+              <Plus className="w-3 h-3" /> Create tag
             </button>
           </div>
         </div>
@@ -113,7 +113,7 @@ export default function Backlog() {
         {/* Tag filter chips */}
         <div className="flex flex-wrap items-center gap-1.5 px-4 py-2.5 bg-surface-secondary/30 min-h-[40px]">
           {(tags ?? []).length === 0 ? (
-            <span className="text-[10px] text-muted-foreground italic">Sin tags — selecciona un proyecto para ver sus tags.</span>
+            <span className="text-[10px] text-muted-foreground italic">No tags — select a project to view its tags.</span>
           ) : (
             (tags ?? []).map((tag) => {
               const selected = selectedTagIds.includes(tag.id_tag);
@@ -146,17 +146,17 @@ export default function Backlog() {
         </div>
       ) : filteredTasks.length === 0 ? (
         <div className="rounded-[6px] border border-border bg-card py-16 text-center">
-          <p className="text-[12px] text-muted-foreground">No hay tareas en el backlog{selectedTagIds.length > 0 ? ' con esos tags' : ''}.</p>
+          <p className="text-[12px] text-muted-foreground">No tasks in the backlog{selectedTagIds.length > 0 ? ' matching those tags' : ''}.</p>
         </div>
       ) : (
         <div className="rounded-[6px] border border-border bg-card overflow-auto">
           <table className="w-full min-w-[880px] text-[11px]">
             <thead>
               <tr className="border-b border-border bg-surface-secondary/50">
-                <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Título</th>
-                <th className="text-left px-4 py-2.5 font-medium text-muted-foreground w-28">Prioridad</th>
+                <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Title</th>
+                <th className="text-left px-4 py-2.5 font-medium text-muted-foreground w-28">Priority</th>
                 <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Tags</th>
-                <th className="text-left px-4 py-2.5 font-medium text-muted-foreground w-40">Proyecto</th>
+                <th className="text-left px-4 py-2.5 font-medium text-muted-foreground w-40">Project</th>
               </tr>
             </thead>
             <tbody>

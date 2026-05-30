@@ -93,7 +93,7 @@ export default function Profile() {
     const trimmedName = formData.name.trim();
 
     if (!trimmedName) {
-      toast.error('El nickname es obligatorio');
+      toast.error('Nickname is required');
       return;
     }
 
@@ -104,9 +104,9 @@ export default function Profile() {
       });
       syncUser(updatedUser);
       setEditing(false);
-      toast.success('Perfil actualizado exitosamente');
+      toast.success('Profile updated successfully');
     } catch {
-      toast.error('Error al actualizar el perfil');
+      toast.error('Error updating profile');
     } finally {
       setSaving(false);
     }
@@ -116,17 +116,17 @@ export default function Profile() {
     if (!userId) return;
 
     if (!passwordData.password || !passwordData.confirmPassword) {
-      toast.error('Completa ambos campos de contraseña');
+      toast.error('Please fill both password fields');
       return;
     }
 
     if (passwordData.password.length < 8) {
-      toast.error('La contraseña debe tener al menos 8 caracteres');
+      toast.error('Password must be at least 8 characters');
       return;
     }
 
     if (passwordData.password !== passwordData.confirmPassword) {
-      toast.error('Las contraseñas no coinciden');
+      toast.error('Passwords do not match');
       return;
     }
 
@@ -135,9 +135,9 @@ export default function Profile() {
       await usersService.update(userId, { password: passwordData.password });
       setPasswordData({ password: '', confirmPassword: '' });
       setShowSecurityModal(false);
-      toast.success('Contraseña actualizada exitosamente');
+      toast.success('Password updated successfully');
     } catch {
-      toast.error('Error al actualizar la contraseña');
+      toast.error('Error updating password');
     } finally {
       setSecuritySaving(false);
     }
@@ -149,8 +149,8 @@ export default function Profile() {
 
   return (
     <div className="px-4 pb-6 pt-3 max-w-[1600px]">
-      <h1 className="text-[13px] font-semibold text-foreground mb-0.5">Mi Perfil</h1>
-      <p className="text-[11px] text-muted-foreground mb-4">Información y preferencias</p>
+      <h1 className="text-[13px] font-semibold text-foreground mb-0.5">My Profile</h1>
+      <p className="text-[11px] text-muted-foreground mb-4">Information and preferences</p>
 
       <div className="grid lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2 space-y-4">
@@ -158,14 +158,14 @@ export default function Profile() {
           {/* Basic Info */}
           <div className="bg-card border border-border border-l-[3px] border-l-primary rounded-[4px] p-4">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-[12px] font-semibold text-foreground">Información Personal</h2>
+              <h2 className="text-[12px] font-semibold text-foreground">Personal Information</h2>
               <div className="flex items-center gap-2">
                 {editing && (
                   <button
                     onClick={resetEditingState}
                     className="px-3 py-1.5 rounded-md text-xs font-medium bg-secondary hover:bg-accent text-foreground transition-colors"
                   >
-                    Cancelar
+                    Cancel
                   </button>
                 )}
                 <button
@@ -174,7 +174,7 @@ export default function Profile() {
                   className="px-3 py-1.5 rounded-md text-xs font-medium bg-primary hover:bg-primary-hover text-primary-foreground transition-colors disabled:opacity-50 inline-flex items-center gap-1.5"
                 >
                   {saving && <Loader2 className="w-3 h-3 animate-spin" />}
-                  {editing ? (saving ? 'Guardando…' : 'Guardar cambios') : 'Editar'}
+                  {editing ? (saving ? 'Saving…' : 'Save changes') : 'Edit'}
                 </button>
               </div>
             </div>
@@ -194,7 +194,7 @@ export default function Profile() {
             <div className="space-y-2.5">
               <div>
                 <label className="block text-[11px] font-medium text-foreground mb-1">
-                  <User className="w-3 h-3 inline mr-1" /> Nombre
+                  <User className="w-3 h-3 inline mr-1" /> Name
                 </label>
                 <input
                   type="text"
@@ -206,7 +206,7 @@ export default function Profile() {
               </div>
               <div>
                 <label className="block text-[11px] font-medium text-foreground mb-1">
-                  <Mail className="w-3 h-3 inline mr-1" /> Correo
+                  <Mail className="w-3 h-3 inline mr-1" /> Email
                 </label>
                 <input
                   type="email"
@@ -234,7 +234,7 @@ export default function Profile() {
             className="bg-card border border-border rounded-[4px] overflow-hidden"
           >
             <div className="px-4 py-3 border-b border-border">
-              <h2 className="text-[12px] font-semibold text-foreground">Mis Proyectos</h2>
+              <h2 className="text-[12px] font-semibold text-foreground">My Projects</h2>
             </div>
             {loadingProjects || loadingMemberRows ? (
               <div className="p-4 space-y-2">
@@ -242,7 +242,7 @@ export default function Profile() {
               </div>
             ) : profileProjects.length === 0 ? (
               <div className="py-12 text-center">
-                <p className="text-[11px] text-muted-foreground">No hay proyectos activos para mostrar.</p>
+                <p className="text-[11px] text-muted-foreground">No active projects to show.</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -255,10 +255,10 @@ export default function Profile() {
                   </colgroup>
                   <thead>
                     <tr className="border-b border-border bg-surface-secondary/50">
-                      <th className="text-left py-1.5 px-4 text-[10px] font-medium text-muted-foreground uppercase tracking-[0.06em]">Proyecto</th>
-                      <th className="text-left py-1.5 px-3 text-[10px] font-medium text-muted-foreground uppercase tracking-[0.06em]">Estado</th>
-                      <th className="text-left py-1.5 px-3 text-[10px] font-medium text-muted-foreground uppercase tracking-[0.06em]">Fecha Fin</th>
-                      <th className="text-left py-1.5 px-3 text-[10px] font-medium text-muted-foreground uppercase tracking-[0.06em]">Días rest.</th>
+                      <th className="text-left py-1.5 px-4 text-[10px] font-medium text-muted-foreground uppercase tracking-[0.06em]">Project</th>
+                      <th className="text-left py-1.5 px-3 text-[10px] font-medium text-muted-foreground uppercase tracking-[0.06em]">Status</th>
+                      <th className="text-left py-1.5 px-3 text-[10px] font-medium text-muted-foreground uppercase tracking-[0.06em]">End Date</th>
+                      <th className="text-left py-1.5 px-3 text-[10px] font-medium text-muted-foreground uppercase tracking-[0.06em]">Days left</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -296,7 +296,7 @@ export default function Profile() {
         {/* Sidebar */}
         <div className="space-y-4">
           <div className="bg-card border border-border rounded-[4px] p-4">
-            <h2 className="text-[12px] font-semibold text-foreground mb-2">Preferencias</h2>
+            <h2 className="text-[12px] font-semibold text-foreground mb-2">Preferences</h2>
             <button
               onClick={toggleTheme}
               className="w-full flex items-center justify-between p-2.5 border border-border rounded-[4px] hover:border-primary/30 transition-colors"
@@ -304,8 +304,8 @@ export default function Profile() {
               <div className="flex items-center gap-2">
                 {theme === 'dark' ? <Moon className="w-3.5 h-3.5" /> : <Sun className="w-3.5 h-3.5" />}
                 <div className="text-left">
-                  <p className="text-[12px] font-medium text-foreground">Tema</p>
-                  <p className="text-[10px] text-muted-foreground">{theme === 'dark' ? 'Oscuro' : 'Claro'}</p>
+                  <p className="text-[12px] font-medium text-foreground">Theme</p>
+                  <p className="text-[10px] text-muted-foreground">{theme === 'dark' ? 'Dark' : 'Light'}</p>
                 </div>
               </div>
               <div className={`w-9 h-5 rounded-full transition-colors flex items-center shadow-inner ${theme === 'dark' ? 'bg-primary' : 'bg-muted'}`}>
@@ -315,15 +315,15 @@ export default function Profile() {
           </div>
 
           <div className="bg-card border border-border rounded-[4px] p-4">
-            <h2 className="text-[12px] font-semibold text-foreground mb-2">Seguridad</h2>
+            <h2 className="text-[12px] font-semibold text-foreground mb-2">Security</h2>
             <div className="rounded-[4px] border border-border p-3 bg-surface-secondary/30">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-start gap-2">
                   <Lock className="w-3.5 h-3.5 text-muted-foreground mt-0.5" />
                   <div>
-                    <p className="text-[12px] font-medium text-foreground">Contraseña</p>
+                    <p className="text-[12px] font-medium text-foreground">Password</p>
                     <p className="text-[10px] text-muted-foreground">
-                      Gestiona tus credenciales desde una ventana independiente.
+                      Manage your credentials from a separate window.
                     </p>
                   </div>
                 </div>
@@ -333,7 +333,7 @@ export default function Profile() {
                   className="h-7 px-3 bg-primary hover:bg-primary-hover text-primary-foreground rounded-[3px] text-[11px] font-medium transition-colors inline-flex items-center gap-1.5"
                 >
                   <KeyRound className="w-3.5 h-3.5" />
-                  Cambiar
+                  Change
                 </button>
               </div>
             </div>
@@ -351,9 +351,9 @@ export default function Profile() {
                 <div className="flex items-start gap-2">
                   <Cloud className="w-3.5 h-3.5 text-muted-foreground mt-0.5" />
                   <div>
-                    <p className="text-[12px] font-medium text-foreground">Conectar Azure</p>
+                    <p className="text-[12px] font-medium text-foreground">Connect Azure</p>
                     <p className="text-[10px] text-muted-foreground">
-                      Accede a tu información de Microsoft Azure.
+                      Access your Microsoft Azure information.
                     </p>
                   </div>
                 </div>
@@ -363,34 +363,34 @@ export default function Profile() {
                   className="h-7 px-3 bg-primary hover:bg-primary-hover text-primary-foreground rounded-[3px] text-[11px] font-medium transition-colors inline-flex items-center gap-1.5 shrink-0"
                 >
                   <Cloud className="w-3.5 h-3.5" />
-                  Acceder
+                  Access
                 </button>
               </div>
             </div>
+          </div>
 
-            <div className="mt-3 pt-3 border-t border-border">
-              {isPremium ? (
-                <div className="flex items-center justify-between gap-3 rounded-[4px] border border-success/20 bg-success/10 px-3 py-2.5">
-                  <div className="flex items-start gap-2">
-                    <Crown className="w-3.5 h-3.5 text-success mt-0.5" />
-                    <div>
-                      <p className="text-[12px] font-medium text-foreground">Premium activo</p>
-                      <p className="text-[10px] text-muted-foreground">Tienes acceso habilitado a las features premium.</p>
-                    </div>
+          <div className="bg-card border border-border rounded-[4px] p-4">
+            {isPremium ? (
+              <div className="flex items-center justify-between gap-3 rounded-[4px] border border-success/20 bg-success/10 px-3 py-2.5">
+                <div className="flex items-start gap-2">
+                  <Crown className="w-3.5 h-3.5 text-success mt-0.5" />
+                  <div>
+                    <p className="text-[12px] font-medium text-foreground">Premium active</p>
+                    <p className="text-[10px] text-muted-foreground">You have access to premium features.</p>
                   </div>
-                  <StatusBadge status="success" text="Activo" size="sm" variant="pill" />
                 </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handlePremiumCheckout}
-                  className="w-full h-8 px-3 bg-secondary hover:bg-accent text-foreground rounded-[3px] text-[11px] font-medium transition-colors inline-flex items-center justify-center gap-1.5"
-                >
-                  <Crown className="w-3.5 h-3.5 text-primary" />
-                  Ver planes premium
-                </button>
-              )}
-            </div>
+                <StatusBadge status="success" text="Active" size="sm" variant="pill" />
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={handlePremiumCheckout}
+                className="w-full h-8 px-3 bg-secondary hover:bg-accent text-foreground rounded-[3px] text-[11px] font-medium transition-colors inline-flex items-center justify-center gap-1.5"
+              >
+                <Crown className="w-3.5 h-3.5 text-primary" />
+                View premium plans
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -398,34 +398,34 @@ export default function Profile() {
       {showSecurityModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-6">
           <div className="bg-card border border-border rounded-[4px] p-5 max-w-md w-full" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-4">
               <div>
-                <h2 className="text-[13px] font-semibold text-foreground">Actualizar contraseña</h2>
-                <p className="text-[11px] text-muted-foreground mt-0.5">Este cambio es independiente de la edición del perfil.</p>
+                <h2 className="text-[13px] font-semibold text-foreground">Update password</h2>
+                <p className="text-[11px] text-muted-foreground mt-0.5">This change is independent from profile edits.</p>
               </div>
               <button type="button" onClick={() => setShowSecurityModal(false)} className="inline-flex h-8 items-center justify-center rounded-[4px] border border-border bg-card px-3 text-[11px] font-medium text-foreground shadow-sm transition-colors hover:bg-surface-secondary">
-                <X className="mr-1 w-3.5 h-3.5" /> Cerrar
+                <X className="mr-1 w-3.5 h-3.5" /> Close
               </button>
             </div>
 
             <div className="space-y-3">
               <div>
-                <label className="block text-[11px] font-medium text-foreground mb-1">Nueva contraseña</label>
+                <label className="block text-[11px] font-medium text-foreground mb-1">New password</label>
                 <input
                   type="password"
                   value={passwordData.password}
                   onChange={(e) => setPasswordData((prev) => ({ ...prev, password: e.target.value }))}
-                  placeholder="Minimo 8 caracteres"
+                  placeholder="Minimum 8 characters"
                   className="w-full h-8 bg-surface-secondary border border-border rounded-[3px] px-2.5 text-[12px] text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-primary/20"
                 />
               </div>
               <div>
-                <label className="block text-[11px] font-medium text-foreground mb-1">Confirmar contraseña</label>
+                <label className="block text-[11px] font-medium text-foreground mb-1">Confirm password</label>
                 <input
                   type="password"
                   value={passwordData.confirmPassword}
                   onChange={(e) => setPasswordData((prev) => ({ ...prev, confirmPassword: e.target.value }))}
-                  placeholder="Repite la nueva contraseña"
+                  placeholder="Repeat new password"
                   className="w-full h-8 bg-surface-secondary border border-border rounded-[3px] px-2.5 text-[12px] text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-primary/20"
                 />
               </div>
@@ -439,7 +439,7 @@ export default function Profile() {
                   }}
                   className="flex-1 h-8 border border-border rounded-[3px] text-[11px] font-medium text-foreground hover:bg-surface-secondary transition-colors"
                 >
-                  Cancelar
+                  Cancel
                 </button>
                 <button
                   type="button"
@@ -448,7 +448,7 @@ export default function Profile() {
                   className="flex-1 h-8 bg-primary hover:bg-primary-hover text-primary-foreground rounded-[3px] text-[11px] font-medium transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
                 >
                   {securitySaving && <Loader2 className="w-3 h-3 animate-spin" />}
-                  {securitySaving ? 'Guardando…' : 'Guardar'}
+                  {securitySaving ? 'Saving…' : 'Save'}
                 </button>
               </div>
             </div>

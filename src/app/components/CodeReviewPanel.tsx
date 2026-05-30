@@ -143,7 +143,7 @@ export function CodeReviewPanel({ projectId, repoFullName }: CodeReviewPanelProp
     return (
       <div className="text-center py-16">
         <FileCode2 className="w-8 h-8 text-muted-foreground/30 mx-auto mb-3" />
-        <p className="text-[12px] text-muted-foreground">Sin repositorio vinculado a este proyecto.</p>
+        <p className="text-[12px] text-muted-foreground">No repository linked to this project.</p>
         <p className="text-[10px] text-muted-foreground/60 mt-1">Vincula un repositorio en la pestaÃ±a Repositorios.</p>
       </div>
     );

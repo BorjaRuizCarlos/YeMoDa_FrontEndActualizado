@@ -18,27 +18,27 @@ type PlanCard = {
 const plans: PlanCard[] = [
   {
     id: 'monthly',
-    title: 'Mensual',
+    title: 'Monthly',
     price: '$5.49',
-    billing: 'por mes',
-    description: 'Ideal para probar las funciones premium sin compromiso a largo plazo.',
+    billing: 'per month',
+    description: 'Ideal for trying premium features without a long-term commitment.',
     features: [
-      'Acceso premium inmediato',
-      'Pago mensual flexible',
-      'Cancela cuando quieras desde Stripe',
+      'Immediate premium access',
+      'Flexible monthly billing',
+      'Cancel anytime from Stripe',
     ],
   },
   {
     id: 'annual',
-    title: 'Anual',
+    title: 'Annual',
     price: '$54.9',
-    billing: 'por año',
-    description: 'La mejor opción si vas a usar la plataforma durante todo el año.',
-    highlight: 'Mejor valor',
+    billing: 'per year',
+    description: 'The best option if you plan to use the platform year-round.',
+    highlight: 'Best value',
     features: [
-      'Ahorro frente al plan mensual',
-      'Acceso premium durante 12 meses',
-      'Menos fricción de renovación',
+      'Savings compared to the monthly plan',
+      'Premium access for 12 months',
+      'Less renewal friction',
     ],
   },
 ];
@@ -70,10 +70,10 @@ export default function Plans() {
     <div className="px-4 pb-8 pt-3 max-w-[1280px] mx-auto">
       <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Planes premium</p>
-          <h1 className="mt-1 text-[18px] font-semibold text-foreground">Elige el plan que mejor se adapte a tu equipo</h1>
+          <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Premium plans</p>
+          <h1 className="mt-1 text-[18px] font-semibold text-foreground">Choose the plan that fits your team</h1>
           <p className="mt-1 max-w-2xl text-[12px] leading-5 text-muted-foreground">
-            Selecciona un plan para continuar al checkout seguro de Stripe. El acceso premium se activa cuando el backend confirme el pago.
+            Select a plan to continue to the secure Stripe checkout. Premium access is activated when the backend confirms the payment.
           </p>
         </div>
 
@@ -81,7 +81,7 @@ export default function Plans() {
           to="/profile"
           className="inline-flex h-8 items-center justify-center rounded-[4px] border border-border bg-card px-3 text-[11px] font-medium text-foreground transition-colors hover:bg-accent"
         >
-          Volver al perfil
+          Back to profile
         </Link>
       </div>
 
@@ -126,7 +126,7 @@ export default function Plans() {
               <div className="mt-5 rounded-[8px] border border-border/70 bg-surface-secondary/30 p-4">
                 <div className="mb-3 flex items-center gap-2 text-[11px] font-medium text-foreground">
                   <BadgeDollarSign className="h-3.5 w-3.5 text-primary" />
-                  Incluye
+                  Includes
                 </div>
                 <ul className="space-y-2">
                   {plan.features.map((feature) => (
@@ -138,16 +138,16 @@ export default function Plans() {
                 </ul>
               </div>
 
-              {isCurrent ? (
-                <div className="mt-5 inline-flex h-9 w-full items-center justify-center gap-2 rounded-[5px] border border-success/30 bg-success/10 px-4 text-[11px] font-medium text-success cursor-default">
-                  <CheckCircle2 className="h-3.5 w-3.5" />
-                  Tu plan actual
-                </div>
-              ) : isDowngrade ? (
-                <div className="mt-5 inline-flex h-9 w-full items-center justify-center gap-2 rounded-[5px] border border-border bg-surface-secondary/40 px-4 text-[11px] font-medium text-muted-foreground cursor-not-allowed">
-                  Disponible al renovar
-                </div>
-              ) : (
+                {isCurrent ? (
+                  <div className="mt-5 inline-flex h-9 w-full items-center justify-center gap-2 rounded-[5px] border border-success/30 bg-success/10 px-4 text-[11px] font-medium text-success cursor-default">
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    Your current plan
+                  </div>
+                ) : isDowngrade ? (
+                  <div className="mt-5 inline-flex h-9 w-full items-center justify-center gap-2 rounded-[5px] border border-border bg-surface-secondary/40 px-4 text-[11px] font-medium text-muted-foreground cursor-not-allowed">
+                    Available on renewal
+                  </div>
+                ) : (
                 <button
                   type="button"
                   onClick={() => startCheckout(plan.id)}
@@ -161,7 +161,7 @@ export default function Plans() {
                   ) : (
                     <ArrowRight className="h-3.5 w-3.5" />
                   )}
-                  {isLoading ? 'Redirigiendo a Stripe…' : isUpgrade ? 'Upgrade a Anual' : 'Elegir plan'}
+                  {isLoading ? 'Redirecting to Stripe…' : isUpgrade ? 'Upgrade to Annual' : 'Choose plan'}
                 </button>
               )}
             </div>
@@ -170,7 +170,7 @@ export default function Plans() {
       </div>
 
       <div className="mt-5 rounded-[8px] border border-border bg-card px-4 py-3 text-[11px] text-muted-foreground">
-        El cobro se procesa de forma segura en Stripe. Si Stripe tarda unos segundos en confirmar el pago, la página de éxito volverá a consultar tu estado premium automáticamente.
+        Charges are processed securely by Stripe. If Stripe takes a few seconds to confirm the payment, the success page will re-check your premium status automatically.
       </div>
     </div>
   );

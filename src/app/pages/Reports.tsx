@@ -17,7 +17,6 @@ import { computeProjectProgress, getProjectHealth, type ProjectHealth } from '..
 const COMPLETION_TARGET = 80;
 
 type StatusLevel = 'healthy' | 'attention' | 'risk';
-
 interface KpiCardData {
   label: string;
   value: string;
@@ -26,7 +25,6 @@ interface KpiCardData {
   status: StatusLevel;
   icon: React.ReactNode;
 }
-
 function statusFromHealthMix(reds: number, yellows: number): StatusLevel {
   if (reds > 0) return 'risk';
   if (yellows > 0) return 'attention';
@@ -39,7 +37,7 @@ function statusBadge(level: StatusLevel) {
       dot: 'bg-red-500',
       ring: 'ring-red-500/30',
       pill: 'bg-red-500/10 text-red-600 border-red-500/30',
-      label: 'EN RIESGO',
+      label: 'AT RISK',
     };
   }
   if (level === 'attention') {
@@ -47,21 +45,21 @@ function statusBadge(level: StatusLevel) {
       dot: 'bg-amber-500',
       ring: 'ring-amber-500/30',
       pill: 'bg-amber-500/10 text-amber-600 border-amber-500/30',
-      label: 'REQUIERE ATENCIÓN',
+      label: 'REQUIRES ATTENTION',
     };
   }
   return {
     dot: 'bg-emerald-500',
     ring: 'ring-emerald-500/30',
     pill: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30',
-    label: 'SALUDABLE',
+    label: 'HEALTHY',
   };
 }
 
 function statusLabelByLevel(l: StatusLevel) {
-  if (l === 'risk') return 'crítico';
-  if (l === 'attention') return 'atención';
-  return 'saludable';
+  if (l === 'risk') return 'critical';
+  if (l === 'attention') return 'attention';
+  return 'healthy';
 }
 
 function pctDelta(curr: number, prev: number): string {
@@ -232,7 +230,7 @@ export default function Reports() {
         const d = new Date(t.completed_at);
         return d >= wStart && d < wEnd;
       }).length;
-      const label = wStart.toLocaleDateString('es-MX', { day: '2-digit', month: 'short' });
+      const label = wStart.toLocaleDateString('en-US', { day: '2-digit', month: 'short' });
       weeks.push({ label, count, sortIndex: i });
     }
     return weeks;
@@ -271,12 +269,12 @@ export default function Reports() {
       if (diffNum > 0) {
         out.push({
           tone: 'good',
-          text: `Velocidad ${periodComparison.delta} vs el periodo anterior (${periodComparison.recent} completadas en la segunda mitad del periodo).`,
+          text: `Velocity ${periodComparison.delta} vs prior period (${periodComparison.recent} completed in the later half of the range).`,
         });
       } else if (diffNum < 0) {
         out.push({
           tone: 'warn',
-          text: `Velocidad ${periodComparison.delta} vs el periodo anterior — se completaron ${Math.abs(diffNum)} tareas menos.`,
+          text: `Velocity ${periodComparison.delta} vs prior period — ${Math.abs(diffNum)} fewer tasks completed.`,
         });
       }
     }
@@ -286,12 +284,12 @@ export default function Reports() {
       if (kpis.completionRate >= COMPLETION_TARGET) {
         out.push({
           tone: 'good',
-          text: `Tasa de completado ${kpis.completionRate}% por encima de la meta (${COMPLETION_TARGET}%).`,
+          text: `Completion rate ${kpis.completionRate}% above target (${COMPLETION_TARGET}%).`,
         });
       } else {
         out.push({
           tone: 'warn',
-          text: `Tasa de completado ${kpis.completionRate}% bajo la meta de ${COMPLETION_TARGET}%.`,
+          text: `Completion rate ${kpis.completionRate}% below the target of ${COMPLETION_TARGET}%.`,
         });
       }
     }
@@ -303,17 +301,17 @@ export default function Reports() {
     if (worst) {
       out.push({
         tone: 'bad',
-        text: `"${worst.project.name}" requiere atención: ${worst.overdue} ${worst.overdue === 1 ? 'tarea vencida' : 'tareas vencidas'}.`,
+        text: `"${worst.project.name}" requires attention: ${worst.overdue} ${worst.overdue === 1 ? 'overdue task' : 'overdue tasks'}.`,
       });
     } else if (kpis.activeWarnings > 0) {
       out.push({
         tone: 'warn',
-        text: `Hay ${kpis.activeWarnings} ${kpis.activeWarnings === 1 ? 'warning activo' : 'warnings activos'} sin resolver.`,
+        text: `There are ${kpis.activeWarnings} ${kpis.activeWarnings === 1 ? 'active warning' : 'active warnings'} unresolved.`,
       });
     } else if (projectHealthList.length > 0) {
       out.push({
         tone: 'good',
-        text: 'Todos los proyectos están dentro de plazos y sin warnings críticos.',
+        text: 'All projects are within schedule and have no critical warnings.',
       });
     }
 
@@ -335,30 +333,30 @@ export default function Reports() {
 
     return [
       {
-        label: 'TOTAL TAREAS',
+        label: 'TOTAL TASKS',
         value: String(kpis.total),
-        delta: kpis.total === 1 ? 'tarea registrada' : 'tareas registradas',
+        delta: kpis.total === 1 ? 'task recorded' : 'tasks recorded',
         status: 'healthy',
         icon: <ListChecks className="w-4 h-4" />,
       },
       {
-        label: 'COMPLETADAS',
+        label: 'COMPLETED',
         value: String(kpis.completed),
-        delta: kpis.total > 0 ? `${kpis.completionRate}% del total` : 'sin tareas',
+        delta: kpis.total > 0 ? `${kpis.completionRate}% of total` : 'no tasks',
         status: completedStatus,
         icon: <CheckCircle2 className="w-4 h-4" />,
       },
       {
-        label: 'PENDIENTES',
+        label: 'PENDING',
         value: String(pending),
-        delta: pending === 1 ? 'tarea por completar' : 'tareas por completar',
+        delta: pending === 1 ? 'task to complete' : 'tasks to complete',
         status: pendingStatus,
         icon: <Clock className="w-4 h-4" />,
       },
       {
-        label: 'VENCIDAS',
+        label: 'OVERDUE',
         value: String(kpis.overdue),
-        delta: kpis.overdue === 1 ? 'pasó su fecha límite' : 'pasaron su fecha límite',
+        delta: kpis.overdue === 1 ? 'missed deadline' : 'missed deadlines',
         status: overdueStatus,
         icon: <AlertTriangle className="w-4 h-4" />,
       },
@@ -449,7 +447,7 @@ export default function Reports() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `reporte-tareas-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `task-report-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -458,7 +456,7 @@ export default function Reports() {
     return (
       <div className="flex items-center justify-center h-full gap-2 text-muted-foreground">
         <Loader2 className="w-5 h-5 animate-spin" />
-        <span className="text-[13px]">Cargando reportes…</span>
+        <span className="text-[13px]">Loading reports…</span>
       </div>
     );
   }
@@ -470,13 +468,13 @@ export default function Reports() {
       <CommandBar
         actions={[
           {
-            label: 'Descargar reporte',
+            label: 'Download report',
             icon: <FileDown className="w-3.5 h-3.5" />,
             onClick: () => setExportDialogOpen(true),
             variant: 'primary',
           },
-          { label: 'Exportar CSV', icon: <Download className="w-3.5 h-3.5" />, onClick: exportCSV },
-          { label: 'Refrescar', icon: <RefreshCw className="w-3.5 h-3.5" />, onClick: refetchAll },
+          { label: 'Export CSV', icon: <Download className="w-3.5 h-3.5" />, onClick: exportCSV },
+          { label: 'Refresh', icon: <RefreshCw className="w-3.5 h-3.5" />, onClick: refetchAll },
         ]}
         afterActionsSlot={projectDropdown}
       />
@@ -506,14 +504,14 @@ export default function Reports() {
                   {portfolioStats.healthScore}%
                 </div>
                 <div className="text-[11px] text-muted-foreground uppercase tracking-wide">
-                  Salud del portafolio
-                </div>
+                    Portfolio health
+                  </div>
               </div>
 
               {/* Insights */}
               <div className="mt-4 space-y-1.5">
                 {insights.length === 0 ? (
-                  <div className="text-[12px] text-muted-foreground">Sin insights disponibles.</div>
+                  <div className="text-[12px] text-muted-foreground">No insights available.</div>
                 ) : (
                   insights.map((ins, i) => {
                     const toneColor =
@@ -542,7 +540,7 @@ export default function Reports() {
                   {portfolioStats.count}
                 </div>
                 <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                  {portfolioStats.count === 1 ? 'proyecto' : 'proyectos'}
+                  {portfolioStats.count === 1 ? 'project' : 'projects'}
                 </div>
               </div>
               <div className="flex items-center gap-3 text-[11px]">
@@ -552,11 +550,11 @@ export default function Reports() {
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-amber-500" />
-                  <span className="text-muted-foreground">{portfolioStats.yellows} atención</span>
+                  <span className="text-muted-foreground">{portfolioStats.yellows} attention</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-red-500" />
-                  <span className="text-muted-foreground">{portfolioStats.reds} riesgo</span>
+                  <span className="text-muted-foreground">{portfolioStats.reds} risk</span>
                 </div>
               </div>
             </div>
@@ -591,10 +589,10 @@ export default function Reports() {
             <div className="flex items-center justify-between mb-3">
               <div>
                 <div className="text-[10px] font-bold tracking-wider text-muted-foreground">
-                  TENDENCIA · {trendData.length} {trendData.length === 1 ? 'SEMANA' : 'SEMANAS'}
+                  TREND · {trendData.length} {trendData.length === 1 ? 'WEEK' : 'WEEKS'}
                 </div>
                 <div className="text-[14px] font-semibold text-foreground mt-0.5">
-                  Tareas completadas por semana
+                  Tasks completed per week
                 </div>
               </div>
               <div className="text-right">
@@ -604,7 +602,7 @@ export default function Reports() {
                 <div className={`text-[11px] font-medium ${
                   periodComparison.recent >= periodComparison.prior ? 'text-emerald-600' : 'text-red-600'
                 }`}>
-                  {periodComparison.delta} vs anterior
+                  {periodComparison.delta} vs prior
                 </div>
               </div>
             </div>
@@ -631,7 +629,7 @@ export default function Reports() {
                   <Area
                     type="monotone"
                     dataKey="count"
-                    name="Completadas"
+                    name="Completed"
                     stroke="#D4192C"
                     strokeWidth={2}
                     fill="url(#trendFill)"
@@ -640,7 +638,7 @@ export default function Reports() {
               </ResponsiveContainer>
             ) : (
               <div className="flex items-center justify-center h-[200px] text-[12px] text-muted-foreground">
-                Sin tareas completadas en este periodo
+                No tasks completed in this period
               </div>
             )}
           </div>
@@ -648,11 +646,11 @@ export default function Reports() {
           {/* Project ranking */}
           <div className="bg-card border border-border rounded-[6px] p-4">
             <div className="text-[10px] font-bold tracking-wider text-muted-foreground mb-3">
-              ATENCIÓN PRIORITARIA
-            </div>
+                PRIORITY ATTENTION
+              </div>
             {projectRanking.length === 0 ? (
               <div className="text-[12px] text-muted-foreground py-4 text-center">
-                Sin proyectos.
+                No projects.
               </div>
             ) : (
               <div className="space-y-2">
@@ -670,7 +668,7 @@ export default function Reports() {
                           {project.name}
                         </div>
                         <div className="text-[10px] text-muted-foreground">
-                          {progress.percentage}% · {overdue} {overdue === 1 ? 'vencida' : 'vencidas'}
+                          {progress.percentage}% · {overdue} {overdue === 1 ? 'overdue' : 'overdue'}
                         </div>
                       </div>
                       <ArrowRight className="w-3 h-3 text-muted-foreground shrink-0" />

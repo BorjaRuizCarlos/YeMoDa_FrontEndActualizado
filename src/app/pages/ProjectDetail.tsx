@@ -59,7 +59,7 @@ export default function ProjectDetail() {
     setProjectError(null);
     projectsService.get(projectId)
       .then(setProject)
-      .catch(() => setProjectError('No se pudo cargar el proyecto.'))
+      .catch(() => setProjectError('Failed to load project.'))
       .finally(() => setLoadingProject(false));
   }, [projectId]);
 
@@ -133,15 +133,15 @@ export default function ProjectDetail() {
   const refreshClickTimestamps = useRef<number[]>([]);
   const handleAddMember = async (userId: number, roleId: number | null) => {
     if (!canManageMembers) {
-      throw new Error('Solo el Project Manager puede agregar miembros.');
+      throw new Error('Only the Project Manager can add members.');
     }
     try {
       await usersService.addMember(projectId, userId, roleId ?? undefined);
-      toast.success('Miembro agregado');
+      toast.success('Member added');
       refetchMembers();
       refetchUsers();
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'No se pudo agregar el miembro';
+      const msg = err instanceof Error ? err.message : 'Failed to add member';
       toast.error(msg);
       throw err;
     }
@@ -169,7 +169,7 @@ export default function ProjectDetail() {
     refreshClickTimestamps.current = refreshClickTimestamps.current.filter((timestamp) => now - timestamp < 60_000);
 
     if (refreshClickTimestamps.current.length >= 30) {
-      toast.error('Límite de refresco alcanzado. Intenta de nuevo en un minuto.');
+      toast.error('Refresh limit reached. Try again in a minute.');
       return;
     }
 
@@ -179,7 +179,7 @@ export default function ProjectDetail() {
     if (activeTab === 'resumen') {
       projectsService.get(projectId)
         .then(setProject)
-        .catch(() => setProjectError('No se pudo cargar el proyecto.'));
+        .catch(() => setProjectError('Failed to load project.'));
       refetchTasks();
       refetchAllProjectTasks();
       refetchMembers();
@@ -211,7 +211,7 @@ export default function ProjectDetail() {
     if (activeTab === 'configuracion') {
       projectsService.get(projectId)
         .then(setProject)
-        .catch(() => setProjectError('No se pudo cargar el proyecto.'));
+        .catch(() => setProjectError('Failed to load project.'));
       refetchBoards();
       refetchSprints();
     }
@@ -261,24 +261,24 @@ export default function ProjectDetail() {
     () => (members ?? []).find((member) => member.role === projectRoleIds.projectManagerId) ?? null,
     [members, projectRoleIds.projectManagerId],
   );
-  const assignCandidates: AssignCandidate[] = useMemo(
+    const assignCandidates: AssignCandidate[] = useMemo(
     () => (members ?? []).map((m) => ({
       id: m.user,
-      name: userMap.get(m.user) ?? `Usuario #${m.user}`,
+      name: userMap.get(m.user) ?? `User #${m.user}`,
       email: `user${m.user}@platform`,
-      role: roleMap.get(m.role ?? 0) ?? 'Sin rol',
+      role: roleMap.get(m.role ?? 0) ?? 'No role',
     })),
     [members, userMap, roleMap],
   );
   const handleAssign = async (userId: number) => {
     if (!canManageProject) {
-      toast.error('No tienes permisos para reasignar al responsable del proyecto.');
+      toast.error('You do not have permissions to reassign the project owner.');
       return;
     }
 
     const nextResponsibleMember = (members ?? []).find((member) => member.user === userId);
-    if (!nextResponsibleMember) {
-      toast.error('La persona seleccionada no pertenece al proyecto.');
+      if (!nextResponsibleMember) {
+      toast.error('Selected person is not part of the project.');
       return;
     }
 
@@ -299,10 +299,10 @@ export default function ProjectDetail() {
 
       await refetchMembers();
       const candidate = assignCandidates.find((x) => x.id === userId);
-      if (candidate) toast.success(`Responsable asignado: ${candidate.name}`);
+      if (candidate) toast.success(`Assigned responsible: ${candidate.name}`);
       setShowAssignModal(false);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'No se pudo reasignar al responsable.';
+      const msg = err instanceof Error ? err.message : 'Failed to reassign responsible.';
       toast.error(msg);
     } finally {
       setAssigningResponsible(false);
@@ -316,7 +316,7 @@ export default function ProjectDetail() {
 
   const handleMemberRoleChange = async (memberId: number, nextRoleId: number) => {
     if (!canEditMemberRoles) {
-      toast.error('Solo el Project Manager puede cambiar roles del proyecto.');
+      toast.error('Only the Project Manager can change project roles.');
       return;
     }
 
@@ -325,7 +325,7 @@ export default function ProjectDetail() {
     const allowedRoleIds = getAllowedProjectRoleIdsForUser(memberUser, projectRoleIds);
 
     if (!member) {
-      toast.error('No se encontró el miembro seleccionado.');
+      toast.error('Selected member not found.');
       return;
     }
     if (!canEditMemberProjectRole(memberUser, member, projectRoleIds)) {
@@ -355,7 +355,7 @@ export default function ProjectDetail() {
 
   const handleRemoveMember = async (memberId: number) => {
     if (!canManageMembers) {
-      toast.error('Solo el Project Manager puede eliminar miembros del proyecto.');
+      toast.error('Only the Project Manager can remove project members.');
       return;
     }
 
@@ -366,11 +366,11 @@ export default function ProjectDetail() {
     }
 
     if (member.role === projectRoleIds.projectManagerId) {
-      toast.error('Reasigna primero al responsable del proyecto.');
+      toast.error('Reassign the project owner first.');
       return;
     }
 
-    if (!confirm('¿Eliminar este miembro del proyecto?')) {
+    if (!confirm('Remove this member from the project?')) {
       return;
     }
 
@@ -409,9 +409,9 @@ export default function ProjectDetail() {
 
       await usersService.removeMember(memberId);
       await refetchMembers();
-      toast.success('Miembro eliminado del proyecto.');
+      toast.success('Member removed from project.');
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'No se pudo eliminar el miembro.';
+      const msg = err instanceof Error ? err.message : 'Failed to remove member.';
       toast.error(msg);
     } finally {
       setRemovingMemberId(null);
@@ -421,12 +421,12 @@ export default function ProjectDetail() {
   const handleProjectStatusSave = async () => {
     if (!project) return;
     if (latestSprintEndDate && projectEndDate && projectEndDate < latestSprintEndDate) {
-      toast.error(`La fecha de entrega no puede ser antes del fin del último sprint (${latestSprintEndDate}).`);
+      toast.error(`End date cannot be before the last sprint end date (${latestSprintEndDate}).`);
       return;
     }
     const apiStatus = getProjectStatusApiValue(projectStatus);
     if (!apiStatus) {
-      toast.error('Estado de proyecto inválido.');
+      toast.error('Invalid project status.');
       return;
     }
     setSavingProjectConfig(true);
@@ -437,9 +437,9 @@ export default function ProjectDetail() {
         review_branches: reviewBranches,
       });
       setProject(updated);
-      toast.success('Configuración del proyecto actualizada.');
+      toast.success('Project configuration updated.');
     } catch {
-      toast.error('No se pudo actualizar la configuración del proyecto.');
+      toast.error('Failed to update project configuration.');
     } finally {
       setSavingProjectConfig(false);
     }
@@ -447,17 +447,17 @@ export default function ProjectDetail() {
 
   const handleDeleteProject = async () => {
     if (!project) return;
-    if (!confirm(`¿Eliminar el proyecto "${project.name}"? Esta acción no se puede deshacer.`)) {
+    if (!confirm(`Delete project "${project.name}"? This action cannot be undone.`)) {
       return;
     }
 
     setDeletingProject(true);
     try {
       await projectsService.delete(project.id_project);
-      toast.success('Proyecto eliminado.');
+      toast.success('Project deleted.');
       navigate('/projects');
     } catch {
-      toast.error('No se pudo eliminar el proyecto.');
+      toast.error('Failed to delete project.');
       setDeletingProject(false);
     }
   };
@@ -520,7 +520,7 @@ export default function ProjectDetail() {
         <AlertTriangle className="w-8 h-8 text-destructive mx-auto mb-2" />
         <p className="text-[13px] text-destructive">{projectError}</p>
         <button onClick={() => navigate('/projects')} className="mt-3 text-[12px] text-primary hover:underline">
-          Volver a Proyectos
+          Back to Projects
         </button>
       </div>
     );
@@ -530,9 +530,9 @@ export default function ProjectDetail() {
     return (
       <div className="px-4 pt-10 text-center">
         <AlertTriangle className="w-8 h-8 text-destructive mx-auto mb-2" />
-        <p className="text-[13px] text-destructive">No tienes acceso a este proyecto.</p>
+        <p className="text-[13px] text-destructive">You don't have access to this project.</p>
         <button onClick={() => navigate('/projects')} className="mt-3 text-[12px] text-primary hover:underline">
-          Volver a Proyectos
+          Back to Projects
         </button>
       </div>
     );
@@ -543,8 +543,8 @@ export default function ProjectDetail() {
       <section className="rounded-[6px] border border-border bg-card overflow-hidden">
         <CommandBar
           actions={[
-            { label: 'Volver', icon: <ArrowLeft className="w-3.5 h-3.5" />, onClick: () => navigate('/projects') },
-            ...(canManageProject ? [{ label: 'Asignar responsable', icon: <UserPlus className="w-3.5 h-3.5" />, onClick: () => setShowAssignModal(true) }] : []),
+            { label: 'Back', icon: <ArrowLeft className="w-3.5 h-3.5" />, onClick: () => navigate('/projects') },
+            ...(canManageProject ? [{ label: 'Assign owner', icon: <UserPlus className="w-3.5 h-3.5" />, onClick: () => setShowAssignModal(true) }] : []),
           ]}
           rightSlot={project ? <StatusBadge status={getProjectStatusBadge(project.status)} text={getProjectStatusLabel(project.status)} size="sm" /> : null}
         />
@@ -559,15 +559,15 @@ export default function ProjectDetail() {
             )}
             <div className="flex flex-wrap items-center gap-4 mt-2 text-[11px] text-muted-foreground">
               <span className="flex items-center gap-1">
-                <Calendar className="w-3 h-3" />Inicio: {formatProjectDate(project.created_at)}
+                <Calendar className="w-3 h-3" />Start: {formatProjectDate(project.created_at)}
               </span>
               {project.end_date && (
                 <span className="flex items-center gap-1">
-                  <Clock className="w-3 h-3" />Fin: {formatProjectDate(project.end_date)}
+                  <Clock className="w-3 h-3" />End: {formatProjectDate(project.end_date)}
                 </span>
               )}
               <span className="flex items-center gap-1">
-                <Users className="w-3 h-3" />{kpis.memberCount} miembros
+                <Users className="w-3 h-3" />{kpis.memberCount} members
               </span>
             </div>
           </div>
@@ -584,9 +584,9 @@ export default function ProjectDetail() {
               { id: 'milestones', label: 'Milestones' },
               { id: 'scrum-poker', label: 'Scrum Poker' },
               ...(canCreateRepos ? [{ id: 'code-review', label: 'Code Review' }] : []),
-              { id: 'repositorios', label: 'Repositorios' },
-              { id: 'equipo', label: 'Equipo', count: (members ?? []).length },
-              ...(canManageProject ? [{ id: 'configuracion', label: 'Configuración', icon: <Settings2 className="w-3.5 h-3.5" /> }] : []),
+                { id: 'repositorios', label: 'Repositories' },
+                { id: 'equipo', label: 'Team', count: (members ?? []).length },
+                ...(canManageProject ? [{ id: 'configuracion', label: 'Settings', icon: <Settings2 className="w-3.5 h-3.5" /> }] : []),
             ]}
             activeTab={activeTab}
             onTabChange={(id) => setActiveTab(id as typeof activeTab)}
@@ -617,11 +617,11 @@ export default function ProjectDetail() {
           <div className="space-y-3">
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
               {[
-                { title: 'Tareas', value: kpis.total, subtitle: 'en todo el proyecto', icon: <List className="w-4 h-4" />, accentColor: 'info' as const },
-                { title: 'Completadas', value: kpis.completed, subtitle: 'finalizadas', icon: <CheckCircle2 className="w-4 h-4" />, accentColor: 'success' as const },
-                { title: 'Vencidas', value: kpis.overdue, subtitle: 'requieren atención', icon: <AlertTriangle className="w-4 h-4" />, accentColor: 'destructive' as const },
+                { title: 'Tasks', value: kpis.total, subtitle: 'in the project', icon: <List className="w-4 h-4" />, accentColor: 'info' as const },
+                { title: 'Completed', value: kpis.completed, subtitle: 'completed', icon: <CheckCircle2 className="w-4 h-4" />, accentColor: 'success' as const },
+                { title: 'Overdue', value: kpis.overdue, subtitle: 'require attention', icon: <AlertTriangle className="w-4 h-4" />, accentColor: 'destructive' as const },
                 {
-                  title: 'Tiempo Restante',
+                  title: 'Time Remaining',
                   value: timeRemainingLabel,
                   subtitle: formatProjectDate(project?.end_date),
                   icon: <Clock className="w-4 h-4" />,
@@ -643,16 +643,16 @@ export default function ProjectDetail() {
               <div className="space-y-3">
               <div className="bg-card border border-border rounded-[4px] p-4">
                 <h2 className="text-[10px] font-medium text-muted-foreground uppercase tracking-[0.06em] mb-2.5">
-                  Información General
+                  General Information
                 </h2>
                 {project ? (
                   <dl className="grid grid-cols-2 gap-x-6 gap-y-2.5">
                     {[
-                      { label: 'Estado', value: getProjectStatusLabel(project.status) },
-                      { label: 'Creado', value: formatProjectDate(project.created_at) },
-                      { label: 'Fecha fin', value: formatProjectDate(project.end_date) },
-                      { label: 'Tiempo restante', value: timeRemainingLabel },
-                      { label: 'Miembros', value: `${kpis.memberCount} personas` },
+                      { label: 'Status', value: getProjectStatusLabel(project.status) },
+                      { label: 'Created', value: formatProjectDate(project.created_at) },
+                      { label: 'End Date', value: formatProjectDate(project.end_date) },
+                      { label: 'Time remaining', value: timeRemainingLabel },
+                      { label: 'Members', value: `${kpis.memberCount} members` },
                     ].map((item) => (
                       <div key={item.label}>
                         <dt className="text-[10px] text-muted-foreground">{item.label}</dt>
@@ -670,7 +670,7 @@ export default function ProjectDetail() {
                 <div className="bg-card border border-border rounded-[4px] p-4">
                   <div className="flex items-center justify-between mb-2">
                     <h2 className="text-[10px] font-medium text-muted-foreground uppercase tracking-[0.06em]">
-                      Avance
+                      Progress
                     </h2>
                     <span className="text-[12px] font-semibold text-foreground">
                       {Math.round((kpis.completed / kpis.total) * 100)}%
@@ -678,7 +678,7 @@ export default function ProjectDetail() {
                   </div>
                   <ProgressBar value={Math.round((kpis.completed / kpis.total) * 100)} height={6} />
                   <p className="text-[10px] text-muted-foreground mt-1.5">
-                    {kpis.completed} de {kpis.total} tareas completadas
+                    {kpis.completed} of {kpis.total} tasks completed
                   </p>
                 </div>
               )}
@@ -696,7 +696,7 @@ export default function ProjectDetail() {
               userMap={userMap}
               assignableUsers={(members ?? []).map((m) => ({
                 id: m.user,
-                name: userMap.get(m.user) ?? `Usuario #${m.user}`,
+                name: userMap.get(m.user) ?? `User #${m.user}`,
               }))}
               canCreateTasks={canManageTasks}
               canCreateBoards={canManageTasks}
@@ -755,16 +755,16 @@ export default function ProjectDetail() {
 
         {/* EQUIPO */}
         {activeTab === 'equipo' && (
-          <div className="bg-card border border-border rounded-[4px] p-4">
+            <div className="bg-card border border-border rounded-[4px] p-4">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-3">
                 <h2 className="text-[10px] font-medium text-muted-foreground uppercase tracking-[0.06em]">
-                  Miembros del Proyecto
+                  Project Members
                 </h2>
                 {members && members.length > 0 && (
                   <AvatarGroup
                     users={(members ?? []).map((m) => ({
-                      name: userMap.get(m.user) ?? `Usuario #${m.user}`,
+                      name: userMap.get(m.user) ?? `User #${m.user}`,
                     }))}
                     max={5}
                     size={24}
@@ -777,7 +777,7 @@ export default function ProjectDetail() {
                   className="flex items-center gap-1.5 text-[11px] font-medium text-primary bg-primary/10 hover:bg-primary/20 px-2.5 py-1 rounded-[3px] transition-colors"
                 >
                   <UserPlus className="w-3.5 h-3.5" />
-                  Agregar Miembro
+                  Add Member
                 </button>
               )}
             </div>
@@ -787,12 +787,12 @@ export default function ProjectDetail() {
                 {[1, 2, 3].map((i) => <div key={i} className="h-10 animate-pulse bg-secondary rounded" />)}
               </div>
             ) : !members || members.length === 0 ? (
-              <p className="text-[12px] text-muted-foreground py-6 text-center">Sin miembros registrados.</p>
+              <p className="text-[12px] text-muted-foreground py-6 text-center">No members registered.</p>
             ) : (
               <div className="space-y-0.5">
                 {members.map((member) => {
-                  const name = userMap.get(member.user) ?? `Usuario #${member.user}`;
-                  const roleName = roleMap.get(member.role ?? 0) ?? `Rol #${member.role ?? '—'}`;
+                  const name = userMap.get(member.user) ?? `User #${member.user}`;
+                  const roleName = roleMap.get(member.role ?? 0) ?? `Role #${member.role ?? '—'}`;
                   const memberUser = memberUserMap.get(member.user) ?? null;
                   const canChangeRole = canEditMemberRoles && canEditMemberProjectRole(memberUser, member, projectRoleIds);
                   const roleIsLocked = isStakeholderSystemUser(memberUser);
@@ -808,7 +808,7 @@ export default function ProjectDetail() {
                         <div>
                           <p className="text-[13px] font-medium text-foreground">{name}</p>
                           <div className="flex items-center gap-2 mt-0.5">
-                            <p className="text-[11px] font-medium text-foreground">{member.role ? roleName : 'Sin rol'}</p>
+                            <p className="text-[11px] font-medium text-foreground">{member.role ? roleName : 'No role'}</p>
                             {canChangeRole && (
                               <button
                                 type="button"
@@ -818,7 +818,7 @@ export default function ProjectDetail() {
                                 }}
                                 className="h-6 px-2.5 text-[10px] font-medium text-primary bg-primary/10 hover:bg-primary/20 rounded-[3px] transition-colors"
                               >
-                                Editar
+                                Edit
                               </button>
                             )}
                             {member.role === projectRoleIds.projectManagerId && (
@@ -828,7 +828,7 @@ export default function ProjectDetail() {
                             )}
                             {roleIsLocked && (
                               <span className="inline-flex items-center rounded-full border border-border bg-surface-secondary px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-                                Fijo por sistema
+                                System-locked
                               </span>
                             )}
                           </div>
@@ -836,16 +836,16 @@ export default function ProjectDetail() {
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-[10px] text-muted-foreground">
-                          desde {member.joined_at.slice(0, 10)}
+                          since {member.joined_at.slice(0, 10)}
                         </span>
-                        {canManageMembers && member.role !== projectRoleIds.projectManagerId && (
+                            {canManageMembers && member.role !== projectRoleIds.projectManagerId && (
                           <button
                             type="button"
                             onClick={() => handleRemoveMember(member.id)}
                             disabled={removingMemberId === member.id}
                             className="h-7 px-2 text-[10px] font-medium text-destructive border border-destructive/30 rounded-[3px] hover:bg-destructive/10 transition-colors disabled:opacity-50"
                           >
-                            {removingMemberId === member.id ? 'Eliminando…' : 'Eliminar'}
+                            {removingMemberId === member.id ? 'Removing…' : 'Remove'}
                           </button>
                         )}
                       </div>
@@ -861,12 +861,12 @@ export default function ProjectDetail() {
           <div className="grid lg:grid-cols-[minmax(0,1fr)_320px] gap-3">
             <div className="bg-card border border-border rounded-[4px] p-4">
               <h2 className="text-[10px] font-medium text-muted-foreground uppercase tracking-[0.06em] mb-3">
-                Configuración del Proyecto
+                Project Settings
               </h2>
 
               <div className="space-y-3 max-w-md">
                 <div>
-                  <label className="block text-[11px] font-medium text-foreground mb-1">Etapa del proyecto</label>
+                  <label className="block text-[11px] font-medium text-foreground mb-1">Project status</label>
                   <select
                     value={projectStatus}
                     onChange={(e) => setProjectStatus(e.target.value)}
@@ -880,32 +880,32 @@ export default function ProjectDetail() {
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-medium text-foreground mb-1">Fecha de entrega</label>
+                  <label className="block text-[11px] font-medium text-foreground mb-1">End date</label>
                   <DatePickerField
                     value={projectEndDate}
                     onChange={setProjectEndDate}
                     disabled={!canManageProject || savingProjectConfig}
                     minDate={latestSprintEndDate ?? tomorrowDate}
-                    placeholder="Selecciona una fecha de entrega"
+                    placeholder="Select an end date"
                   />
                   {latestSprintEndDate && (
                     <p className="text-[10px] text-muted-foreground mt-1">
-                      No puede ser antes del último sprint: <span className="font-medium">{latestSprintEndDate}</span>
+                      Cannot be before the last sprint: <span className="font-medium">{latestSprintEndDate}</span>
                     </p>
                   )}
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-medium text-foreground mb-1">Branches monitoreadas por el agente IA</label>
+                  <label className="block text-[11px] font-medium text-foreground mb-1">Branches monitored by AI agent</label>
                   <input
                     type="text"
                     value={reviewBranches}
                     onChange={(e) => setReviewBranches(e.target.value)}
                     disabled={!canManageProject || savingProjectConfig}
-                    placeholder="main,develop  (vacío = todas las branches)"
+                    placeholder="main,develop  (empty = all branches)"
                     className="w-full h-8 bg-surface-secondary border border-border rounded-[3px] px-2.5 text-[12px] text-foreground focus:outline-none focus:ring-1 focus:ring-primary/20 disabled:opacity-60 placeholder:text-muted-foreground/50"
                   />
-                  <p className="text-[10px] text-muted-foreground mt-1">Ingresa los nombres separados por coma. Las branches de tarea (<span className="font-mono">{'{id}'}-*</span>) siempre se analizan.</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">Enter the names separated by commas. Task branches (<span className="font-mono">{'{id}'}</span>-*) are always analyzed.</p>
                 </div>
 
                 <button
@@ -914,19 +914,19 @@ export default function ProjectDetail() {
                   disabled={!canManageProject || savingProjectConfig || !hasProjectConfigChanges}
                   className="h-8 px-3 bg-primary hover:bg-primary-hover text-primary-foreground rounded-[3px] text-[11px] font-medium transition-colors disabled:opacity-50"
                 >
-                  {savingProjectConfig ? 'Guardando…' : 'Guardar cambios'}
+                  {savingProjectConfig ? 'Saving…' : 'Save changes'}
                 </button>
 
                 {!canManageProject && (
-                  <p className="text-[11px] text-muted-foreground">Solo el Project Manager del proyecto puede modificar la configuración.</p>
+                  <p className="text-[11px] text-muted-foreground">Only the project manager can modify project settings.</p>
                 )}
               </div>
             </div>
 
             <div className="space-y-3">
               <div className="bg-card border border-border rounded-[4px] p-4">
-                <h2 className="text-[10px] font-medium text-muted-foreground uppercase tracking-[0.06em] mb-1">Restricciones de equipo</h2>
-                <p className="text-[11px] text-muted-foreground mb-3">Por defecto solo se pueden agregar miembros con cuenta de GitHub conectada. Puedes desactivar esto temporalmente.</p>
+                <h2 className="text-[10px] font-medium text-muted-foreground uppercase tracking-[0.06em] mb-1">Team restrictions</h2>
+                <p className="text-[11px] text-muted-foreground mb-3">By default only users with a connected GitHub account can be added. You can disable this temporarily.</p>
                 <button
                   type="button"
                   disabled={!canManageProject}
@@ -938,16 +938,16 @@ export default function ProjectDetail() {
                   }`}
                 >
                   <span className={`w-2 h-2 rounded-full ${bypassGithubCheck ? 'bg-warning' : 'bg-muted-foreground/50'}`} />
-                  {bypassGithubCheck ? 'Verificación de GitHub desactivada' : 'Requerir GitHub al agregar miembros'}
+                  {bypassGithubCheck ? 'GitHub verification disabled' : 'Require GitHub when adding members'}
                 </button>
               </div>
 
               <div className="bg-card border border-destructive/20 rounded-[4px] p-4 h-fit">
               <h2 className="text-[10px] font-medium text-destructive uppercase tracking-[0.06em] mb-2">
-                Zona Peligrosa
+                Danger Zone
               </h2>
               <p className="text-[11px] text-muted-foreground mb-3">
-                Eliminar este proyecto también removerá su acceso desde la vista principal.
+                Deleting this project will also remove its access from the main view.
               </p>
               <button
                 type="button"
@@ -956,7 +956,7 @@ export default function ProjectDetail() {
                 className="h-8 px-3 bg-destructive hover:bg-destructive/90 text-white rounded-[3px] text-[11px] font-medium transition-colors disabled:opacity-50 inline-flex items-center gap-1.5"
               >
                 <Trash2 className="w-3.5 h-3.5" />
-                {deletingProject ? 'Eliminando…' : 'Eliminar proyecto'}
+                {deletingProject ? 'Deleting…' : 'Delete project'}
               </button>
               </div>
             </div>
@@ -982,13 +982,13 @@ export default function ProjectDetail() {
         currentResponsibleId={currentProjectManagerMember?.user}
         onAssign={handleAssign}
         loading={assigningResponsible}
-        title="Asignar responsable"
+        title="Assign owner"
       />
 
       {editingMemberId != null && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-6">
-          <div className="bg-card border border-border rounded-[6px] p-5 max-w-sm w-full shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-[13px] font-semibold text-foreground mb-4">Cambiar rol del miembro</h2>
+            <div className="bg-card border border-border rounded-[6px] p-5 max-w-sm w-full shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-[13px] font-semibold text-foreground mb-4">Change member role</h2>
             {(() => {
               const member = (members ?? []).find((m) => m.id === editingMemberId);
               if (!member) return null;
@@ -997,14 +997,14 @@ export default function ProjectDetail() {
               return (
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-[11px] font-medium text-foreground mb-2">Nuevo rol</label>
+                    <label className="block text-[11px] font-medium text-foreground mb-2">New role</label>
                     <select
                       value={editingRoleId ?? ''}
                       onChange={(e) => setEditingRoleId(e.target.value ? Number(e.target.value) : null)}
                       className="w-full h-9 bg-surface-secondary border border-border rounded-[4px] px-3 text-[12px] text-foreground"
                     >
                       {allowedRoleIds.map((roleId) => (
-                        <option key={roleId} value={roleId}>{roleMap.get(roleId) ?? `Rol #${roleId}`}</option>
+                        <option key={roleId} value={roleId}>{roleMap.get(roleId) ?? `Role #${roleId}`}</option>
                       ))}
                     </select>
                   </div>
@@ -1014,7 +1014,7 @@ export default function ProjectDetail() {
                       onClick={() => setEditingMemberId(null)}
                       className="flex-1 h-8 border border-border rounded-[3px] text-[11px] font-medium text-foreground hover:bg-accent/30 transition-colors"
                     >
-                      Cancelar
+                      Cancel
                     </button>
                     <button
                       type="button"
@@ -1027,7 +1027,7 @@ export default function ProjectDetail() {
                       disabled={updatingMemberRoleId === editingMemberId}
                       className="flex-1 h-8 bg-primary text-primary-foreground rounded-[3px] text-[11px] font-medium hover:bg-primary-hover transition-colors disabled:opacity-50"
                     >
-                      {updatingMemberRoleId === editingMemberId ? 'Actualizando…' : 'Guardar'}
+                      {updatingMemberRoleId === editingMemberId ? 'Updating…' : 'Save'}
                     </button>
                   </div>
                 </div>

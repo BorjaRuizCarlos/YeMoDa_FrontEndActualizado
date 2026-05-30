@@ -22,9 +22,9 @@ const HEALTH_DOT_CLASS: Record<ProjectHealth, string> = {
 };
 
 const HEALTH_LABEL: Record<ProjectHealth, string> = {
-  green: 'Saludable',
-  yellow: 'En riesgo',
-  red: 'Crítico',
+  green: 'Healthy',
+  yellow: 'At risk',
+  red: 'Critical',
 };
 
 const PROJECTS_BATCH_SIZE = 8;
@@ -36,8 +36,8 @@ function getProjectsRemainingLabel(endDate: string | null, status?: string | nul
 
   const days = Math.ceil((new Date(endDate).getTime() - Date.now()) / 86_400_000);
   if (Number.isNaN(days)) return { label: '—', cls: 'text-muted-foreground' };
-  if (days < 0) return { label: 'Vencido', cls: 'text-destructive font-semibold' };
-  if (days === 0) return { label: 'Hoy', cls: 'text-destructive font-semibold' };
+  if (days < 0) return { label: 'Overdue', cls: 'text-destructive font-semibold' };
+  if (days === 0) return { label: 'Today', cls: 'text-destructive font-semibold' };
 
   if (days >= 365) {
     const years = Math.floor(days / 365);
@@ -171,7 +171,7 @@ export default function Projects() {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formEnd) {
-      toast.error('La fecha de entrega es obligatoria');
+      toast.error('End date is required');
       return;
     }
     setCreating(true);
@@ -195,10 +195,10 @@ export default function Projects() {
             await usersService.addMember(createdProject.id_project, creatorId, 1);
           }
         } catch {
-          toast.error('Proyecto creado, pero no se pudo asignar automáticamente como Project Manager.');
+          toast.error('Project created, but could not auto-assign as Project Manager.');
         }
       }
-      toast.success('Proyecto creado exitosamente');
+      toast.success('Project created successfully');
       setShowCreateModal(false);
       setFormName(''); setFormDesc(''); setFormEnd('');
       setSearchTerm('');
@@ -207,7 +207,7 @@ export default function Projects() {
       refetch();
       refetchMemberRows();
     } catch {
-      toast.error('Error al crear el proyecto');
+      toast.error('Error creating project');
     } finally {
       setCreating(false);
     }
@@ -218,9 +218,9 @@ export default function Projects() {
       <div className="bg-card border border-border rounded-[4px] p-3 flex flex-col gap-3">
         <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3">
           <div>
-            <h1 className="text-[14px] font-semibold text-foreground">Proyectos</h1>
+            <h1 className="text-[14px] font-semibold text-foreground">Projects</h1>
             <p className="text-[11px] text-muted-foreground mt-0.5">
-              Busca, filtra y ordena proyectos activos por fecha de entrega.
+              Search, filter and sort active projects by end date.
             </p>
           </div>
 
@@ -229,7 +229,7 @@ export default function Projects() {
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
               <input
                 type="text"
-                placeholder="Buscar por proyecto, estado o descripción…"
+                placeholder="Search by project, status or description…"
                 value={searchTerm}
                 onChange={(e) => {
                   setSearchTerm(e.target.value);
@@ -249,10 +249,10 @@ export default function Projects() {
                 }}
                 className="w-full h-9 bg-surface-secondary border border-border rounded-[4px] pl-8 pr-3 text-[12px] text-foreground focus:outline-none focus:ring-1 focus:ring-primary/20"
               >
-                <option value="nearest_due">Entrega más cercana</option>
-                <option value="farthest_due">Entrega más lejana</option>
-                <option value="name_asc">Nombre A-Z</option>
-                <option value="name_desc">Nombre Z-A</option>
+                <option value="nearest_due">Nearest due</option>
+                <option value="farthest_due">Farthest due</option>
+                <option value="name_asc">Name A-Z</option>
+                <option value="name_desc">Name Z-A</option>
               </select>
             </div>
 
@@ -261,7 +261,7 @@ export default function Projects() {
                 type="button"
                 onClick={() => setViewMode('list')}
                 className={`h-9 w-10 flex items-center justify-center transition-colors ${viewMode === 'list' ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground hover:bg-accent hover:text-foreground'}`}
-                title="Vista tabla"
+                title="Table view"
               >
                 <List className="w-4 h-4" />
               </button>
@@ -269,7 +269,7 @@ export default function Projects() {
                 type="button"
                 onClick={() => setViewMode('grid')}
                 className={`h-9 w-10 flex items-center justify-center transition-colors ${viewMode === 'grid' ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground hover:bg-accent hover:text-foreground'}`}
-                title="Vista tarjetas"
+                title="Card view"
               >
                 <LayoutGrid className="w-4 h-4" />
               </button>
@@ -278,7 +278,7 @@ export default function Projects() {
             {canCreateProjects && (
               <button
                 type="button"
-                onClick={() => { void refetch(); void refetchMemberRows(); toast.success('Lista actualizada.'); }}
+                onClick={() => { void refetch(); void refetchMemberRows(); toast.success('List updated.'); }}
                 className="h-9 w-9 flex items-center justify-center bg-card border border-border rounded-[4px] text-muted-foreground hover:text-foreground hover:bg-accent/30 transition-colors shrink-0"
                 title="Actualizar"
               >
@@ -293,7 +293,7 @@ export default function Projects() {
                 className="h-9 px-4 bg-primary hover:bg-primary-hover text-primary-foreground rounded-[4px] text-[12px] font-semibold inline-flex items-center justify-center gap-2 transition-colors shrink-0"
               >
                 <Plus className="w-4 h-4" />
-                Nuevo Proyecto
+                New Project
               </button>
             )}
           </div>
@@ -305,7 +305,7 @@ export default function Projects() {
             onClick={() => { setStatusFilter('all'); setCurrentPage(0); }}
             className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors ${statusFilter === 'all' ? 'bg-primary text-primary-foreground' : 'bg-surface-secondary border border-border text-muted-foreground hover:text-foreground hover:bg-accent'}`}
           >
-            Todos
+            All
             <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${statusFilter === 'all' ? 'bg-white/20 text-white' : 'bg-background text-muted-foreground'}`}>
               {visibleProjects.length}
             </span>
@@ -335,12 +335,12 @@ export default function Projects() {
         /* Table view */
         <div className="bg-card border border-border rounded-[4px] overflow-hidden">
           <div className="grid grid-cols-[minmax(0,2fr)_minmax(112px,0.9fr)_minmax(110px,1.1fr)_44px_minmax(110px,0.85fr)_minmax(78px,0.6fr)] gap-3 border-b border-border bg-surface-secondary/50 px-4 py-1.5">
-            <span className="text-left text-[10px] font-medium text-muted-foreground uppercase tracking-[0.06em]">Proyecto</span>
-            <span className="text-left text-[10px] font-medium text-muted-foreground uppercase tracking-[0.06em]">Estado</span>
-            <span className="text-left text-[10px] font-medium text-muted-foreground uppercase tracking-[0.06em]">Progreso</span>
-            <span className="text-left text-[10px] font-medium text-muted-foreground uppercase tracking-[0.06em]">Salud</span>
-            <span className="text-left text-[10px] font-medium text-muted-foreground uppercase tracking-[0.06em]">Fecha Fin</span>
-            <span className="text-left text-[10px] font-medium text-muted-foreground uppercase tracking-[0.06em]">Tiempo rest.</span>
+            <span className="text-left text-[10px] font-medium text-muted-foreground uppercase tracking-[0.06em]">Project</span>
+            <span className="text-left text-[10px] font-medium text-muted-foreground uppercase tracking-[0.06em]">Status</span>
+            <span className="text-left text-[10px] font-medium text-muted-foreground uppercase tracking-[0.06em]">Progress</span>
+            <span className="text-left text-[10px] font-medium text-muted-foreground uppercase tracking-[0.06em]">Health</span>
+            <span className="text-left text-[10px] font-medium text-muted-foreground uppercase tracking-[0.06em]">End Date</span>
+            <span className="text-left text-[10px] font-medium text-muted-foreground uppercase tracking-[0.06em]">Time left</span>
           </div>
 
           <div className="overflow-y-auto scrollbar-app max-h-[600px] divide-y divide-border">
@@ -386,8 +386,8 @@ export default function Projects() {
 
             {filteredProjects.length === 0 && (
               <div className="px-4 py-8 text-center">
-                <p className="text-[12px] font-medium text-foreground">Sin proyectos para mostrar</p>
-                <p className="text-[11px] text-muted-foreground mt-1">No hay proyectos con los filtros actuales.</p>
+                <p className="text-[12px] font-medium text-foreground">No projects to display</p>
+                <p className="text-[11px] text-muted-foreground mt-1">No projects match the current filters.</p>
               </div>
             )}
           </div>
@@ -442,8 +442,8 @@ export default function Projects() {
                   <div className="mb-2">
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-[10px] text-muted-foreground">Progreso</span>
-                      <span className="text-[10px] font-medium text-foreground tabular-nums">
-                        {hasTasks ? `${pct}%` : 'Sin tareas'}
+                        <span className="text-[10px] font-medium text-foreground tabular-nums">
+                        {hasTasks ? `${pct}%` : 'No tasks'}
                       </span>
                     </div>
                     <ProgressBar value={pct} height={5} />
@@ -458,10 +458,10 @@ export default function Projects() {
           })}
 
           {filteredProjects.length === 0 && (
-            <div className="bg-card/30 border border-dashed border-border rounded-[4px] min-h-[152px] p-4 flex items-center justify-center text-center md:col-span-2">
+              <div className="bg-card/30 border border-dashed border-border rounded-[4px] min-h-[152px] p-4 flex items-center justify-center text-center md:col-span-2">
               <div>
-                <p className="text-[12px] font-medium text-foreground">Sin proyectos para mostrar</p>
-                <p className="text-[11px] text-muted-foreground mt-1">No hay proyectos con los filtros actuales.</p>
+                <p className="text-[12px] font-medium text-foreground">No projects to display</p>
+                <p className="text-[11px] text-muted-foreground mt-1">No projects match the current filters.</p>
               </div>
             </div>
           )}
@@ -471,7 +471,7 @@ export default function Projects() {
       {!isLoadingPage && filteredProjects.length > 0 && totalPages > 1 && (
         <div className="flex items-center justify-between gap-3 bg-card border border-border rounded-[4px] px-4 py-3">
           <p className="text-[11px] text-muted-foreground">
-            Mostrando {currentPage * PROJECTS_BATCH_SIZE + 1}-{Math.min((currentPage + 1) * PROJECTS_BATCH_SIZE, filteredProjects.length)} de {filteredProjects.length} proyectos
+            Showing {currentPage * PROJECTS_BATCH_SIZE + 1}-{Math.min((currentPage + 1) * PROJECTS_BATCH_SIZE, filteredProjects.length)} of {filteredProjects.length} projects
           </p>
           <div className="flex items-center gap-2">
             <button
@@ -479,8 +479,8 @@ export default function Projects() {
               onClick={() => setCurrentPage((page) => Math.max(0, page - 1))}
               disabled={currentPage === 0}
               className="h-7 px-3 border border-border rounded-[3px] text-[11px] font-medium text-foreground hover:bg-surface-secondary transition-colors disabled:opacity-50"
-            >
-              Anterior
+              >
+              Previous
             </button>
             <span className="text-[11px] text-muted-foreground">
               Página {currentPage + 1} de {totalPages}
@@ -490,8 +490,8 @@ export default function Projects() {
               onClick={() => setCurrentPage((page) => Math.min(totalPages - 1, page + 1))}
               disabled={currentPage >= totalPages - 1}
               className="h-7 px-3 border border-border rounded-[3px] text-[11px] font-medium text-foreground hover:bg-surface-secondary transition-colors disabled:opacity-50"
-            >
-              Siguiente
+              >
+              Next
             </button>
           </div>
         </div>
@@ -502,60 +502,60 @@ export default function Projects() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-6">
           <div className="bg-card border border-border rounded-[4px] p-5 max-w-lg w-full max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-[13px] font-semibold text-foreground">Nuevo Proyecto</h2>
-              <button onClick={() => setShowCreateModal(false)} className="inline-flex h-8 items-center justify-center rounded-[4px] border border-border bg-card px-3 text-[11px] font-medium text-foreground shadow-sm transition-colors hover:bg-surface-secondary">
-                <X className="mr-1 w-3.5 h-3.5" /> Cerrar
-              </button>
+              <h2 className="text-[13px] font-semibold text-foreground">New Project</h2>
+                <button onClick={() => setShowCreateModal(false)} className="inline-flex h-8 items-center justify-center rounded-[4px] border border-border bg-card px-3 text-[11px] font-medium text-foreground shadow-sm transition-colors hover:bg-surface-secondary">
+                  <X className="mr-1 w-3.5 h-3.5" /> Close
+                </button>
             </div>
 
             <form className="space-y-3" onSubmit={handleCreate}>
               <div>
-                <label className="block text-[11px] font-medium text-foreground mb-1">Nombre *</label>
+                <label className="block text-[11px] font-medium text-foreground mb-1">Name *</label>
                 <input
                   type="text"
                   required
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
-                  placeholder="Ej: CRM Implementation"
+                  placeholder="Ex: CRM Implementation"
                   className="w-full h-7 bg-surface-secondary border border-border rounded-[3px] px-2.5 text-[11px] text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-primary/20"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-medium text-foreground mb-1">Descripción</label>
+                <label className="block text-[11px] font-medium text-foreground mb-1">Description</label>
                 <textarea
                   rows={3}
                   value={formDesc}
                   onChange={(e) => setFormDesc(e.target.value)}
-                  placeholder="Objetivo y alcance del proyecto"
+                  placeholder="Objective and scope of the project"
                   className="w-full bg-surface-secondary border border-border rounded-[3px] px-2.5 py-1.5 text-[11px] text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-primary/20 resize-none"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-medium text-foreground mb-1">Fecha de entrega</label>
+                <label className="block text-[11px] font-medium text-foreground mb-1">End date</label>
                 <DatePickerField
                   value={formEnd}
                   onChange={setFormEnd}
                   minDate={tomorrowDate}
-                  placeholder="Selecciona la fecha de entrega"
+                  placeholder="Select end date"
                 />
               </div>
 
               <div className="flex gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateModal(false)}
-                  className="flex-1 h-7 border border-border rounded-[3px] text-[11px] font-medium text-foreground hover:bg-surface-secondary transition-colors"
-                >
-                  Cancelar
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateModal(false)}
+                    className="flex-1 h-7 border border-border rounded-[3px] text-[11px] font-medium text-foreground hover:bg-surface-secondary transition-colors"
+                  >
+                    Cancel
+                  </button>
                 <button
                   type="submit"
                   disabled={creating}
                   className="flex-1 h-7 bg-primary hover:bg-primary-hover text-primary-foreground rounded-[3px] text-[11px] font-medium transition-colors disabled:opacity-50"
                 >
-                  {creating ? 'Creando…' : 'Crear'}
+                    {creating ? 'Creating…' : 'Create'}
                 </button>
               </div>
             </form>

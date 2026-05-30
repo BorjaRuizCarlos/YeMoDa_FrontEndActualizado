@@ -36,13 +36,13 @@ export function GitHubConnectSection() {
         .then((res) => {
           setGithubLogin(res.github_login);
           setConnected(true);
-          toast.success('Cuenta de GitHub conectada', {
-            description: `Conectado como ${res.github_login}`,
+          toast.success('GitHub account connected', {
+            description: `Connected as ${res.github_login}`,
           });
         })
         .catch((err) => {
-          const detail = err instanceof Error ? err.message : 'Error desconocido';
-          toast.error('Error al completar la conexion con GitHub', { description: detail });
+          const detail = err instanceof Error ? err.message : 'Unknown error';
+          toast.error('Error completing GitHub connection', { description: detail });
         })
         .finally(() => { setBusy(false); setLoading(false); });
       return;
@@ -50,7 +50,7 @@ export function GitHubConnectSection() {
 
     if (params.get('github') === 'connected') {
       window.history.replaceState({}, '', window.location.pathname);
-      toast.error('Falto el codigo de autorizacion. Intenta de nuevo.');
+      toast.error('Missing authorization code. Please try again.');
     }
 
     // Check connection status with backend
@@ -60,7 +60,7 @@ export function GitHubConnectSection() {
           setConnected(true);
           setGithubLogin(status.github_login);
         } else if (status.reason === 'token_expired') {
-          toast.info('Tu conexion con GitHub expiro. Vuelve a conectar.');
+          toast.info('Your GitHub connection expired. Please reconnect.');
         }
       })
       .catch(() => { /* endpoint may not exist yet */ })
@@ -72,25 +72,25 @@ export function GitHubConnectSection() {
     try {
       await githubService.startOAuth();
     } catch {
-      toast.error('No se pudo iniciar la conexion con GitHub');
+      toast.error('Could not start GitHub connection');
       setBusy(false);
     }
   };
 
   const handleDisconnect = async () => {
-    if (!confirm('¿Estás seguro de que deseas desconectar tu cuenta de GitHub?')) {
+    if (!confirm('Are you sure you want to disconnect your GitHub account?')) {
       return;
     }
     setBusy(true);
     try {
       await githubService.disconnectGitHub();
-      toast.success('Desconectado exitosamente', {
-        description: 'Tu cuenta de GitHub ha sido desconectada',
+      toast.success('Disconnected successfully', {
+        description: 'Your GitHub account has been disconnected',
       });
       setTimeout(() => window.location.reload(), 500);
     } catch (err) {
-      const detail = err instanceof Error ? err.message : 'Error desconocido';
-      toast.error('No se pudo desconectar', { description: detail });
+      const detail = err instanceof Error ? err.message : 'Unknown error';
+      toast.error('Could not disconnect', { description: detail });
       setBusy(false);
     }
   };
@@ -99,7 +99,7 @@ export function GitHubConnectSection() {
     return (
       <div className="flex items-center gap-2 py-3">
         <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-        <span className="text-[11px] text-muted-foreground">Verificando GitHub...</span>
+        <span className="text-[11px] text-muted-foreground">Checking GitHub...</span>
       </div>
     );
   }
@@ -107,9 +107,9 @@ export function GitHubConnectSection() {
   if (isStakeholder) {
     return (
       <div className="rounded-[4px] border border-border bg-surface-secondary/30 px-3 py-3">
-        <p className="text-[12px] font-medium text-foreground">GitHub no disponible para Stakeholders</p>
+        <p className="text-[12px] font-medium text-foreground">GitHub not available for Stakeholders</p>
         <p className="text-[10px] text-muted-foreground mt-1">
-          Este rol solo tiene acceso de consulta dentro de la plataforma y no puede conectar una cuenta de GitHub.
+          This role has read-only access in the platform and cannot connect a GitHub account.
         </p>
       </div>
     );
@@ -124,7 +124,7 @@ export function GitHubConnectSection() {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
             <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
-            <span className="text-[12px] font-medium text-foreground">Ya estas conectado con GitHub</span>
+            <span className="text-[12px] font-medium text-foreground">Connected to GitHub</span>
           </div>
           {githubLogin && (
             <p className="text-[10px] text-muted-foreground mt-0.5">
@@ -137,7 +137,7 @@ export function GitHubConnectSection() {
           disabled={busy}
           className="px-3 py-1.5 bg-destructive/10 text-destructive hover:bg-destructive/20 rounded-[3px] text-[11px] font-medium transition-colors disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap"
         >
-          {busy ? 'Desconectando...' : 'Desconectar'}
+          {busy ? 'Disconnecting...' : 'Disconnect'}
         </button>
       </div>
     );
@@ -150,9 +150,9 @@ export function GitHubConnectSection() {
           <Github className="w-4 h-4 text-muted-foreground" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-[12px] font-medium text-foreground">GitHub no conectado</p>
+          <p className="text-[12px] font-medium text-foreground">GitHub not connected</p>
           <p className="text-[10px] text-muted-foreground">
-            Vincula tu cuenta de GitHub para gestionar repositorios en tus proyectos.
+            Link your GitHub account to manage repositories in your projects.
           </p>
         </div>
         <button
@@ -161,7 +161,7 @@ export function GitHubConnectSection() {
           className="flex items-center gap-1.5 px-3 py-1.5 bg-[#24292e] hover:bg-[#1b1f23] text-white rounded-[3px] text-[11px] font-medium transition-colors disabled:opacity-60"
         >
           <Github className="w-3.5 h-3.5" />
-          {busy ? 'Redirigiendo...' : 'Iniciar sesion con GitHub'}
+          {busy ? 'Redirecting...' : 'Sign in with GitHub'}
         </button>
       </div>
 

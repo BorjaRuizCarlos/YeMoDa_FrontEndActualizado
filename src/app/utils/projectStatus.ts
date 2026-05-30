@@ -18,12 +18,12 @@ interface ProjectStatusOption {
 }
 
 const PROJECT_STATUS_MAP: Record<ProjectWorkflowStatus, ProjectStatusOption> = {
-  planning:    { value: 'planning',    label: 'Planeación',  apiValue: 'Planning',     badge: 'planning' },
-  in_progress: { value: 'in_progress', label: 'En Progreso', apiValue: 'In Progress',  badge: 'info' },
-  review:      { value: 'review',      label: 'Revisión',    apiValue: 'Review',       badge: 'review' },
-  completed:   { value: 'completed',   label: 'Finalizado',  apiValue: 'Finished',     badge: 'success' },
-  retired:     { value: 'retired',     label: 'Retirado',    apiValue: 'Retired',      badge: 'retired' },
-  cancelled:   { value: 'cancelled',   label: 'Cancelado',   apiValue: 'Cancelled',    badge: 'cancelled' },
+  planning:    { value: 'planning',    label: 'Planning',    apiValue: 'Planning',     badge: 'planning' },
+  in_progress: { value: 'in_progress', label: 'In Progress', apiValue: 'In Progress',  badge: 'info' },
+  review:      { value: 'review',      label: 'Review',      apiValue: 'Review',       badge: 'review' },
+  completed:   { value: 'completed',   label: 'Completed',   apiValue: 'Finished',     badge: 'success' },
+  retired:     { value: 'retired',     label: 'Retired',     apiValue: 'Retired',      badge: 'retired' },
+  cancelled:   { value: 'cancelled',   label: 'Cancelled',   apiValue: 'Cancelled',    badge: 'cancelled' },
 };
 
 const PROJECT_STATUS_CHART_COLORS: Record<ProjectWorkflowStatus, string> = {
@@ -91,7 +91,7 @@ export function getProjectStatusOption(status?: string | null): ProjectStatusOpt
 export function getProjectStatusLabel(status?: string | null): string {
   const option = getProjectStatusOption(status);
   if (option) return option.label;
-  if (!status) return 'Sin estado';
+  if (!status) return 'No status';
   return status;
 }
 

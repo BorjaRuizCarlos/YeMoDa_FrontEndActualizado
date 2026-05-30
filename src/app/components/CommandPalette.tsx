@@ -35,10 +35,10 @@ interface NavCommand {
 
 const navCommands: NavCommand[] = [
   { name: 'Dashboard', path: '/dashboard', icon: LayoutGrid, keywords: 'inicio home overview resumen' },
-  { name: 'Proyectos', path: '/projects', icon: Briefcase, keywords: 'projects lista list' },
+  { name: 'Projects', path: '/projects', icon: Briefcase, keywords: 'projects lista list' },
   { name: 'Backlog', path: '/backlog', icon: ListChecks, keywords: 'tareas tasks kanban board' },
-  { name: 'Mi Perfil', path: '/profile', icon: CircleUser, keywords: 'perfil profile usuario user' },
-  { name: 'Configuración', path: '/settings', icon: SlidersHorizontal, keywords: 'settings ajustes preferences' },
+  { name: 'Profile', path: '/profile', icon: CircleUser, keywords: 'perfil profile usuario user' },
+  { name: 'Settings', path: '/settings', icon: SlidersHorizontal, keywords: 'settings ajustes preferences' },
 ];
 
 
@@ -69,18 +69,18 @@ export function CommandPalette() {
   return (
     <>
       {open && (
-        <CommandDialog open={open} onOpenChange={setOpen} title="Command Palette" description="Busca páginas, proyectos o acciones">
-      <CommandInput placeholder="Escribe un comando o busca..." />
+        <CommandDialog open={open} onOpenChange={setOpen} title="Command Palette" description="Search pages, projects or actions">
+      <CommandInput placeholder="Type a command or search..." />
       <CommandList>
         <CommandEmpty>
           <div className="flex flex-col items-center gap-2 py-4">
             <Search className="w-8 h-8 text-muted-foreground/40" />
-            <p className="text-muted-foreground text-sm">Sin resultados</p>
+            <p className="text-muted-foreground text-sm">No results</p>
           </div>
         </CommandEmpty>
 
         {/* Navigation */}
-        <CommandGroup heading="Navegación">
+        <CommandGroup heading="Navigation">
           {navCommands.map((item) => {
             const Icon = item.icon;
             return (
@@ -101,7 +101,7 @@ export function CommandPalette() {
 
         {/* Projects quick access — dynamic from API */}
         {allProjects && allProjects.length > 0 && (
-          <CommandGroup heading="Proyectos">
+          <CommandGroup heading="Projects">
             {allProjects.map((project) => (
               <CommandItem
                 key={project.id_project}
@@ -119,7 +119,7 @@ export function CommandPalette() {
         <CommandSeparator />
 
         {/* Actions */}
-        <CommandGroup heading="Acciones">
+        <CommandGroup heading="Actions">
           <CommandItem
             value="cambiar tema dark light oscuro claro"
             onSelect={() => runCommand(toggleTheme)}
@@ -129,7 +129,7 @@ export function CommandPalette() {
             ) : (
               <Moon className="w-4 h-4 text-muted-foreground" />
             )}
-            <span>{theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}</span>
+            <span>{theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}</span>
             <CommandShortcut>⌘T</CommandShortcut>
           </CommandItem>
           <CommandItem
@@ -137,7 +137,7 @@ export function CommandPalette() {
             onSelect={() => runCommand(() => { logout(); navigate('/login'); })}
           >
             <LogOut className="w-4 h-4 text-muted-foreground" />
-            <span>Cerrar sesión</span>
+            <span>Sign out</span>
             <CommandShortcut>⌘Q</CommandShortcut>
           </CommandItem>
         </CommandGroup>

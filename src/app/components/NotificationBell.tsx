@@ -61,7 +61,7 @@ export function NotificationBell() {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen(!open)}
-        aria-label="Notificaciones"
+        aria-label="Notifications"
         className="relative p-1.5 rounded-[3px] hover:bg-accent transition-colors"
       >
         <Bell className="w-4 h-4 text-muted-foreground" />
@@ -76,11 +76,11 @@ export function NotificationBell() {
         <div className="absolute right-0 top-full mt-1 w-80 bg-card border border-border rounded-[4px] shadow-lg z-50 overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between px-3 py-2 border-b border-border">
-            <span className="text-[12px] font-semibold text-foreground">Alertas</span>
+            <span className="text-[12px] font-semibold text-foreground">Alerts</span>
             <div className="flex items-center gap-2">
               {activeWarnings.length > 0 && (
                 <span className="text-[10px] font-medium text-warning bg-warning/10 px-1.5 py-0.5 rounded">
-                  {activeWarnings.length} activas
+                  {activeWarnings.length} active
                 </span>
               )}
               <button onClick={() => setOpen(false)} className="p-0.5 hover:bg-accent rounded">
@@ -94,7 +94,7 @@ export function NotificationBell() {
             {recent.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
                 <Bell className="w-6 h-6 mb-1.5 opacity-40" />
-                <span className="text-[12px]">Sin alertas recientes</span>
+                <span className="text-[12px]">No recent alerts</span>
               </div>
             ) : (
               recent.map((w) => (
@@ -119,7 +119,7 @@ export function NotificationBell() {
                   </div>
                   <button
                     type="button"
-                    title="Eliminar alerta"
+                    title="Delete alert"
                     onClick={(e) => void handleDelete(w.id_warning, e)}
                     disabled={deletingId === w.id_warning}
                     className="mt-0.5 shrink-0 opacity-0 group-hover:opacity-100 h-5 w-5 rounded-[3px] bg-destructive/10 border border-destructive/30 text-destructive inline-flex items-center justify-center transition-opacity disabled:opacity-50"
@@ -140,7 +140,7 @@ export function NotificationBell() {
             onClick={() => { setOpen(false); navigate('/alerts'); }}
             className="w-full px-3 py-2 text-[11px] font-medium text-primary hover:bg-accent/50 transition-colors border-t border-border text-center"
           >
-            Ver todas las alertas
+            View all alerts
           </button>
         </div>
       )}

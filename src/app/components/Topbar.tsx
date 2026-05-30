@@ -11,13 +11,13 @@ import { projectsService } from '../../services';
 /* ── Breadcrumb route labels ── */
 const routeLabels: Record<string, string> = {
   dashboard: 'Dashboard',
-  projects: 'Proyectos',
+  projects: 'Projects',
   backlog: 'Backlog',
-  profile: 'Perfil',
-  settings: 'Configuración',
+  profile: 'Profile',
+  settings: 'Settings',
   logs: 'Logs',
-  reports: 'Reportes',
-  alerts: 'Alertas',
+  reports: 'Reports',
+  alerts: 'Alerts',
 };
 
 export function Topbar() {
@@ -32,7 +32,7 @@ export function Topbar() {
 
   const handleLogout = () => {
     logout();
-    toast.success('Sesión cerrada');
+    toast.success('Signed out');
     navigate('/login');
   };
 
@@ -112,7 +112,7 @@ export function Topbar() {
           className="flex items-center gap-2 pl-2 pr-2 py-1 bg-background rounded-[3px] border border-input text-[12px] text-muted-foreground hover:border-foreground/20 transition-colors cursor-pointer w-48 shrink-0"
         >
           <Search className="w-3.5 h-3.5 shrink-0" />
-          <span className="flex-1 text-left truncate">Buscar...</span>
+          <span className="flex-1 text-left truncate">Search...</span>
           <kbd className="hidden sm:inline-flex items-center gap-0.5 rounded-[2px] border border-border bg-muted px-1 py-0.5 text-[10px] font-medium text-muted-foreground shrink-0">
             Ctrl K
           </kbd>
@@ -129,7 +129,7 @@ export function Topbar() {
           <TooltipTrigger asChild>
             <button
               onClick={toggleTheme}
-              aria-label={theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
               className="p-1.5 rounded-[3px] hover:bg-accent transition-colors"
             >
               {theme === 'dark' ? (
@@ -139,7 +139,7 @@ export function Topbar() {
               )}
             </button>
           </TooltipTrigger>
-          <TooltipContent className="text-xs">{theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}</TooltipContent>
+          <TooltipContent className="text-xs">{theme === 'dark' ? 'Light mode' : 'Dark mode'}</TooltipContent>
         </Tooltip>
 
         {/* Separator */}
@@ -151,7 +151,7 @@ export function Topbar() {
             <button
               onClick={() => setShowUserMenu(!showUserMenu)}
               className="flex items-center gap-1.5 pl-1.5 pr-1 py-1 rounded-[3px] hover:bg-accent transition-colors"
-              aria-label="Menú de usuario"
+              aria-label="User menu"
               aria-expanded={showUserMenu}
             >
               <div className="w-6 h-6 rounded-full bg-primary/90 flex items-center justify-center shrink-0">
@@ -175,14 +175,14 @@ export function Topbar() {
                   onClick={() => { setShowUserMenu(false); navigate('/profile'); }}
                   className="w-full text-left px-3 py-2 text-[12px] text-foreground hover:bg-accent transition-colors"
                 >
-                  Ver perfil
+                  View profile
                 </button>
                 <button
                   onClick={() => { setShowUserMenu(false); handleLogout(); }}
                   className="w-full text-left px-3 py-2 text-[12px] text-destructive hover:bg-accent transition-colors border-t border-border flex items-center gap-2"
                 >
                   <LogOut className="w-3.5 h-3.5" />
-                  Cerrar sesión
+                  Sign out
                 </button>
               </div>
             )}

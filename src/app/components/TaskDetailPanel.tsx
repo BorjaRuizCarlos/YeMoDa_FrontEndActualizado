@@ -1115,7 +1115,7 @@ export function TaskDetailPanel({
                 ) : branchRepos.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-6 gap-2 text-center">
                     <GitBranch className="w-6 h-6 text-muted-foreground/40" />
-                    <p className="text-[12px] text-muted-foreground">No hay repositorios conectados a este proyecto.</p>
+                    <p className="text-[12px] text-muted-foreground">No repositories connected to this project.</p>
                     <p className="text-[11px] text-muted-foreground/60">Vincula un repositorio en la pestaña Repositorios primero.</p>
                   </div>
                 ) : (

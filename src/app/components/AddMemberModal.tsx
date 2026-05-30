@@ -185,38 +185,38 @@ export function AddMemberModal({
         <DialogHeader className="px-4 pt-4 pb-2">
           <DialogTitle className="text-sm font-semibold flex items-center gap-2">
             <UserPlus className="w-4 h-4 text-primary" />
-            Agregar miembro al proyecto
+            Add member to project
           </DialogTitle>
         </DialogHeader>
 
         <div className="px-4 pb-2">
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-            <input
+              <input
               ref={inputRef}
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Buscar por nombre o email…"
+              placeholder="Search by name or email…"
               className="w-full h-8 pl-8 pr-3 text-[13px] bg-surface-secondary border border-border rounded-[3px] outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-colors placeholder:text-muted-foreground/60"
             />
             {searching && <Loader2 className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3 h-3 animate-spin text-muted-foreground" />}
           </div>
           {query.trim().length > 0 && query.trim().length < 3 && (
-            <p className="mt-1 text-[11px] text-muted-foreground">Escribe al menos 3 caracteres para buscar.</p>
+            <p className="mt-1 text-[11px] text-muted-foreground">Type at least 3 characters to search.</p>
           )}
         </div>
 
         <div className="max-h-[240px] overflow-y-auto scrollbar-app px-1 pb-2">
           {displayList.length === 0 && !searching ? (
-            <div className="flex flex-col items-center py-8 text-muted-foreground">
+              <div className="flex flex-col items-center py-8 text-muted-foreground">
               <User className="w-5 h-5 mb-1 opacity-40" />
               <span className="text-[12px]">
                 {query.trim().length >= 3
-                  ? 'No se encontraron usuarios con ese nombre o email.'
+                  ? 'No users found with that name or email.'
                   : candidates.length === 0
-                    ? 'Todos los usuarios ya son miembros.'
-                    : 'Sin resultados'}
+                    ? 'All users are already members.'
+                    : 'No results'}
               </span>
             </div>
           ) : (
@@ -257,16 +257,16 @@ export function AddMemberModal({
                 {getSystemRoleLabel(selectedUser.system_role ?? 0, selectedUser.system_role_name)}
               </p>
               {isStakeholderSystemUser(selectedUser) ? (
-                <p>El rol del proyecto queda fijado en Stakeholder para este usuario.</p>
+                <p>Project role will be set to Stakeholder for this user.</p>
               ) : loadingUserDetails ? (
-                <p>Verificando conexión de GitHub…</p>
+                <p>Checking GitHub connection…</p>
               ) : githubState.connected === true ? (
                 <p>
-                  GitHub conectado{githubState.login ? ` como ${githubState.login}` : ''}.
+                  GitHub connected{githubState.login ? ` as ${githubState.login}` : ''}.
                 </p>
               ) : (
                 <p className="text-destructive">
-                  No puedes agregarlo porque GitHub no esta conectado o no se pudo verificar localmente.
+                  You cannot add them because GitHub is not connected or could not be verified locally.
                 </p>
               )}
             </div>
@@ -274,7 +274,7 @@ export function AddMemberModal({
 
           <div>
             <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-[0.06em] block mb-1">
-              Rol en el proyecto
+              Project role
             </label>
             <select
               value={selectedRoleId ?? ''}
@@ -282,16 +282,16 @@ export function AddMemberModal({
               disabled={!selectedUser || isStakeholderSystemUser(selectedUser) || allowedRoles.length === 0}
               className="w-full h-8 px-2 text-[12px] bg-surface-secondary border border-border rounded-[3px] outline-none focus:border-primary/50"
             >
-              <option value="">Selecciona un rol</option>
+              <option value="">Select a role</option>
               {allowedRoles.map((r) => (
                 <option key={r.id_role} value={r.id_role}>{r.name}</option>
               ))}
             </select>
             {selectedUser && selectedRoleId == null && (
-              <p className="mt-1 text-[11px] text-destructive">Debes seleccionar un rol antes de agregar a la persona.</p>
+              <p className="mt-1 text-[11px] text-destructive">You must select a role before adding the person.</p>
             )}
             {selectedUser && isStakeholderSystemUser(selectedUser) && roleIds.stakeholderId == null && (
-              <p className="mt-1 text-[11px] text-destructive">No existe un rol de proyecto Stakeholder configurado.</p>
+              <p className="mt-1 text-[11px] text-destructive">No Stakeholder project role is configured.</p>
             )}
           </div>
 
@@ -302,7 +302,7 @@ export function AddMemberModal({
               disabled={submitting}
               className="h-8 px-3 text-[12px] rounded-[3px] border border-border hover:bg-accent/40 transition-colors disabled:opacity-50"
             >
-              Cancelar
+              Cancel
             </button>
             <button
               type="button"
@@ -311,7 +311,7 @@ export function AddMemberModal({
               className="h-8 px-3 text-[12px] font-medium rounded-[3px] bg-primary text-primary-foreground hover:bg-primary-hover transition-colors disabled:opacity-50 flex items-center gap-1.5"
             >
               {submitting && <Loader2 className="w-3 h-3 animate-spin" />}
-              Agregar
+              Add
             </button>
           </div>
         </div>

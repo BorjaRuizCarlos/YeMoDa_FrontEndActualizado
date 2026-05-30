@@ -26,10 +26,10 @@ const REPO_NAME_PATTERN = /^[A-Za-z0-9._-]+$/;
 
 function validateRepoName(rawName: string) {
   const name = rawName.trim();
-  if (!name) return 'El nombre del repositorio es obligatorio';
-  if (!REPO_NAME_PATTERN.test(name)) return 'Solo puedes usar letras, numeros, punto, guion y guion bajo.';
-  if (name.startsWith('.') || name.endsWith('.')) return 'El nombre no puede iniciar o terminar con punto.';
-  if (name.endsWith('.git')) return 'El nombre no puede terminar en .git.';
+  if (!name) return 'Repository name is required';
+  if (!REPO_NAME_PATTERN.test(name)) return 'Only letters, numbers, dot, hyphen and underscore are allowed.';
+  if (name.startsWith('.') || name.endsWith('.')) return 'Name cannot start or end with a dot.';
+  if (name.endsWith('.git')) return 'Name cannot end with .git.';
   return null;
 }
 
@@ -81,14 +81,14 @@ export function GitHubReposView({ projectId, canCreateRepos = true }: GitHubRepo
   }, [connected, projectId]);
 
   const handleDeleteRepo = async (idRepo: number, repoName: string) => {
-    if (!window.confirm(`¿Eliminar el repositorio "${repoName}" de YeMoDa? Esto no borra el repo en GitHub, solo lo desvincula.`)) return;
+    if (!window.confirm(`Delete the repository "${repoName}" from YeMoDa? This does not delete it on GitHub, it only unlinks it.`)) return;
     setDeletingRepoId(idRepo);
     try {
       await githubService.deleteRepo(idRepo);
       setRepos((prev) => prev.filter((r) => r.id_repo !== idRepo));
-      toast.success(`Repositorio "${repoName}" desvinculado.`);
+      toast.success(`Repository "${repoName}" unlinked.`);
     } catch {
-      toast.error('No se pudo eliminar el repositorio.');
+      toast.error('Could not delete repository.');
     } finally {
       setDeletingRepoId(null);
     }
@@ -99,7 +99,7 @@ export function GitHubReposView({ projectId, canCreateRepos = true }: GitHubRepo
     setRepos([]);
     setGithubLogin(null);
     setConnected(false);
-    toast.info('Sesion de GitHub desconectada');
+    toast.info('GitHub session disconnected');
   };
 
   // Create repo modal
@@ -122,15 +122,15 @@ export function GitHubReposView({ projectId, canCreateRepos = true }: GitHubRepo
       return;
     }
     if (!userId) {
-      toast.error('No hay sesion activa');
+      toast.error('No active session');
       return;
     }
     if (!canCreateRepos) {
-      toast.error('Tu rol dentro del proyecto solo puede consultar los repositorios.');
+      toast.error('Your project role can only view repositories.');
       return;
     }
     if (!connected) {
-      toast.error('Debes conectar tu cuenta de GitHub antes de crear un repositorio.');
+      toast.error('You must connect your GitHub account before creating a repository.');
       return;
     }
 
@@ -148,7 +148,7 @@ export function GitHubReposView({ projectId, canCreateRepos = true }: GitHubRepo
       const newRepo = result.repository;
       setRepos((prev) => [newRepo, ...prev.filter((repo) => repo.id_repo !== newRepo.id_repo)]);
 
-      toast.success('Repositorio creado', {
+      toast.success('Repository created', {
         description: (
           <a
             href={newRepo.html_url}
@@ -165,11 +165,11 @@ export function GitHubReposView({ projectId, canCreateRepos = true }: GitHubRepo
     } catch (err) {
       if (err instanceof ApiRequestError && err.status === 401) {
         handleDisconnect();
-        toast.error('Tu conexion de GitHub expiro', {
-          description: 'Vuelve a conectar tu cuenta para continuar',
+        toast.error('Your GitHub connection expired', {
+          description: 'Reconnect your account to continue',
         });
       } else {
-        let detail = 'Error desconocido';
+        let detail = 'Unknown error';
         if (err instanceof ApiRequestError) {
           const body = err.body as Record<string, unknown>;
           detail = body.detail
@@ -180,7 +180,7 @@ export function GitHubReposView({ projectId, canCreateRepos = true }: GitHubRepo
         } else if (err instanceof Error) {
           detail = err.message;
         }
-        toast.error('Error al crear el repositorio', { description: detail });
+        toast.error('Error creating repository', { description: detail });
       }
     } finally {
       setCreating(false);
@@ -191,7 +191,7 @@ export function GitHubReposView({ projectId, canCreateRepos = true }: GitHubRepo
     return (
       <div className="flex items-center justify-center py-16 gap-2">
         <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-        <span className="text-[11px] text-muted-foreground">Verificando conexion...</span>
+        <span className="text-[11px] text-muted-foreground">Checking connection...</span>
       </div>
     );
   }
@@ -203,11 +203,11 @@ export function GitHubReposView({ projectId, canCreateRepos = true }: GitHubRepo
           <Github className="w-6 h-6 text-muted-foreground" />
         </div>
         <div className="text-center">
-          <p className="text-[13px] font-medium text-foreground">GitHub no conectado</p>
+          <p className="text-[13px] font-medium text-foreground">GitHub not connected</p>
           <p className="text-[11px] text-muted-foreground mt-1 max-w-xs">
-            Conecta tu cuenta de GitHub desde tu{' '}
-            <span className="text-foreground font-medium">Perfil</span>{' '}
-            para ver y gestionar repositorios.
+            Connect your GitHub account from your{' '}
+            <span className="text-foreground font-medium">Profile</span>{' '}
+            to view and manage repositories.
           </p>
         </div>
       </div>
@@ -223,7 +223,7 @@ export function GitHubReposView({ projectId, canCreateRepos = true }: GitHubRepo
             <Github className="w-4 h-4 text-white" />
           </div>
           <div>
-            <p className="text-[12px] font-semibold text-foreground">GitHub conectado</p>
+            <p className="text-[12px] font-semibold text-foreground">GitHub connected</p>
             <p className="text-[10px] text-muted-foreground">
               {githubLogin && (
                 <span className="font-mono text-foreground">{githubLogin}</span>
@@ -234,11 +234,11 @@ export function GitHubReposView({ projectId, canCreateRepos = true }: GitHubRepo
         <button
           onClick={() => {
             if (!canCreateRepos) {
-              toast.error('Tu rol dentro del proyecto solo puede consultar los repositorios.');
+              toast.error('Your project role can only view repositories.');
               return;
             }
             if (!connected) {
-              toast.error('Debes conectar tu cuenta de GitHub antes de crear un repositorio.');
+              toast.error('You must connect your GitHub account before creating a repository.');
               return;
             }
             setShowModal(true);
@@ -247,40 +247,40 @@ export function GitHubReposView({ projectId, canCreateRepos = true }: GitHubRepo
           className="flex items-center gap-1.5 px-2.5 py-1 bg-primary hover:bg-primary-hover text-primary-foreground rounded-[3px] text-[11px] font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Plus className="w-3 h-3" />
-          Nuevo repo
+          New repo
         </button>
       </div>
 
       {/* Repos list */}
       <div className="bg-card border border-border rounded-[4px] p-4 mt-2">
         <h2 className="text-[12px] font-semibold text-foreground mb-3 pb-2.5 border-b border-border">
-          Repositorios creados
+          Created repositories
         </h2>
 
         {loadingRepos ? (
-          <div className="flex items-center justify-center py-8 gap-2">
+            <div className="flex items-center justify-center py-8 gap-2">
             <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-            <span className="text-[11px] text-muted-foreground">Cargando repositorios del proyecto...</span>
+            <span className="text-[11px] text-muted-foreground">Loading project repositories...</span>
           </div>
         ) : repos.length === 0 ? (
           <div className="flex flex-col items-center py-8 gap-2 text-center">
             <Github className="w-6 h-6 text-muted-foreground/40" />
-            <p className="text-[12px] text-muted-foreground">No hay repositorios asociados a este proyecto.</p>
+            <p className="text-[12px] text-muted-foreground">No repositories associated with this project.</p>
             <button
               onClick={() => {
                 if (!canCreateRepos) {
-                  toast.error('Tu rol dentro del proyecto solo puede consultar los repositorios.');
+                  toast.error('Your project role can only view repositories.');
                   return;
                 }
                 if (!connected) {
-                  toast.error('Debes conectar tu cuenta de GitHub antes de crear un repositorio.');
+                  toast.error('You must connect your GitHub account before creating a repository.');
                   return;
                 }
                 setShowModal(true);
               }}
               className="text-[11px] text-primary hover:underline mt-1"
             >
-              Crear el primero
+              Create the first one
             </button>
           </div>
         ) : (
@@ -340,13 +340,13 @@ export function GitHubReposView({ projectId, canCreateRepos = true }: GitHubRepo
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <Github className="w-4 h-4 text-foreground" />
-                <h3 className="text-[13px] font-semibold text-foreground">Nuevo repositorio</h3>
+                <h3 className="text-[13px] font-semibold text-foreground">New repository</h3>
               </div>
               <button
                 onClick={() => { setShowModal(false); resetForm(); }}
                 className="inline-flex h-8 items-center justify-center rounded-[4px] border border-border bg-card px-3 text-[11px] font-medium text-foreground shadow-sm transition-colors hover:bg-surface-secondary"
               >
-                <X className="mr-1 w-4 h-4" /> Cerrar
+                <X className="mr-1 w-4 h-4" /> Close
               </button>
             </div>
 
@@ -355,11 +355,11 @@ export function GitHubReposView({ projectId, canCreateRepos = true }: GitHubRepo
               {/* Repo name */}
               <div>
                 <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-[0.06em]">
-                  Nombre <span className="text-destructive">*</span>
+                  Name <span className="text-destructive">*</span>
                 </label>
                 <input
                   type="text"
-                  placeholder="mi-repositorio"
+                  placeholder="my-repository"
                   value={form.name}
                   onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                   onKeyDown={(e) => e.key === 'Enter' && handleCreateRepo()}
@@ -367,7 +367,7 @@ export function GitHubReposView({ projectId, canCreateRepos = true }: GitHubRepo
                   className="mt-1 w-full h-7 bg-surface-secondary border border-border rounded-[3px] px-2.5 text-[11px] text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-primary/30"
                 />
                 <p className="mt-1 text-[10px] text-muted-foreground">
-                  Usa solo letras, numeros, punto, guion y guion bajo.
+                  Use only letters, numbers, dot, hyphen and underscore.
                 </p>
                 {validateRepoName(form.name) && form.name.trim() && (
                   <p className="mt-1 text-[10px] text-destructive">{validateRepoName(form.name)}</p>
@@ -377,12 +377,12 @@ export function GitHubReposView({ projectId, canCreateRepos = true }: GitHubRepo
               {/* Description */}
               <div>
                 <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-[0.06em]">
-                  Descripcion{' '}
-                  <span className="normal-case text-muted-foreground/60">(opcional)</span>
+                  Description{' '}
+                  <span className="normal-case text-muted-foreground/60">(optional)</span>
                 </label>
                 <input
                   type="text"
-                  placeholder="Descripcion del repositorio"
+                  placeholder="Repository description"
                   value={form.description}
                   onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
                   className="mt-1 w-full h-7 bg-surface-secondary border border-border rounded-[3px] px-2.5 text-[11px] text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-primary/30"
@@ -398,7 +398,7 @@ export function GitHubReposView({ projectId, canCreateRepos = true }: GitHubRepo
                     onChange={(e) => setForm((f) => ({ ...f, private: e.target.checked }))}
                     className="w-3.5 h-3.5 accent-primary"
                   />
-                  <span className="text-[11px] text-foreground">Privado</span>
+                  <span className="text-[11px] text-foreground">Private</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
@@ -407,7 +407,7 @@ export function GitHubReposView({ projectId, canCreateRepos = true }: GitHubRepo
                     onChange={(e) => setForm((f) => ({ ...f, auto_init: e.target.checked }))}
                     className="w-3.5 h-3.5 accent-primary"
                   />
-                  <span className="text-[11px] text-foreground">Inicializar con README</span>
+                  <span className="text-[11px] text-foreground">Initialize with README</span>
                 </label>
               </div>
             </div>
@@ -418,14 +418,14 @@ export function GitHubReposView({ projectId, canCreateRepos = true }: GitHubRepo
                 disabled={creating}
                 className="px-3 py-1.5 border border-border rounded-[3px] text-[11px] text-foreground hover:bg-accent/30 transition-colors disabled:opacity-50"
               >
-                Cancelar
+                Cancel
               </button>
               <button
                 onClick={handleCreateRepo}
                 disabled={creating || Boolean(validateRepoName(form.name))}
                 className="px-3 py-1.5 bg-primary hover:bg-primary-hover text-primary-foreground rounded-[3px] text-[11px] font-medium transition-colors disabled:opacity-60"
               >
-                {creating ? 'Creando...' : 'Crear repositorio'}
+                {creating ? 'Creating...' : 'Create repository'}
               </button>
             </div>
           </div>

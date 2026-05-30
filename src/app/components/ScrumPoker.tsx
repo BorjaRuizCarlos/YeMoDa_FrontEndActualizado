@@ -23,11 +23,11 @@ export function ScrumPoker({ tasks, canAssignPoints, onTaskUpdated }: ScrumPoker
     try {
       const updated = await tasksService.update(taskId, { story_points: points });
       onTaskUpdated(updated);
-      toast.success(points != null ? `${points} puntos asignados.` : 'Puntos eliminados.');
+      toast.success(points != null ? `${points} points assigned.` : 'Points removed.');
       setEditingTaskId(null);
       setDraftPoints(null);
     } catch {
-      toast.error('No se pudo actualizar los story points.');
+      toast.error('Could not update story points.');
     } finally {
       setSavingId(null);
     }
@@ -44,10 +44,10 @@ export function ScrumPoker({ tasks, canAssignPoints, onTaskUpdated }: ScrumPoker
     setDraftPoints(null);
   };
 
-  if (tasks.length === 0) {
+    if (tasks.length === 0) {
     return (
       <div className="flex items-center justify-center py-20">
-        <p className="text-[13px] text-muted-foreground">No hay tareas en este proyecto.</p>
+        <p className="text-[13px] text-muted-foreground">No tasks in this project.</p>
       </div>
     );
   }
@@ -57,7 +57,7 @@ export function ScrumPoker({ tasks, canAssignPoints, onTaskUpdated }: ScrumPoker
       <div className="px-4 py-2.5 border-b border-border bg-surface-secondary/50 flex items-center justify-between">
         <h3 className="text-[12px] font-semibold text-foreground">Scrum Poker — Story Points</h3>
         {!canAssignPoints && (
-          <span className="text-[10px] text-muted-foreground italic">Solo PM puede asignar puntos</span>
+          <span className="text-[10px] text-muted-foreground italic">Only PM can assign points</span>
         )}
       </div>
       <div className="divide-y divide-border">
@@ -67,13 +67,13 @@ export function ScrumPoker({ tasks, canAssignPoints, onTaskUpdated }: ScrumPoker
               <p className="text-[12px] font-medium text-foreground truncate">{task.title}</p>
             </div>
             <div className="shrink-0 pt-0.5">
-              {canAssignPoints && editingTaskId !== task.id_task && savingId !== task.id_task && (
+                {canAssignPoints && editingTaskId !== task.id_task && savingId !== task.id_task && (
                 <button
                   type="button"
                   onClick={() => startEditing(task)}
                   className="h-7 px-2.5 rounded-[3px] border border-border text-[10px] font-medium text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors"
                 >
-                  Editar
+                  Edit
                 </button>
               )}
             </div>
@@ -100,7 +100,7 @@ export function ScrumPoker({ tasks, canAssignPoints, onTaskUpdated }: ScrumPoker
                             ? 'bg-primary border-primary text-primary-foreground'
                             : 'border-border text-muted-foreground hover:border-primary/50 hover:text-foreground hover:bg-accent/30'
                         }`}
-                        title={!isEditingCurrent ? 'Presiona Editar para cambiar puntos' : isSelected ? 'Click para quitar' : `Asignar ${n} puntos`}
+                        title={!isEditingCurrent ? 'Press Edit to change points' : isSelected ? 'Click to remove' : `Assign ${n} points`}
                       >
                         {n}
                       </button>
@@ -113,14 +113,14 @@ export function ScrumPoker({ tasks, canAssignPoints, onTaskUpdated }: ScrumPoker
                         onClick={() => void handleSavePoints(task.id_task, draftPoints)}
                         className="h-7 px-2.5 rounded-[3px] bg-primary text-primary-foreground text-[10px] font-medium"
                       >
-                        Guardar
+                        Save
                       </button>
                       <button
                         type="button"
                         onClick={cancelEditing}
                         className="h-7 px-2.5 rounded-[3px] border border-border text-[10px] font-medium text-muted-foreground hover:text-foreground"
                       >
-                        Cancelar
+                        Cancel
                       </button>
                     </>
                   ) : null}

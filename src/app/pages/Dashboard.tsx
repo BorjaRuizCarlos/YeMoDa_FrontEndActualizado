@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { motion } from 'motion/react';
 import {
-  Tooltip, ResponsiveContainer, PieChart, Pie, Cell,
+  ResponsiveContainer, PieChart, Pie, Cell,
 } from 'recharts';
 import {
   Briefcase, ArrowRight, RefreshCw, CheckCircle2, Timer, ListChecks,
@@ -273,6 +273,7 @@ export default function Dashboard() {
     () => portfolioHealthData.reduce((sum, d) => sum + d.value, 0),
     [portfolioHealthData],
   );
+  const [portfolioHealthHover, setPortfolioHealthHover] = useState<null | { color: string; name: string; value: number }>(null);
 
   // ── Project cards ──
   const upcomingProjects = useMemo(() => {
@@ -408,20 +409,30 @@ export default function Dashboard() {
                       paddingAngle={3}
                       stroke="var(--card)"
                       strokeWidth={2}
+                      onMouseEnter={(_, index) => {
+                        const item = portfolioHealthData[index];
+                        setPortfolioHealthHover(item ? { color: item.color, name: item.name, value: item.value } : null);
+                      }}
+                      onMouseLeave={() => setPortfolioHealthHover(null)}
                     >
                       {portfolioHealthData.map((d) => <Cell key={d.key} fill={d.color} />)}
                     </Pie>
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: 'var(--card)',
-                        border: '1px solid var(--border)',
-                        borderRadius: '6px',
-                        fontSize: '11px',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-                      }}
-                    />
                   </PieChart>
                 </ResponsiveContainer>
+                {portfolioHealthHover && (
+                  <div className="absolute left-[112px] top-[22px] z-10 pointer-events-none rounded-[6px] border border-border bg-card px-3 py-2 shadow-xl">
+                    <div className="flex items-center gap-2 text-[11px]">
+                      <span
+                        className="h-2.5 w-2.5 shrink-0 rounded-full"
+                        style={{ backgroundColor: portfolioHealthHover.color }}
+                      />
+                      <span className="font-medium text-foreground">{portfolioHealthHover.name}</span>
+                    </div>
+                    <div className="mt-1 text-[10px] text-muted-foreground">
+                      {portfolioHealthHover.value} {portfolioHealthHover.value === 1 ? 'project' : 'projects'}
+                    </div>
+                  </div>
+                )}
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                   <span className="text-[24px] font-bold text-foreground leading-none tabular-nums">
                     {portfolioHealthTotal}

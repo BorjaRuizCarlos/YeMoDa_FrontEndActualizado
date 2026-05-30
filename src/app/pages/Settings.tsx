@@ -52,10 +52,10 @@ export default function Settings() {
       if (saved) return JSON.parse(saved).notifToggles;
     } catch { /* ignore */ }
     return [
-      { label: 'Alertas de proyectos en riesgo', description: 'Notificacion cuando un proyecto cambia a estado de riesgo', enabled: true },
-      { label: 'Resumen diario por email', description: 'Reporte diario a las 8:00 AM', enabled: true },
-      { label: 'Notificaciones de comentarios', description: 'Cuando alguien comenta en tus proyectos', enabled: false },
-      { label: 'Recordatorios de plazos', description: '3 dias antes del deadline', enabled: true },
+      { label: 'At-risk project alerts', description: 'Notify when a project changes to at-risk status', enabled: true },
+      { label: 'Daily email summary', description: 'Daily report at 8:00 AM', enabled: true },
+      { label: 'Comment notifications', description: 'When someone comments on your projects', enabled: false },
+      { label: 'Deadline reminders', description: '3 days before the deadline', enabled: true },
     ];
   });
 
@@ -65,9 +65,9 @@ export default function Settings() {
       if (saved) return JSON.parse(saved).emailToggles;
     } catch { /* ignore */ }
     return [
-      { label: 'Boletines y actualizaciones', enabled: true },
-      { label: 'Tips y mejores practicas', enabled: false },
-      { label: 'Invitaciones a webinars', enabled: false },
+      { label: 'Newsletters and updates', enabled: true },
+      { label: 'Tips and best practices', enabled: false },
+      { label: 'Webinar invitations', enabled: false },
     ];
   });
 
@@ -88,8 +88,8 @@ export default function Settings() {
     setEmailToggles(prev => prev.map((t, idx) => idx === i ? { ...t, enabled: v } : t));
 
   const handleSendTest = () => {
-    if (!testEmail) { toast.error('Ingresa un correo electronico'); return; }
-    toast.success('Correo de prueba enviado', { description: `Email enviado a ${testEmail}` });
+    if (!testEmail) { toast.error('Enter an email address'); return; }
+    toast.success('Test email sent', { description: `Email sent to ${testEmail}` });
   };
 
   return (
@@ -97,12 +97,12 @@ export default function Settings() {
       <CommandBar
         actions={[
           {
-            label: saved ? 'Guardado ✓' : 'Guardar cambios',
+            label: saved ? 'Saved ✓' : 'Save changes',
             variant: 'primary',
             onClick: () => {
               localStorage.setItem('pip_settings', JSON.stringify({ notifToggles, emailToggles }));
               setSaved(true);
-              toast.success('Configuración guardada');
+              toast.success('Settings saved');
             },
           },
         ]}
@@ -113,8 +113,8 @@ export default function Settings() {
         <div className="bg-card border border-border rounded-[4px] p-4">
           <SectionHeader
             icon={<Bell className="w-3.5 h-3.5" />}
-            title="Notificaciones"
-            description="Configura como recibir alertas del sistema"
+            title="Notifications"
+            description="Configure how to receive system alerts"
           />
           {notifToggles.map((item, i) => (
             <ToggleRow key={i} item={item} onChange={(v) => updateNotif(i, v)} />
@@ -125,19 +125,19 @@ export default function Settings() {
         <div className="bg-card border border-border rounded-[4px] p-4">
           <SectionHeader
             icon={<Mail className="w-3.5 h-3.5" />}
-            title="Notificaciones por Email"
-            description="Comunicaciones por correo electronico"
+            title="Email notifications"
+            description="Email communications"
           />
           {emailToggles.map((item, i) => (
             <ToggleRow key={i} item={item} onChange={(v) => updateEmail(i, v)} />
           ))}
 
           <div className="mt-3 pt-2.5 border-t border-border">
-            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-[0.06em] mb-2">Enviar correo de prueba</p>
+            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-[0.06em] mb-2">Send test email</p>
             <div className="flex gap-2">
               <input
                 type="email"
-                placeholder="tu@correo.com"
+                placeholder="you@example.com"
                 value={testEmail}
                 onChange={(e) => setTestEmail(e.target.value)}
                 className="flex-1 h-7 bg-surface-secondary border border-border rounded-[3px] px-2.5 text-[11px] text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-primary/20"
@@ -147,7 +147,7 @@ export default function Settings() {
                 className="h-7 px-3 bg-primary hover:bg-primary-hover text-primary-foreground rounded-[3px] text-[11px] font-medium flex items-center gap-1.5 transition-colors"
               >
                 <Send className="w-3 h-3" />
-                Enviar prueba
+                Send test
               </button>
             </div>
             <p className="text-[10px] text-muted-foreground mt-1.5">
@@ -160,14 +160,14 @@ export default function Settings() {
         <div className="bg-card border border-border rounded-[4px] p-4">
           <SectionHeader
             icon={<Lock className="w-3.5 h-3.5" />}
-            title="Seguridad"
-            description="Contrasenas y autenticacion"
+            title="Security"
+            description="Passwords and authentication"
           />
           <div className="space-y-1">
             {[
-              { title: 'Cambiar contrasena', desc: 'Ultima actualizacion: hace 45 dias' },
-              { title: 'Autenticacion de dos factores', desc: 'No configurada' },
-              { title: 'Sesiones activas', desc: 'Ver y gestionar dispositivos' },
+              { title: 'Change password', desc: 'Last updated: 45 days ago' },
+              { title: 'Two-factor authentication', desc: 'Not configured' },
+              { title: 'Active sessions', desc: 'View and manage devices' },
             ].map((item, index) => (
               <button
                 key={index}
@@ -185,30 +185,30 @@ export default function Settings() {
         <div className="bg-card border border-border rounded-[4px] p-4">
           <SectionHeader
             icon={<Database className="w-3.5 h-3.5" />}
-            title="Datos"
-            description="Exportar e importar informacion"
+            title="Data"
+            description="Export and import data"
           />
           <div className="space-y-1">
             <button
-              onClick={() => toast.success('Exportacion iniciada', { description: 'Descargando datos en JSON' })}
+              onClick={() => toast.success('Export started', { description: 'Downloading data in JSON' })}
               className="w-full text-left py-2 px-3 border border-border rounded-[4px] hover:border-primary/40 transition-colors"
             >
-              <p className="text-[12px] font-medium text-foreground">Exportar datos</p>
-              <p className="text-[10px] text-muted-foreground">Descarga completa en JSON</p>
+              <p className="text-[12px] font-medium text-foreground">Export data</p>
+              <p className="text-[10px] text-muted-foreground">Full JSON download</p>
             </button>
             <button
-              onClick={() => toast.info('Selecciona un archivo CSV o Excel')}
+              onClick={() => toast.info('Select a CSV or Excel file')}
               className="w-full text-left py-2 px-3 border border-border rounded-[4px] hover:border-primary/40 transition-colors"
             >
-              <p className="text-[12px] font-medium text-foreground">Importar proyectos</p>
-              <p className="text-[10px] text-muted-foreground">Desde CSV o Excel</p>
+              <p className="text-[12px] font-medium text-foreground">Import projects</p>
+              <p className="text-[10px] text-muted-foreground">From CSV or Excel</p>
             </button>
             <button
-              onClick={() => toast.error('Accion no disponible en modo demo')}
+              onClick={() => toast.error('Action not available in demo mode')}
               className="w-full text-left py-2 px-3 bg-destructive/5 border border-destructive/20 rounded-[4px] hover:bg-destructive/10 transition-colors"
             >
-              <p className="text-[12px] font-medium text-destructive">Eliminar todos los datos</p>
-              <p className="text-[10px] text-destructive/70">Accion irreversible</p>
+              <p className="text-[12px] font-medium text-destructive">Delete all data</p>
+              <p className="text-[10px] text-destructive/70">Irreversible action</p>
             </button>
           </div>
         </div>
