@@ -238,7 +238,14 @@ export function CodeReviewPanel({ projectId, repoFullName }: CodeReviewPanelProp
         });
       }
     } catch (err) {
-      if (err instanceof ApiRequestError && aiProvider === 'copilot' && (err.status === 401 || err.status === 403)) {
+      const streamStatus = err instanceof Error ? Number(err.message.split(':')[0]) : NaN;
+      const isCopilotAuthError = aiProvider === 'copilot' && (
+        (err instanceof ApiRequestError && (err.status === 401 || err.status === 403))
+        || streamStatus === 401
+        || streamStatus === 403
+      );
+
+      if (isCopilotAuthError) {
         toast.error('Tu cuenta no tiene acceso activo a GitHub Copilot. Cambia a Yemoda AI o activa Copilot.');
       } else {
         const detail = err instanceof ApiRequestError
