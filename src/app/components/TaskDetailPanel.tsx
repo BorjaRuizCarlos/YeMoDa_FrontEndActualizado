@@ -937,36 +937,6 @@ export function TaskDetailPanel({
                         assignedTo: selectedIds.map((id) => String(id)),
                       }))}
                       disabled={!canEditAssignment}
-
-                    <div>
-                      <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-[0.06em] mb-2 flex items-center gap-1.5">
-                        <ShieldAlert className="w-3 h-3" /> Resultados IA ({aiReviewResults.length})
-                      </p>
-                      {loadingAiReviewResults ? (
-                        <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                          <Loader2 className="w-3 h-3 animate-spin" /> Cargando resultados…
-                        </div>
-                      ) : aiReviewResults.length === 0 ? (
-                        <p className="text-[11px] text-muted-foreground">Aún no hay resultados de IA guardados.</p>
-                      ) : (
-                        <div className="space-y-2">
-                          {aiReviewResults.map((result) => (
-                            <div key={result.id_review_result} className="rounded-[4px] border border-border bg-surface-secondary/30 p-2.5 space-y-1.5">
-                              <div className="flex items-center justify-between gap-2">
-                                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground uppercase tracking-[0.06em]">
-                                  <span className="rounded-full border border-border px-1.5 py-0.5 text-foreground">{result.provider}</span>
-                                  <span>{result.model_name ?? 'sin modelo'}</span>
-                                </div>
-                                <span className="text-[10px] text-muted-foreground">{formatCommentTimestamp(result.created_at)}</span>
-                              </div>
-                              <p className="text-[11px] text-foreground whitespace-pre-wrap leading-relaxed">
-                                {result.result_text}
-                              </p>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
                       emptyText="Sin personas asignadas"
                     />
                     {!canEditAssignment && (
@@ -974,6 +944,36 @@ export function TaskDetailPanel({
                     )}
                     {canEditAssignment && (
                       <p className="text-[10px] text-muted-foreground mt-1">La primera persona seleccionada se mantiene como responsable principal para compatibilidad.</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-[0.06em] mb-2 flex items-center gap-1.5">
+                      <ShieldAlert className="w-3 h-3" /> Resultados IA ({aiReviewResults.length})
+                    </p>
+                    {loadingAiReviewResults ? (
+                      <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                        <Loader2 className="w-3 h-3 animate-spin" /> Cargando resultados…
+                      </div>
+                    ) : aiReviewResults.length === 0 ? (
+                      <p className="text-[11px] text-muted-foreground">Aún no hay resultados de IA guardados.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {aiReviewResults.map((result) => (
+                          <div key={result.id_review_result} className="rounded-[4px] border border-border bg-surface-secondary/30 p-2.5 space-y-1.5">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground uppercase tracking-[0.06em]">
+                                <span className="rounded-full border border-border px-1.5 py-0.5 text-foreground">{result.provider}</span>
+                                <span>{result.model_name ?? 'sin modelo'}</span>
+                              </div>
+                              <span className="text-[10px] text-muted-foreground">{formatCommentTimestamp(result.created_at)}</span>
+                            </div>
+                            <p className="text-[11px] text-foreground whitespace-pre-wrap leading-relaxed">
+                              {result.result_text}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
                     )}
                   </div>
 
@@ -1452,7 +1452,7 @@ export function TaskDetailPanel({
                   className="h-8 rounded-[4px] border border-border bg-card px-2 text-[11px]"
                 >
                   {(aiProvider === 'copilot' ? (aiModels.copilot ?? []) : (aiModels.yemoda ?? [])).map((model) => (
-                    <option key={model} value={model}>{model}</option>
+                    <option key={model.id} value={model.id}>{model.id}</option>
                   ))}
                   {((aiProvider === 'copilot' ? (aiModels.copilot ?? []) : (aiModels.yemoda ?? [])).length === 0) && (
                     <option value="">Sin modelos disponibles</option>

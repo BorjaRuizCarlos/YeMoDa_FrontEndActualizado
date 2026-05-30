@@ -164,7 +164,10 @@ export function GitHubReposView({ projectId, canCreateRepos = true }: GitHubRepo
 
   useEffect(() => {
     const options = aiProvider === 'copilot' ? (aiModels.copilot ?? []) : (aiModels.yemoda ?? []);
-    setAiModel((current) => (current && options.includes(current) ? current : (options[0] ?? '')));
+    setAiModel((current) => {
+      if (current && options.some((model) => model.id === current)) return current;
+      return options[0]?.id ?? '';
+    });
   }, [aiProvider, aiModels]);
 
   const openFileInEditor = async (path: string) => {
@@ -650,7 +653,7 @@ export function GitHubReposView({ projectId, canCreateRepos = true }: GitHubRepo
                   className="h-6 rounded-[3px] border border-border bg-surface-secondary px-2 text-[10px]"
                 >
                   {(aiProvider === 'copilot' ? (aiModels.copilot ?? []) : (aiModels.yemoda ?? [])).map((model) => (
-                    <option key={model} value={model}>{model}</option>
+                    <option key={model.id} value={model.id}>{model.id}</option>
                   ))}
                   {((aiProvider === 'copilot' ? (aiModels.copilot ?? []) : (aiModels.yemoda ?? [])).length === 0) && (
                     <option value="">Sin modelos</option>
