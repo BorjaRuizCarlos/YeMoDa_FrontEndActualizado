@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Github, Plus, ExternalLink, Lock, Unlock, X, Trash2, Loader2, Folder, FileCode2, ChevronRight, Save } from 'lucide-react';
+import { Github, Plus, ExternalLink, Lock, Unlock, X, Trash2, Loader2, Folder, FileCode2, ChevronRight, Save, Sparkles, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { githubService } from '../../services/github.service';
+import { chatService, usersService } from '../../services';
 import { ApiRequestError } from '../../services/api';
 import { useAuth } from '../context/AuthContext';
-import type { ApiGithubContent, GitHubCommitFileChange, GitHubRepo } from '../../services/types';
+import type { AIProvider, ApiGithubContent, ChatModelsResponse, GitHubCommitFileChange, GitHubRepo } from '../../services/types';
 
 interface CreateRepoForm {
   name: string;
@@ -33,6 +34,12 @@ function validateRepoName(rawName: string) {
   return null;
 }
 
+function extractCodeFromAiResponse(raw: string): string {
+  const trimmed = raw.trim();
+  const block = trimmed.match(/^```(?:\w+)?\n([\s\S]*?)\n```$/);
+  return block ? block[1] : raw;
+}
+
 export function GitHubReposView({ projectId, canCreateRepos = true }: GitHubReposViewProps) {
   const { user } = useAuth();
   const userId = user?.id ?? null;
@@ -52,9 +59,19 @@ export function GitHubReposView({ projectId, canCreateRepos = true }: GitHubRepo
   const [listing, setListing] = useState<ApiGithubContent[]>([]);
   const [loadingListing, setLoadingListing] = useState(false);
   const [selectedFilePath, setSelectedFilePath] = useState('');
+  const [originalContent, setOriginalContent] = useState('');
   const [editorContent, setEditorContent] = useState('');
   const [commitMessage, setCommitMessage] = useState('feat: cambios desde IDE');
   const [savingCommit, setSavingCommit] = useState(false);
+  const [aiProvider, setAiProvider] = useState<AIProvider>('yemoda');
+  const [aiModels, setAiModels] = useState<ChatModelsResponse>({ copilot: [], yemoda: [] });
+  const [loadingAiModels, setLoadingAiModels] = useState(false);
+  const [aiModel, setAiModel] = useState('');
+  const [githubToken, setGithubToken] = useState<string | null>(null);
+  const [aiPrompt, setAiPrompt] = useState('Corrige y mejora este archivo manteniendo su funcionalidad.');
+  const [aiResponse, setAiResponse] = useState('');
+  const [aiProposedContent, setAiProposedContent] = useState('');
+  const [sendingAi, setSendingAi] = useState(false);
 
   const fetchRepos = async () => {
     if (!projectId || !connected) {
@@ -133,6 +150,23 @@ export function GitHubReposView({ projectId, canCreateRepos = true }: GitHubRepo
       .finally(() => setLoadingListing(false));
   }, [ideRepo, selectedBranch, currentPath]);
 
+  useEffect(() => {
+    setLoadingAiModels(true);
+    chatService.getModels()
+      .then((models) => setAiModels(models))
+      .catch(() => setAiModels({ copilot: [], yemoda: [] }))
+      .finally(() => setLoadingAiModels(false));
+
+    usersService.me()
+      .then((me) => setGithubToken(me.github_token ?? null))
+      .catch(() => setGithubToken(null));
+  }, []);
+
+  useEffect(() => {
+    const options = aiProvider === 'copilot' ? (aiModels.copilot ?? []) : (aiModels.yemoda ?? []);
+    setAiModel((current) => (current && options.includes(current) ? current : (options[0] ?? '')));
+  }, [aiProvider, aiModels]);
+
   const openFileInEditor = async (path: string) => {
     if (!ideRepo || !selectedBranch) return;
     try {
@@ -140,7 +174,10 @@ export function GitHubReposView({ projectId, canCreateRepos = true }: GitHubRepo
       const fileData = Array.isArray(data) ? data[0] : data;
       const decoded = fileData.content ? atob(fileData.content.replace(/\n/g, '')) : '';
       setSelectedFilePath(path);
+      setOriginalContent(decoded);
       setEditorContent(decoded);
+      setAiResponse('');
+      setAiProposedContent('');
     } catch {
       toast.error('No se pudo abrir el archivo seleccionado.');
     }
@@ -177,6 +214,58 @@ export function GitHubReposView({ projectId, canCreateRepos = true }: GitHubRepo
     } finally {
       setSavingCommit(false);
     }
+  };
+
+  const handleAskAiForCode = async () => {
+    if (!selectedFilePath) {
+      toast.error('Abre un archivo para pedir corrección con IA.');
+      return;
+    }
+
+    const effectiveProvider: AIProvider = aiProvider === 'copilot' && !githubToken ? 'yemoda' : aiProvider;
+    if (effectiveProvider !== aiProvider) {
+      toast.info('Copilot no está disponible para tu cuenta. Se usará Yemoda AI.');
+    }
+
+    setSendingAi(true);
+    setAiResponse('');
+    try {
+      const content = await chatService.send({
+        provider: effectiveProvider,
+        model: aiModel || undefined,
+        stream: false,
+        ...(effectiveProvider === 'copilot' && githubToken ? { github_token: githubToken } : {}),
+        messages: [{
+          role: 'user',
+          content: `${aiPrompt.trim() || 'Corrige este archivo.'}\n\nDevuelve el archivo completo corregido.${selectedFilePath ? `\nRuta: ${selectedFilePath}` : ''}`,
+        }],
+        context_type: 'ai_fix',
+        context_data: {
+          repo: ideRepo,
+          branch: selectedBranch,
+          file_path: selectedFilePath,
+          file_content: editorContent,
+          warnings: [],
+          diff: null,
+        },
+      });
+
+      setAiResponse(content || 'La IA no devolvió contenido.');
+      setAiProposedContent(content ? extractCodeFromAiResponse(content) : '');
+    } catch (err) {
+      const detail = err instanceof ApiRequestError
+        ? String(err.body?.detail ?? 'Error desconocido')
+        : err instanceof Error ? err.message : 'Error desconocido';
+      toast.error('No se pudo obtener corrección desde IA.', { description: detail });
+    } finally {
+      setSendingAi(false);
+    }
+  };
+
+  const handleApplyAiResponse = () => {
+    if (!aiProposedContent.trim()) return;
+    setEditorContent(aiProposedContent);
+    toast.success('Corrección IA aplicada al editor.');
   };
 
   const handleDeleteRepo = async (idRepo: number, repoName: string) => {
@@ -434,7 +523,7 @@ export function GitHubReposView({ projectId, canCreateRepos = true }: GitHubRepo
 
       <div className="bg-card border border-border rounded-[4px] p-4 mt-2 space-y-3">
         <div className="flex items-center justify-between gap-3 flex-wrap">
-          <h2 className="text-[12px] font-semibold text-foreground">IDE rápido</h2>
+          <h2 className="text-[12px] font-semibold text-foreground">IDE de revisión IA</h2>
           <div className="flex items-center gap-2">
             <select
               value={ideRepo}
@@ -511,12 +600,103 @@ export function GitHubReposView({ projectId, canCreateRepos = true }: GitHubRepo
             <div className="px-3 py-2 border-b border-border bg-surface-secondary/40 text-[10px] text-muted-foreground truncate">
               {selectedFilePath || 'Selecciona un archivo para editar'}
             </div>
-            <textarea
-              value={editorContent}
-              onChange={(e) => setEditorContent(e.target.value)}
-              disabled={!selectedFilePath}
-              className="flex-1 min-h-[180px] bg-card p-3 text-[11px] font-mono text-foreground resize-y focus:outline-none disabled:opacity-60"
-            />
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-0 border-b border-border">
+              <div className="border-r border-border">
+                <div className="px-2.5 py-1.5 text-[10px] text-muted-foreground bg-surface-secondary/20">Original</div>
+                <textarea
+                  value={originalContent}
+                  readOnly
+                  disabled={!selectedFilePath}
+                  className="w-full min-h-[160px] bg-card p-3 text-[11px] font-mono text-muted-foreground resize-y focus:outline-none disabled:opacity-60"
+                />
+              </div>
+              <div>
+                <div className="px-2.5 py-1.5 text-[10px] text-muted-foreground bg-surface-secondary/20">Propuesta aplicada</div>
+                <textarea
+                  value={editorContent}
+                  readOnly
+                  disabled={!selectedFilePath}
+                  className="w-full min-h-[160px] bg-card p-3 text-[11px] font-mono text-foreground resize-y focus:outline-none disabled:opacity-60"
+                />
+              </div>
+            </div>
+            <div className="px-3 py-2 border-t border-border bg-card space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-[0.06em] inline-flex items-center gap-1">
+                  <Sparkles className="w-3 h-3" /> Corrección IA
+                </p>
+                {loadingAiModels && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />}
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-[1fr_170px] gap-2">
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setAiProvider('copilot')}
+                    className={`h-6 px-2 rounded-[3px] border text-[10px] ${aiProvider === 'copilot' ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground'}`}
+                  >
+                    Copilot
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAiProvider('yemoda')}
+                    className={`h-6 px-2 rounded-[3px] border text-[10px] ${aiProvider === 'yemoda' ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground'}`}
+                  >
+                    Yemoda AI
+                  </button>
+                </div>
+                <select
+                  value={aiModel}
+                  onChange={(e) => setAiModel(e.target.value)}
+                  className="h-6 rounded-[3px] border border-border bg-surface-secondary px-2 text-[10px]"
+                >
+                  {(aiProvider === 'copilot' ? (aiModels.copilot ?? []) : (aiModels.yemoda ?? [])).map((model) => (
+                    <option key={model} value={model}>{model}</option>
+                  ))}
+                  {((aiProvider === 'copilot' ? (aiModels.copilot ?? []) : (aiModels.yemoda ?? [])).length === 0) && (
+                    <option value="">Sin modelos</option>
+                  )}
+                </select>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={aiPrompt}
+                  onChange={(e) => setAiPrompt(e.target.value)}
+                  className="flex-1 h-7 rounded-[3px] border border-border bg-surface-secondary px-2 text-[11px]"
+                  placeholder="Qué quieres corregir en este archivo..."
+                />
+                <button
+                  type="button"
+                  onClick={() => void handleAskAiForCode()}
+                  disabled={sendingAi || !selectedFilePath}
+                  className="h-7 px-2.5 rounded-[3px] bg-primary text-primary-foreground text-[11px] inline-flex items-center gap-1 disabled:opacity-50"
+                >
+                  {sendingAi ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
+                  Pedir
+                </button>
+              </div>
+              {aiResponse && (
+                <div className="space-y-1">
+                  <textarea
+                    value={aiResponse}
+                    readOnly
+                    className="w-full min-h-[90px] rounded-[3px] border border-border bg-surface-secondary/30 p-2 text-[10px] text-foreground font-mono"
+                  />
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleApplyAiResponse}
+                      className="h-6 px-2.5 rounded-[3px] border border-primary/30 bg-primary/10 text-primary text-[10px]"
+                    >
+                      Aplicar corrección al archivo
+                    </button>
+                    {aiProposedContent && aiProposedContent !== originalContent && (
+                      <span className="text-[10px] text-success">Cambios IA listos para commit</span>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
             <div className="px-3 py-2 border-t border-border bg-surface-secondary/20 flex flex-col sm:flex-row sm:items-center gap-2">
               <input
                 type="text"
@@ -528,11 +708,11 @@ export function GitHubReposView({ projectId, canCreateRepos = true }: GitHubRepo
               <button
                 type="button"
                 onClick={() => void handleCommitFromIde()}
-                disabled={savingCommit || !selectedFilePath}
+                disabled={savingCommit || !selectedFilePath || editorContent === originalContent}
                 className="h-7 px-3 bg-primary text-primary-foreground rounded-[3px] text-[11px] inline-flex items-center gap-1.5 disabled:opacity-50"
               >
                 {savingCommit ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
-                Commit
+                Commit / Push
               </button>
             </div>
           </div>
