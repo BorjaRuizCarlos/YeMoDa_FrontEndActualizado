@@ -7,6 +7,7 @@ import type {
   ApiBoard,
   ApiTaskWarning,
   ApiTaskAiFixPromptResponse,
+  ApiTaskAIReviewResult,
   ApiTaskAssignment,
   ApiBoardColumn,
   ApiSprint,
@@ -57,6 +58,13 @@ export interface CreateTaskAssignmentPayload {
 export interface UpdateTaskAssignmentPayload {
   task?: number;
   assigned_to?: number;
+}
+
+export interface CreateTaskAIReviewResultPayload {
+  task: number;
+  provider: 'copilot' | 'yemoda';
+  model_name?: string | null;
+  result_text: string;
 }
 
 export const tasksService = {
@@ -297,5 +305,15 @@ export const tasksService = {
   /** GET /api/tasks/:id/ai-fix-prompt/ — build AI fix prompt from active warnings */
   getAiFixPrompt(taskId: number): Promise<ApiTaskAiFixPromptResponse> {
     return api.get<ApiTaskAiFixPromptResponse>(`/tasks/${taskId}/ai-fix-prompt/`);
+  },
+
+  // ── AI review results ───────────────────────────────────────────────────
+  listAiReviewResults(taskId?: number): Promise<ApiTaskAIReviewResult[]> {
+    const url = taskId ? `/task-ai-review-results/?task=${taskId}` : '/task-ai-review-results/';
+    return api.get<ApiTaskAIReviewResult[]>(url);
+  },
+
+  createAiReviewResult(payload: CreateTaskAIReviewResultPayload): Promise<ApiTaskAIReviewResult> {
+    return api.post<ApiTaskAIReviewResult>('/task-ai-review-results/', payload);
   },
 };

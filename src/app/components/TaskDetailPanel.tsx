@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
 import { chatService, tasksService, githubService, usersService } from '../../services';
 import { ApiRequestError } from '../../services/api';
-import type { AIProvider, ApiTask, ApiTaskStatus, ApiTaskPriority, ApiTaskComment, ApiTaskWarning, ApiTaskAssignment, ApiTag, ChatModelsResponse, GitHubRepo, CreateBranchResponse, ApiBoardColumn, ApiSprint } from '../../services';
+import type { AIProvider, ApiTask, ApiTaskStatus, ApiTaskPriority, ApiTaskComment, ApiTaskWarning, ApiTaskAssignment, ApiTag, ChatModelsResponse, GitHubRepo, CreateBranchResponse, ApiBoardColumn, ApiSprint, ApiTaskAIReviewResult } from '../../services';
 import { WarningBadge } from './WarningBadge';
 import { TaskAssigneePicker } from './TaskAssigneePicker';
 import { DatePickerField } from './DatePickerField';
@@ -157,6 +157,8 @@ export function TaskDetailPanel({
   const [savingSprint, setSavingSprint] = useState(false);
   const [selectedWarningIds, setSelectedWarningIds] = useState<Set<number>>(new Set());
   const [deletingSelectedWarnings, setDeletingSelectedWarnings] = useState(false);
+  const [aiReviewResults, setAiReviewResults] = useState<ApiTaskAIReviewResult[]>([]);
+  const [loadingAiReviewResults, setLoadingAiReviewResults] = useState(false);
   const [aiProvider, setAiProvider] = useState<AIProvider>('copilot');
   const [aiModels, setAiModels] = useState<ChatModelsResponse>({ copilot: [], yemoda: [] });
   const [loadingAiModels, setLoadingAiModels] = useState(false);
@@ -274,7 +276,10 @@ export function TaskDetailPanel({
 
   useEffect(() => {
     const options = aiProvider === 'copilot' ? (aiModels.copilot ?? []) : (aiModels.yemoda ?? []);
-    setAiModel((current) => (current && options.includes(current) ? current : (options[0] ?? '')));
+    setAiModel((current) => {
+      if (current && options.some((model) => model.id === current)) return current;
+      return options[0]?.id ?? '';
+    });
   }, [aiProvider, aiModels]);
 
   const handleSendWarningsToAi = async () => {
@@ -332,16 +337,32 @@ export function TaskDetailPanel({
           aggregated += chunk;
           setAiSuggestedContent(extractBestCodeCandidate(aggregated));
         });
-        if (!extractBestCodeCandidate(aggregated).trim()) {
+        const finalResult = extractBestCodeCandidate(aggregated) || aggregated.trim();
+        if (!finalResult.trim()) {
           toast.error('La IA no devolvió código aplicable. Reintenta o cambia proveedor/modelo.');
+        } else {
+          await tasksService.createAiReviewResult({
+            task: task.id_task,
+            provider: effectiveProvider,
+            model_name: aiModel || null,
+            result_text: finalResult,
+          });
         }
       } else {
         const response = await chatService.send(payload);
         const raw = response || '';
         const extracted = extractBestCodeCandidate(raw);
         setAiSuggestedContent(extracted);
-        if (!extracted.trim()) {
+        const finalResult = extracted || raw.trim();
+        if (!finalResult.trim()) {
           toast.error('La IA no devolvió código aplicable. Reintenta o cambia proveedor/modelo.');
+        } else {
+          await tasksService.createAiReviewResult({
+            task: task.id_task,
+            provider: effectiveProvider,
+            model_name: aiModel || null,
+            result_text: finalResult,
+          });
         }
       }
 
@@ -516,6 +537,18 @@ export function TaskDetailPanel({
       })
       .finally(() => {
         if (!cancelled) setLoadingWarnings(false);
+      });
+
+    setLoadingAiReviewResults(true);
+    tasksService.listAiReviewResults(targetTaskId)
+      .then((results) => {
+        if (!cancelled) setAiReviewResults(results);
+      })
+      .catch(() => {
+        if (!cancelled) setAiReviewResults([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingAiReviewResults(false);
       });
 
     return () => {
@@ -904,6 +937,36 @@ export function TaskDetailPanel({
                         assignedTo: selectedIds.map((id) => String(id)),
                       }))}
                       disabled={!canEditAssignment}
+
+                    <div>
+                      <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-[0.06em] mb-2 flex items-center gap-1.5">
+                        <ShieldAlert className="w-3 h-3" /> Resultados IA ({aiReviewResults.length})
+                      </p>
+                      {loadingAiReviewResults ? (
+                        <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                          <Loader2 className="w-3 h-3 animate-spin" /> Cargando resultados…
+                        </div>
+                      ) : aiReviewResults.length === 0 ? (
+                        <p className="text-[11px] text-muted-foreground">Aún no hay resultados de IA guardados.</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {aiReviewResults.map((result) => (
+                            <div key={result.id_review_result} className="rounded-[4px] border border-border bg-surface-secondary/30 p-2.5 space-y-1.5">
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground uppercase tracking-[0.06em]">
+                                  <span className="rounded-full border border-border px-1.5 py-0.5 text-foreground">{result.provider}</span>
+                                  <span>{result.model_name ?? 'sin modelo'}</span>
+                                </div>
+                                <span className="text-[10px] text-muted-foreground">{formatCommentTimestamp(result.created_at)}</span>
+                              </div>
+                              <p className="text-[11px] text-foreground whitespace-pre-wrap leading-relaxed">
+                                {result.result_text}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                       emptyText="Sin personas asignadas"
                     />
                     {!canEditAssignment && (
@@ -1274,8 +1337,8 @@ export function TaskDetailPanel({
                           onChange={(e) => setAiModel(e.target.value)}
                           className="w-full h-7 rounded-[3px] border border-border bg-card px-2 text-[10px]"
                         >
-                          {(aiProvider === 'copilot' ? (aiModels.copilot ?? []) : (aiModels.yemoda ?? [])).map((model) => (
-                            <option key={model} value={model}>{model}</option>
+                            {(aiProvider === 'copilot' ? (aiModels.copilot ?? []) : (aiModels.yemoda ?? [])).map((model) => (
+                              <option key={model.id} value={model.id}>{model.id}</option>
                           ))}
                           {((aiProvider === 'copilot' ? (aiModels.copilot ?? []) : (aiModels.yemoda ?? [])).length === 0) && (
                             <option value="">Sin modelos disponibles</option>

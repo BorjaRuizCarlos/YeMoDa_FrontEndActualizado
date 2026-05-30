@@ -123,7 +123,10 @@ export function CodeReviewPanel({ projectId, repoFullName }: CodeReviewPanelProp
 
   useEffect(() => {
     const options = aiProvider === 'copilot' ? (aiModels.copilot ?? []) : (aiModels.yemoda ?? []);
-    setAiModel((current) => (current && options.includes(current) ? current : (options[0] ?? '')));
+    setAiModel((current) => {
+      if (current && options.some((model) => model.id === current)) return current;
+      return options[0]?.id ?? '';
+    });
   }, [aiProvider, aiModels]);
 
   const toggleTask = async (taskId: number) => {
@@ -231,6 +234,16 @@ export function CodeReviewPanel({ projectId, repoFullName }: CodeReviewPanelProp
           });
         });
 
+        const finalText = streamed.trim() || (chatByTask.get(task.id_task)?.at(-1)?.content ?? '').trim();
+        if (finalText) {
+          await tasksService.createAiReviewResult({
+            task: task.id_task,
+            provider: effectiveProvider,
+            model_name: aiModel || null,
+            result_text: finalText,
+          });
+        }
+
         if (!streamed.trim()) {
           setChatByTask((prev) => {
             const current = [...(prev.get(task.id_task) ?? [])];
@@ -241,6 +254,14 @@ export function CodeReviewPanel({ projectId, repoFullName }: CodeReviewPanelProp
         }
       } else {
         const response = await chatService.send(payload);
+        if (response.trim()) {
+          await tasksService.createAiReviewResult({
+            task: task.id_task,
+            provider: effectiveProvider,
+            model_name: aiModel || null,
+            result_text: response.trim(),
+          });
+        }
         setChatByTask((prev) => {
           const current = [...(prev.get(task.id_task) ?? [])];
           if (current.length === 0) return prev;
@@ -339,7 +360,7 @@ export function CodeReviewPanel({ projectId, repoFullName }: CodeReviewPanelProp
             className="w-full h-7 rounded-[3px] border border-border bg-surface-secondary px-2 text-[10px]"
           >
             {(aiProvider === 'copilot' ? (aiModels.copilot ?? []) : (aiModels.yemoda ?? [])).map((model) => (
-              <option key={model} value={model}>{model}</option>
+              <option key={model.id} value={model.id}>{model.id}</option>
             ))}
             {((aiProvider === 'copilot' ? (aiModels.copilot ?? []) : (aiModels.yemoda ?? [])).length === 0) && (
               <option value="">Sin modelos disponibles</option>

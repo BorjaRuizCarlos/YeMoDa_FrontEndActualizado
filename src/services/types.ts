@@ -370,6 +370,11 @@ export interface GitHubCommitResponse {
 
 export type AIProvider = 'copilot' | 'yemoda';
 
+export interface ChatModelInfo {
+  id: string;
+  provider: AIProvider;
+}
+
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
@@ -392,9 +397,26 @@ export interface ChatResponsePayload {
 }
 
 export interface ChatModelsResponse {
-  copilot?: string[];
-  yemoda?: string[];
-  [provider: string]: string[] | undefined;
+  copilot?: ChatModelInfo[];
+  yemoda?: ChatModelInfo[];
+  [provider: string]: ChatModelInfo[] | undefined;
+}
+
+export interface ApiTaskAIReviewResult {
+  id_review_result: number;
+  task: number;
+  user: number | null;
+  provider: AIProvider;
+  model_name: string | null;
+  result_text: string;
+  created_at: string;
+}
+
+export interface CreateTaskAIReviewResultPayload {
+  task: number;
+  provider: AIProvider;
+  model_name?: string | null;
+  result_text: string;
 }
 
 // ─── Branch creation ─────────────────────────────────────────────────────────
