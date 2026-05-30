@@ -335,9 +335,11 @@ export function TaskDetailPanel({
         let aggregated = '';
         await chatService.stream(payload, (chunk) => {
           aggregated += chunk;
-          setAiSuggestedContent(extractBestCodeCandidate(aggregated));
+          setAiSuggestedContent(aggregated); // show raw text as it streams
         });
-        const finalResult = extractBestCodeCandidate(aggregated) || aggregated.trim();
+        const finalCode = extractBestCodeCandidate(aggregated);
+        if (finalCode) setAiSuggestedContent(finalCode); // switch to extracted code at end
+        const finalResult = finalCode || aggregated.trim();
         if (!finalResult.trim()) {
           toast.error('La IA no devolvió código aplicable. Reintenta o cambia proveedor/modelo.');
         } else {
@@ -352,7 +354,7 @@ export function TaskDetailPanel({
         const response = await chatService.send(payload);
         const raw = response || '';
         const extracted = extractBestCodeCandidate(raw);
-        setAiSuggestedContent(extracted);
+        setAiSuggestedContent(extracted || raw); // show extracted code or full response
         const finalResult = extracted || raw.trim();
         if (!finalResult.trim()) {
           toast.error('La IA no devolvió código aplicable. Reintenta o cambia proveedor/modelo.');
@@ -1422,6 +1424,7 @@ export function TaskDetailPanel({
             <div className="px-4 py-3 border-b border-border flex items-center justify-between">
               <div>
                 <h2 className="text-[13px] font-semibold text-foreground">Revisión de cambios IA</h2>
+                {task && <p className="text-[11px] font-medium text-primary mt-0.5 truncate max-w-[500px]">{task.title}</p>}
                 <p className="text-[10px] text-muted-foreground mt-0.5">Código actual a la izquierda y respuesta IA en escucha a la derecha.</p>
               </div>
               <button
@@ -1434,7 +1437,7 @@ export function TaskDetailPanel({
             </div>
 
             <div className="px-4 py-3 border-b border-border bg-surface-secondary/20 space-y-2">
-              <div className="grid grid-cols-1 lg:grid-cols-[1fr_160px_160px_auto] gap-2 items-center">
+              <div className="grid grid-cols-1 lg:grid-cols-[1fr_160px_auto] gap-2 items-center">
                 <div className="h-8 rounded-[4px] border border-border bg-card px-2.5 text-[11px] text-muted-foreground flex items-center truncate">
                   {aiModalPrompt || 'Cargando prompt de corrección para esta tarea...'}
                 </div>
@@ -1446,22 +1449,10 @@ export function TaskDetailPanel({
                   <option value="copilot">Usar mi GitHub Copilot</option>
                   <option value="yemoda">Usar Yemoda AI</option>
                 </select>
-                <select
-                  value={aiModel}
-                  onChange={(e) => setAiModel(e.target.value)}
-                  className="h-8 rounded-[4px] border border-border bg-card px-2 text-[11px]"
-                >
-                  {(aiProvider === 'copilot' ? (aiModels.copilot ?? []) : (aiModels.yemoda ?? [])).map((model) => (
-                    <option key={model.id} value={model.id}>{model.id}</option>
-                  ))}
-                  {((aiProvider === 'copilot' ? (aiModels.copilot ?? []) : (aiModels.yemoda ?? [])).length === 0) && (
-                    <option value="">Sin modelos disponibles</option>
-                  )}
-                </select>
                 <button
                   type="button"
                   onClick={() => void handleSendWarningsToAi()}
-                  disabled={sendingToAi || aiSourceLoading || !aiModalPrompt.trim() || !aiSourcePath.trim() || !aiSourceContent.trim()}
+                  disabled={sendingToAi || aiSourceLoading || !aiModalPrompt.trim()}
                   className="h-8 px-3 bg-primary text-primary-foreground rounded-[4px] text-[11px] inline-flex items-center gap-1.5 disabled:opacity-50"
                 >
                   {sendingToAi ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
