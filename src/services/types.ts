@@ -378,7 +378,7 @@ export interface ChatMessage {
 export interface ChatRequestPayload {
   provider: AIProvider;
   model?: string;
-  message: string;
+  messages: ChatMessage[];
   stream?: boolean;
   github_token?: string;
   context_type?: 'ai_fix' | 'code_review' | string;

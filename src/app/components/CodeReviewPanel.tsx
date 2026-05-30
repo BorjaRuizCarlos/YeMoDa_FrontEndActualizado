@@ -184,6 +184,13 @@ export function CodeReviewPanel({ projectId, repoFullName }: CodeReviewPanelProp
 
     const nextUserMessage: ChatMessage = { role: 'user', content: input };
     const pendingAssistant: ChatMessage = { role: 'assistant', content: '' };
+    const previousMessages = chatByTask.get(task.id_task) ?? [];
+    const requestMessages = [
+      ...previousMessages
+        .filter((message) => message.content.trim().length > 0)
+        .map((message) => ({ role: message.role, content: message.content })),
+      { role: 'user' as const, content: input },
+    ];
 
     setChatByTask((prev) => {
       const current = prev.get(task.id_task) ?? [];
@@ -196,7 +203,7 @@ export function CodeReviewPanel({ projectId, repoFullName }: CodeReviewPanelProp
       const payload = {
         provider: aiProvider,
         model: aiModel || undefined,
-        message: input,
+        messages: requestMessages,
         stream: aiProvider === 'copilot',
         ...(aiProvider === 'copilot' && githubToken ? { github_token: githubToken } : {}),
         context_type: 'code_review' as const,

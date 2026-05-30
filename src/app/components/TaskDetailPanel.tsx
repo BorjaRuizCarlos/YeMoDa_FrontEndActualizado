@@ -262,7 +262,7 @@ export function TaskDetailPanel({
       const response = await chatService.send({
         provider: aiProvider,
         model: aiModel || undefined,
-        message: `Analiza y propone correcciones para la tarea ${task.title}`,
+        messages: [{ role: 'user', content: `Analiza y propone correcciones para la tarea ${task.title}` }],
         stream: false,
         ...(aiProvider === 'copilot' && githubToken ? { github_token: githubToken } : {}),
         context_type: 'ai_fix',
