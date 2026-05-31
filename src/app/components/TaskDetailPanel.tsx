@@ -18,6 +18,7 @@ import { useAuth } from '../context/AuthContext';
 const DONE_STATUS_NAMES = new Set(['done', 'completada', 'completado']);
 const EMPTY_ASSIGNABLE_USERS: Array<{ id: number; name: string }> = [];
 const EMPTY_TASK_ASSIGNMENTS: ApiTaskAssignment[] = [];
+const MAX_AI_FILE_LIST = 400;
 export const TASK_REOPEN_ID_STORAGE_KEY = 'pip_reopen_task_id';
 export const TASK_REOPEN_PATH_STORAGE_KEY = 'pip_reopen_task_path';
 
@@ -67,6 +68,22 @@ function extractBestCodeCandidate(content: string): string {
   const looksLikeAnalysis = /(^#\s|\|\s*ID\s*\||Resumen Ejecutivo|\*\*|```)/im.test(trimmed);
   if (looksLikeAnalysis) return '';
   return trimmed;
+}
+
+function decodeGitHubContent(content?: string): string {
+  if (!content) return '';
+  const compact = content.replace(/\n/g, '').trim();
+  const looksBase64 = compact.length > 0
+    && compact.length % 4 === 0
+    && /^[A-Za-z0-9+/=]+$/.test(compact);
+
+  if (!looksBase64) return content;
+
+  try {
+    return atob(compact);
+  } catch {
+    return content;
+  }
 }
 
 interface TaskDetailPanelProps {
@@ -170,6 +187,8 @@ export function TaskDetailPanel({
   const [aiSourceBranch, setAiSourceBranch] = useState('main');
   const [aiSourcePath, setAiSourcePath] = useState('');
   const [aiSourceContent, setAiSourceContent] = useState('');
+  const [aiRepoFiles, setAiRepoFiles] = useState<string[]>([]);
+  const [aiRepoFilesLoading, setAiRepoFilesLoading] = useState(false);
   const [aiSuggestedContent, setAiSuggestedContent] = useState('');
   const [aiModalPrompt, setAiModalPrompt] = useState('');
   const [committingAiFix, setCommittingAiFix] = useState(false);
@@ -282,6 +301,77 @@ export function TaskDetailPanel({
     });
   }, [aiProvider, aiModels]);
 
+  const loadRepoFiles = async (branch: string, preferredPath?: string): Promise<string[]> => {
+    if (!repoFullName) {
+      setAiRepoFiles([]);
+      return [];
+    }
+
+    setAiRepoFilesLoading(true);
+    try {
+      const queue: string[] = [''];
+      const visited = new Set<string>();
+      const collected: string[] = [];
+
+      while (queue.length > 0 && collected.length < MAX_AI_FILE_LIST) {
+        const currentPath = queue.shift() ?? '';
+        if (visited.has(currentPath)) continue;
+        visited.add(currentPath);
+
+        const content = await githubService.getContents(repoFullName, currentPath, branch || 'main');
+        if (Array.isArray(content)) {
+          for (const item of content) {
+            if (item.type === 'file' && item.path) {
+              collected.push(item.path);
+              if (collected.length >= MAX_AI_FILE_LIST) break;
+            } else if (item.type === 'dir' && item.path) {
+              queue.push(item.path);
+            }
+          }
+        } else if (content.type === 'file' && content.path) {
+          collected.push(content.path);
+        }
+      }
+
+      const files = Array.from(new Set(collected)).sort((a, b) => a.localeCompare(b));
+      setAiRepoFiles(files);
+
+      if (preferredPath && files.includes(preferredPath)) {
+        setAiSourcePath(preferredPath);
+      } else {
+        setAiSourcePath((current) => current || files[0] || '');
+      }
+
+      return files;
+    } catch {
+      setAiRepoFiles([]);
+      toast.error('No se pudo cargar el listado de archivos del repositorio.');
+      return [];
+    } finally {
+      setAiRepoFilesLoading(false);
+    }
+  };
+
+  const loadSourceFileContent = async (
+    filePath: string,
+    branch: string,
+    showSuccessToast = false,
+  ): Promise<string> => {
+    if (!repoFullName || !filePath.trim()) return '';
+
+    const result = await githubService.getContents(repoFullName, filePath.trim(), branch || 'main');
+    const fileData = Array.isArray(result) ? result.find((item) => item.type === 'file') : result;
+
+    if (!fileData || fileData.type !== 'file') {
+      throw new Error('La ruta seleccionada no corresponde a un archivo.');
+    }
+
+    const decoded = decodeGitHubContent(fileData.content);
+    setAiSourceContent(decoded);
+    if (showSuccessToast) toast.success('Código actual cargado.');
+    return decoded;
+  };
+
   const handleSendWarningsToAi = async () => {
     if (!task) return;
     const activeWarningsPayload = warnings.filter((w) => w.status === 'active').map((w) => ({
@@ -325,6 +415,7 @@ export function TaskDetailPanel({
           repo: repoFullName,
           branch: aiSourceBranch,
           file_path: aiSourcePath,
+          repo_file_index: aiRepoFiles,
           warnings: activeWarningsPayload,
           file_content: aiSourceContent,
           diff: latestDiff,
@@ -398,6 +489,7 @@ export function TaskDetailPanel({
     setShowAiCodeModal(true);
     setAiSuggestedContent('');
     setAiSourceLoading(true);
+    setAiRepoFiles([]);
 
     let nextBranch = 'main';
     let nextPath = '';
@@ -421,12 +513,25 @@ export function TaskDetailPanel({
         if (warningPath) nextPath = warningPath;
       }
 
-      if (repoFullName && nextPath) {
-        const result = await githubService.getContents(repoFullName, nextPath, nextBranch);
-        const fileData = Array.isArray(result) ? result[0] : result;
-        nextContent = fileData.content ? atob(fileData.content.replace(/\n/g, '')) : '';
+      let discoveredFiles: string[] = [];
+      if (repoFullName) {
+        discoveredFiles = await loadRepoFiles(nextBranch, nextPath);
       }
-    } catch {
+
+      if (!nextPath && discoveredFiles.length > 0) {
+        nextPath = discoveredFiles[0];
+      }
+
+      if (repoFullName && nextPath) {
+        nextContent = await loadSourceFileContent(nextPath, nextBranch, false);
+      }
+    } catch (err) {
+      const detail = err instanceof ApiRequestError
+        ? String(err.body?.detail ?? '')
+        : err instanceof Error ? err.message : '';
+      if (detail) {
+        toast.error('No se pudo cargar el código inicial.', { description: detail });
+      }
       // Keep defaults if source retrieval fails; user can still request AI using warnings context.
     } finally {
       setAiSourceBranch(nextBranch);
@@ -446,13 +551,12 @@ export function TaskDetailPanel({
     }
     setAiSourceLoading(true);
     try {
-      const result = await githubService.getContents(repoFullName, aiSourcePath.trim(), aiSourceBranch || 'main');
-      const fileData = Array.isArray(result) ? result[0] : result;
-      const content = fileData.content ? atob(fileData.content.replace(/\n/g, '')) : '';
-      setAiSourceContent(content);
-      toast.success('Código actual cargado.');
-    } catch {
-      toast.error('No se pudo cargar ese archivo. Verifica ruta y branch.');
+      await loadSourceFileContent(aiSourcePath.trim(), aiSourceBranch || 'main', true);
+    } catch (err) {
+      const detail = err instanceof ApiRequestError
+        ? String(err.body?.detail ?? 'Verifica ruta y branch.')
+        : err instanceof Error ? err.message : 'Verifica ruta y branch.';
+      toast.error('No se pudo cargar ese archivo.', { description: detail });
     } finally {
       setAiSourceLoading(false);
     }
@@ -1459,14 +1563,33 @@ export function TaskDetailPanel({
                   {sendingToAi ? 'En escucha...' : 'Mandar a IA'}
                 </button>
               </div>
-              <div className="grid grid-cols-1 lg:grid-cols-[1fr_120px_auto] gap-2 items-center">
-                <input
-                  type="text"
+              <div className="grid grid-cols-1 lg:grid-cols-[1fr_120px_auto_auto] gap-2 items-center">
+                <select
                   value={aiSourcePath}
-                  onChange={(e) => setAiSourcePath(e.target.value)}
-                  placeholder="Ruta del archivo (ej. app.py)"
-                  className="h-8 rounded-[4px] border border-border bg-card px-2.5 text-[11px]"
-                />
+                  onChange={(e) => {
+                    const nextPath = e.target.value;
+                    setAiSourcePath(nextPath);
+                    if (!nextPath) {
+                      setAiSourceContent('');
+                      return;
+                    }
+                    setAiSourceLoading(true);
+                    void loadSourceFileContent(nextPath, aiSourceBranch || 'main', false)
+                      .catch(() => {
+                        toast.error('No se pudo cargar el archivo seleccionado.');
+                      })
+                      .finally(() => setAiSourceLoading(false));
+                  }}
+                  disabled={aiRepoFilesLoading || aiSourceLoading}
+                  className="h-8 rounded-[4px] border border-border bg-card px-2 text-[11px]"
+                >
+                  <option value="">
+                    {aiRepoFilesLoading ? 'Cargando archivos...' : aiRepoFiles.length > 0 ? 'Selecciona archivo...' : 'Sin archivos disponibles'}
+                  </option>
+                  {aiRepoFiles.map((filePath) => (
+                    <option key={filePath} value={filePath}>{filePath}</option>
+                  ))}
+                </select>
                 <input
                   type="text"
                   value={aiSourceBranch}
@@ -1474,6 +1597,14 @@ export function TaskDetailPanel({
                   placeholder="branch"
                   className="h-8 rounded-[4px] border border-border bg-card px-2.5 text-[11px]"
                 />
+                <button
+                  type="button"
+                  onClick={() => void loadRepoFiles(aiSourceBranch || 'main', aiSourcePath || undefined)}
+                  disabled={aiRepoFilesLoading || aiSourceLoading || !repoFullName}
+                  className="h-8 px-3 border border-border rounded-[4px] text-[11px] hover:bg-accent disabled:opacity-50"
+                >
+                  {aiRepoFilesLoading ? 'Listando...' : 'Listar archivos'}
+                </button>
                 <button
                   type="button"
                   onClick={() => void handleLoadSourceFile()}
