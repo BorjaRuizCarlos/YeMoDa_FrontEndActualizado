@@ -377,7 +377,7 @@ export function TaskDetailPanel({
               queue.push(item.path);
             }
           }
-        } else if (content.type === 'file' && content.path) {
+        } else if (!Array.isArray(content) && content.type === 'file' && typeof content.path === 'string') {
           collected.push(content.path);
         }
       }
