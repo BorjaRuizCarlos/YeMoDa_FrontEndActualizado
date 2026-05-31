@@ -20,6 +20,12 @@ const DONE_STATUS_NAMES = new Set(['done', 'completada', 'completado']);
 const EMPTY_ASSIGNABLE_USERS: Array<{ id: number; name: string }> = [];
 const EMPTY_TASK_ASSIGNMENTS: ApiTaskAssignment[] = [];
 const MAX_AI_FILE_LIST = 400;
+const AI_FIX_DIFF_INSTRUCTION = [
+  'RESPONDE SOLO EN FORMATO UNIFIED DIFF (git patch).',
+  'Incluye encabezados diff --git, rutas a/ y b/, y bloques @@ por cada archivo modificado.',
+  'No agregues explicación fuera del diff.',
+  'Si no hay cambios, responde exactamente: NO_CHANGES.',
+].join('\n');
 export const TASK_REOPEN_ID_STORAGE_KEY = 'pip_reopen_task_id';
 export const TASK_REOPEN_PATH_STORAGE_KEY = 'pip_reopen_task_path';
 
@@ -521,7 +527,8 @@ export function TaskDetailPanel({
         latestDiff = null;
       }
 
-      const promptToSend = aiModalPrompt.trim() || `Analiza y propone correcciones para la tarea ${task.title}`;
+      const basePrompt = aiModalPrompt.trim() || `Analiza y propone correcciones para la tarea ${task.title}`;
+      const promptToSend = `${basePrompt}\n\n${AI_FIX_DIFF_INSTRUCTION}`;
       const payload = {
         provider: effectiveProvider,
         model: aiModel || undefined,
