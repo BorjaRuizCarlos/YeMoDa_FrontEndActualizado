@@ -245,6 +245,17 @@ function applyUnifiedPatchToContent(originalContent: string, patch: string): str
       cursor += 1;
     }
 
+    const tryRealignCursor = (expected: string): boolean => {
+      const nearest = findNearestMatchingLine(expected, cursor);
+      if (nearest < 0 || nearest === cursor) return false;
+      while (cursor < nearest && cursor < sourceLines.length) {
+        // Keep untouched lines when we advance to the nearest context anchor.
+        output.push(sourceLines[cursor]);
+        cursor += 1;
+      }
+      return true;
+    };
+
     idx += 1;
     while (idx < patchLines.length && !patchLines[idx].startsWith('@@')) {
       const patchLine = patchLines[idx];
@@ -256,7 +267,11 @@ function applyUnifiedPatchToContent(originalContent: string, patch: string): str
 
       if (patchLine.startsWith(' ')) {
         const expected = patchLine.slice(1);
-        const actual = sourceLines[cursor] ?? '';
+        let actual = sourceLines[cursor] ?? '';
+        if (!sameLine(actual, expected)) {
+          tryRealignCursor(expected);
+          actual = sourceLines[cursor] ?? '';
+        }
         if (!sameLine(actual, expected)) {
           throw new Error('El diff no coincide con el contenido actual del archivo (línea de contexto).');
         }
@@ -264,7 +279,11 @@ function applyUnifiedPatchToContent(originalContent: string, patch: string): str
         cursor += 1;
       } else if (patchLine.startsWith('-')) {
         const expected = patchLine.slice(1);
-        const actual = sourceLines[cursor] ?? '';
+        let actual = sourceLines[cursor] ?? '';
+        if (!sameLine(actual, expected)) {
+          tryRealignCursor(expected);
+          actual = sourceLines[cursor] ?? '';
+        }
         if (!sameLine(actual, expected)) {
           throw new Error('El diff no coincide con el contenido actual del archivo (línea removida).');
         }
@@ -274,7 +293,11 @@ function applyUnifiedPatchToContent(originalContent: string, patch: string): str
       } else if (patchLine.startsWith('\\')) {
         // "\ No newline at end of file" marker, ignore.
       } else {
-        const actual = sourceLines[cursor] ?? '';
+        let actual = sourceLines[cursor] ?? '';
+        if (!sameLine(actual, patchLine)) {
+          tryRealignCursor(patchLine);
+          actual = sourceLines[cursor] ?? '';
+        }
         if (!sameLine(actual, patchLine)) {
           throw new Error('El diff contiene una línea inesperada que no coincide con el archivo actual.');
         }
