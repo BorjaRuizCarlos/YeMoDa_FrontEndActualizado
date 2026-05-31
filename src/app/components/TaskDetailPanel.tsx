@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import {
   X, Calendar, User, MessageSquare, AlertTriangle,
   GitCommit, Send, Loader2, Pencil, Trash2, Plus,
-  GitBranch, Copy, Check, Info, ShieldAlert,
+  GitBranch, Copy, Check, Info, ShieldAlert, FileCode2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
@@ -13,6 +13,7 @@ import { WarningBadge } from './WarningBadge';
 import { TaskAssigneePicker } from './TaskAssigneePicker';
 import { DatePickerField } from './DatePickerField';
 import { TagColorPicker } from './TagColorPicker';
+import { CodeDiffViewer } from './CodeDiffViewer';
 import { useAuth } from '../context/AuthContext';
 
 const DONE_STATUS_NAMES = new Set(['done', 'completada', 'completado']);
@@ -84,6 +85,31 @@ function decodeGitHubContent(content?: string): string {
   } catch {
     return content;
   }
+}
+
+interface AiFilePatch {
+  filename: string;
+  patch: string;
+}
+
+function parseAiDiff(diffText: string): AiFilePatch[] {
+  if (!diffText.trim()) return [];
+  const sections = diffText.split(/^diff --git /m).filter((section) => section.trim());
+  if (sections.length === 0) return [];
+
+  const files: AiFilePatch[] = [];
+  for (const section of sections) {
+    const lines = section.split('\n');
+    const headerMatch = lines[0]?.match(/a\/.+ b\/(.+)/);
+    const filename = headerMatch ? headerMatch[1].trim() : '';
+    const patchIndex = lines.findIndex((line) => line.startsWith('@@'));
+    const patch = patchIndex >= 0 ? lines.slice(patchIndex).join('\n').trim() : '';
+    if (filename && patch) {
+      files.push({ filename, patch });
+    }
+  }
+
+  return files;
 }
 
 interface TaskDetailPanelProps {
@@ -190,6 +216,7 @@ export function TaskDetailPanel({
   const [aiRepoFiles, setAiRepoFiles] = useState<string[]>([]);
   const [aiRepoFilesLoading, setAiRepoFilesLoading] = useState(false);
   const [aiSuggestedContent, setAiSuggestedContent] = useState('');
+  const [aiSuggestedPatches, setAiSuggestedPatches] = useState<AiFilePatch[]>([]);
   const [aiModalPrompt, setAiModalPrompt] = useState('');
   const [committingAiFix, setCommittingAiFix] = useState(false);
   const [taskForm, setTaskForm] = useState({
@@ -300,6 +327,10 @@ export function TaskDetailPanel({
       return options[0]?.id ?? '';
     });
   }, [aiProvider, aiModels]);
+
+  useEffect(() => {
+    setAiSuggestedPatches(parseAiDiff(aiSuggestedContent));
+  }, [aiSuggestedContent]);
 
   const buildRefCandidates = (ref: string): string[] => {
     const candidates = [ref.trim(), 'main', 'master', ''];
@@ -426,6 +457,19 @@ export function TaskDetailPanel({
     }
     if (showSuccessToast) toast.success('Código actual cargado.');
     return decoded;
+  };
+
+  const handleSelectRepoFile = async (filePath: string) => {
+    if (!filePath) return;
+    setAiSourcePath(filePath);
+    setAiSourceLoading(true);
+    try {
+      await loadSourceFileContent(filePath, aiSourceBranch || 'main', false);
+    } catch {
+      toast.error('No se pudo cargar el archivo seleccionado.');
+    } finally {
+      setAiSourceLoading(false);
+    }
   };
 
   const handleSendWarningsToAi = async () => {
@@ -566,6 +610,7 @@ export function TaskDetailPanel({
 
     setShowAiCodeModal(true);
     setAiSuggestedContent('');
+    setAiSuggestedPatches([]);
     setAiSourceLoading(true);
     setAiRepoFiles([]);
 
@@ -1645,33 +1690,10 @@ export function TaskDetailPanel({
                   {sendingToAi ? 'En escucha...' : 'Mandar a IA'}
                 </button>
               </div>
-              <div className="grid grid-cols-1 lg:grid-cols-[1fr_160px_auto_auto] gap-2 items-center">
-                <select
-                  value={aiSourcePath}
-                  onChange={(e) => {
-                    const nextPath = e.target.value;
-                    setAiSourcePath(nextPath);
-                    if (!nextPath) {
-                      setAiSourceContent('');
-                      return;
-                    }
-                    setAiSourceLoading(true);
-                    void loadSourceFileContent(nextPath, aiSourceBranch || 'main', false)
-                      .catch(() => {
-                        toast.error('No se pudo cargar el archivo seleccionado.');
-                      })
-                      .finally(() => setAiSourceLoading(false));
-                  }}
-                  disabled={aiRepoFilesLoading || aiSourceLoading}
-                  className="h-8 rounded-[4px] border border-border bg-card px-2 text-[11px]"
-                >
-                  <option value="">
-                    {aiRepoFilesLoading ? 'Cargando archivos...' : aiRepoFiles.length > 0 ? 'Selecciona archivo...' : 'Sin archivos disponibles'}
-                  </option>
-                  {aiRepoFiles.map((filePath) => (
-                    <option key={filePath} value={filePath}>{filePath}</option>
-                  ))}
-                </select>
+              <div className="grid grid-cols-1 lg:grid-cols-[1fr_160px_auto] gap-2 items-center">
+                <div className="h-8 rounded-[4px] border border-border bg-card px-2.5 text-[11px] text-muted-foreground flex items-center truncate">
+                  Archivo activo: {aiSourcePath || 'Ninguno'}
+                </div>
                 <div
                   className="h-8 rounded-[4px] border border-border bg-card px-2.5 text-[11px] text-muted-foreground flex items-center"
                   title={aiSourceBranch || 'main'}
@@ -1686,33 +1708,61 @@ export function TaskDetailPanel({
                 >
                   {aiRepoFilesLoading ? 'Listando...' : 'Listar archivos'}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => void handleLoadSourceFile()}
-                  disabled={aiSourceLoading || !aiSourcePath.trim()}
-                  className="h-8 px-3 border border-border rounded-[4px] text-[11px] hover:bg-accent disabled:opacity-50"
-                >
-                  {aiSourceLoading ? 'Cargando...' : 'Cargar código actual'}
-                </button>
               </div>
             </div>
 
             <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-2">
               <div className="border-r border-border min-h-0 flex flex-col">
+                <div className="px-3 py-2 border-b border-border bg-surface-secondary/30 text-[10px] text-muted-foreground">Archivos del repositorio ({aiRepoFiles.length})</div>
+                <div className="h-44 border-b border-border overflow-auto bg-card">
+                  {aiRepoFilesLoading ? (
+                    <div className="h-full flex items-center justify-center text-[11px] text-muted-foreground gap-2">
+                      <Loader2 className="w-3 h-3 animate-spin" /> Cargando archivos...
+                    </div>
+                  ) : aiRepoFiles.length === 0 ? (
+                    <div className="h-full flex items-center justify-center text-[11px] text-muted-foreground">Sin archivos disponibles</div>
+                  ) : (
+                    <div className="p-2 space-y-1">
+                      {aiRepoFiles.map((filePath) => {
+                        const isActive = filePath === aiSourcePath;
+                        const hasPatch = aiSuggestedPatches.some((patch) => patch.filename === filePath);
+                        return (
+                          <button
+                            key={filePath}
+                            type="button"
+                            onClick={() => void handleSelectRepoFile(filePath)}
+                            className={`w-full text-left px-2 py-1 rounded-[3px] text-[11px] flex items-center gap-2 ${isActive ? 'bg-primary/10 text-primary border border-primary/30' : 'hover:bg-surface-secondary/50 text-muted-foreground border border-transparent'}`}
+                          >
+                            <FileCode2 className="w-3.5 h-3.5 shrink-0" />
+                            <span className="truncate flex-1">{filePath}</span>
+                            {hasPatch && <span className="w-2 h-2 rounded-full bg-warning shrink-0" title="Detectado como archivo modificado por IA" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
                 <div className="px-3 py-2 border-b border-border bg-surface-secondary/30 text-[10px] text-muted-foreground">Código actual</div>
-                <textarea
-                  value={aiSourceLoading ? 'Cargando código actual...' : aiSourceContent}
-                  readOnly
-                  className="flex-1 min-h-0 bg-card p-3 text-[11px] font-mono text-muted-foreground resize-none focus:outline-none"
-                />
+                <pre className="flex-1 min-h-0 bg-card p-3 text-[11px] font-mono text-muted-foreground overflow-auto whitespace-pre">
+                  {aiSourceLoading ? 'Cargando código actual...' : (aiSourceContent || 'Selecciona un archivo para ver su contenido.')}
+                </pre>
               </div>
               <div className="min-h-0 flex flex-col">
-                <div className="px-3 py-2 border-b border-border bg-surface-secondary/30 text-[10px] text-muted-foreground">Respuesta IA (código propuesto)</div>
-                <textarea
-                  value={aiSuggestedContent}
-                  readOnly
-                  className="flex-1 min-h-0 bg-card p-3 text-[11px] font-mono text-foreground resize-none focus:outline-none"
-                />
+                <div className="px-3 py-2 border-b border-border bg-surface-secondary/30 text-[10px] text-muted-foreground flex items-center justify-between">
+                  <span>Respuesta IA (código propuesto)</span>
+                  {aiSuggestedPatches.length > 0 && <span className="text-[10px] text-warning">{aiSuggestedPatches.length} archivo(s) con cambios detectados</span>}
+                </div>
+                <div className="flex-1 min-h-0 bg-card p-3 overflow-auto">
+                  {aiSuggestedPatches.length > 0 ? (
+                    <div className="space-y-2">
+                      {aiSuggestedPatches.map((patch) => (
+                        <CodeDiffViewer key={`${patch.filename}:${patch.patch.slice(0, 40)}`} filename={patch.filename} patch={patch.patch} />
+                      ))}
+                    </div>
+                  ) : (
+                    <pre className="text-[11px] font-mono text-foreground whitespace-pre-wrap">{aiSuggestedContent || 'La respuesta de IA aparecerá aquí.'}</pre>
+                  )}
+                </div>
               </div>
             </div>
 
