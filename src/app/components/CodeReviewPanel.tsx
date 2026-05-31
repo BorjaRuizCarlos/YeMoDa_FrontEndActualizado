@@ -255,12 +255,16 @@ export function CodeReviewPanel({ projectId, repoFullName }: CodeReviewPanelProp
 
         const finalText = streamed.trim() || (chatByTask.get(task.id_task)?.at(-1)?.content ?? '').trim();
         if (finalText) {
-          await tasksService.createAiReviewResult({
-            task: task.id_task,
-            provider: effectiveProvider,
-            model_name: aiModel || null,
-            result_text: finalText,
-          });
+          try {
+            await tasksService.createAiReviewResult({
+              task: task.id_task,
+              provider: effectiveProvider,
+              model_name: aiModel || null,
+              result_text: finalText,
+            });
+          } catch {
+            // Non-blocking persistence failure.
+          }
         }
 
         if (!streamed.trim()) {
@@ -274,12 +278,16 @@ export function CodeReviewPanel({ projectId, repoFullName }: CodeReviewPanelProp
       } else {
         const response = await chatService.send(payload);
         if (response.trim()) {
-          await tasksService.createAiReviewResult({
-            task: task.id_task,
-            provider: effectiveProvider,
-            model_name: aiModel || null,
-            result_text: response.trim(),
-          });
+          try {
+            await tasksService.createAiReviewResult({
+              task: task.id_task,
+              provider: effectiveProvider,
+              model_name: aiModel || null,
+              result_text: response.trim(),
+            });
+          } catch {
+            // Non-blocking persistence failure.
+          }
         }
         setChatByTask((prev) => {
           const current = [...(prev.get(task.id_task) ?? [])];

@@ -813,12 +813,16 @@ export function TaskDetailPanel({
         if (!finalResult.trim()) {
           toast.error('La IA no devolvió código aplicable. Reintenta o cambia proveedor/modelo.');
         } else {
-          await tasksService.createAiReviewResult({
-            task: task.id_task,
-            provider: effectiveProvider,
-            model_name: aiModel || null,
-            result_text: finalResult,
-          });
+          try {
+            await tasksService.createAiReviewResult({
+              task: task.id_task,
+              provider: effectiveProvider,
+              model_name: aiModel || null,
+              result_text: finalResult,
+            });
+          } catch {
+            // Non-blocking: AI response is already available to the user.
+          }
         }
       } else {
         const response = await chatService.send(payload);
@@ -829,12 +833,16 @@ export function TaskDetailPanel({
         if (!finalResult.trim()) {
           toast.error('La IA no devolvió código aplicable. Reintenta o cambia proveedor/modelo.');
         } else {
-          await tasksService.createAiReviewResult({
-            task: task.id_task,
-            provider: effectiveProvider,
-            model_name: aiModel || null,
-            result_text: finalResult,
-          });
+          try {
+            await tasksService.createAiReviewResult({
+              task: task.id_task,
+              provider: effectiveProvider,
+              model_name: aiModel || null,
+              result_text: finalResult,
+            });
+          } catch {
+            // Non-blocking: AI response is already available to the user.
+          }
         }
       }
 
