@@ -326,6 +326,24 @@ export function TaskDetailPanel({
     throw lastError ?? new Error('No se pudo consultar contenidos del repositorio.');
   };
 
+  const extractDirectoryEntries = (content: Awaited<ReturnType<typeof githubService.getContents>>) => {
+    if (Array.isArray(content)) return content;
+    if (content.type === 'dir' && 'items' in content) {
+      const dirItems = (content as { items?: unknown }).items;
+      if (Array.isArray(dirItems)) {
+        return dirItems.filter((item): item is { type: 'file' | 'dir'; path: string } => {
+          return typeof item === 'object'
+            && item !== null
+            && 'type' in item
+            && 'path' in item
+            && ((item as { type?: unknown }).type === 'file' || (item as { type?: unknown }).type === 'dir')
+            && typeof (item as { path?: unknown }).path === 'string';
+        });
+      }
+    }
+    return [];
+  };
+
   const loadRepoFiles = async (branch: string, preferredPath?: string): Promise<{ files: string[]; resolvedBranch: string }> => {
     if (!repoFullName) {
       setAiRepoFiles([]);
@@ -349,12 +367,13 @@ export function TaskDetailPanel({
         const content = currentPath === ''
           ? root.result
           : await githubService.getContents(repoFullName, currentPath, effectiveBranch || undefined);
-        if (Array.isArray(content)) {
-          for (const item of content) {
-            if (item.type === 'file' && item.path) {
+        const entries = extractDirectoryEntries(content);
+        if (entries.length > 0) {
+          for (const item of entries) {
+            if (item.type === 'file') {
               collected.push(item.path);
               if (collected.length >= MAX_AI_FILE_LIST) break;
-            } else if (item.type === 'dir' && item.path) {
+            } else if (item.type === 'dir') {
               queue.push(item.path);
             }
           }
@@ -1626,7 +1645,7 @@ export function TaskDetailPanel({
                   {sendingToAi ? 'En escucha...' : 'Mandar a IA'}
                 </button>
               </div>
-              <div className="grid grid-cols-1 lg:grid-cols-[1fr_120px_auto_auto] gap-2 items-center">
+              <div className="grid grid-cols-1 lg:grid-cols-[1fr_160px_auto_auto] gap-2 items-center">
                 <select
                   value={aiSourcePath}
                   onChange={(e) => {
@@ -1653,13 +1672,12 @@ export function TaskDetailPanel({
                     <option key={filePath} value={filePath}>{filePath}</option>
                   ))}
                 </select>
-                <input
-                  type="text"
-                  value={aiSourceBranch}
-                  onChange={(e) => setAiSourceBranch(e.target.value)}
-                  placeholder="branch"
-                  className="h-8 rounded-[4px] border border-border bg-card px-2.5 text-[11px]"
-                />
+                <div
+                  className="h-8 rounded-[4px] border border-border bg-card px-2.5 text-[11px] text-muted-foreground flex items-center"
+                  title={aiSourceBranch || 'main'}
+                >
+                  Branch: {aiSourceBranch || 'main'}
+                </div>
                 <button
                   type="button"
                   onClick={() => void loadRepoFiles(aiSourceBranch || 'main', aiSourcePath || undefined)}
