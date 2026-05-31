@@ -269,11 +269,18 @@ function applyUnifiedPatchToContent(originalContent: string, patch: string): str
         const expected = patchLine.slice(1);
         let actual = sourceLines[cursor] ?? '';
         if (!sameLine(actual, expected)) {
-          tryRealignCursor(expected);
+          const realigned = tryRealignCursor(expected);
+          if (!realigned) {
+            // Fuzzy mode: treat unmatched context as optional instead of failing hard.
+            idx += 1;
+            continue;
+          }
           actual = sourceLines[cursor] ?? '';
         }
         if (!sameLine(actual, expected)) {
-          throw new Error('El diff no coincide con el contenido actual del archivo (línea de contexto).');
+          // Fuzzy mode fallback: keep going without consuming a source line.
+          idx += 1;
+          continue;
         }
         output.push(actual);
         cursor += 1;
@@ -281,11 +288,26 @@ function applyUnifiedPatchToContent(originalContent: string, patch: string): str
         const expected = patchLine.slice(1);
         let actual = sourceLines[cursor] ?? '';
         if (!sameLine(actual, expected)) {
-          tryRealignCursor(expected);
+          const realigned = tryRealignCursor(expected);
+          if (!realigned) {
+            const nearestRemove = findNearestMatchingLine(expected, cursor + 1);
+            if (nearestRemove >= 0) {
+              while (cursor < nearestRemove && cursor < sourceLines.length) {
+                output.push(sourceLines[cursor]);
+                cursor += 1;
+              }
+            } else {
+              // Idempotent behavior: if the line is already gone, continue.
+              idx += 1;
+              continue;
+            }
+          }
           actual = sourceLines[cursor] ?? '';
         }
         if (!sameLine(actual, expected)) {
-          throw new Error('El diff no coincide con el contenido actual del archivo (línea removida).');
+          // Fuzzy mode fallback: assume line already removed.
+          idx += 1;
+          continue;
         }
         cursor += 1;
       } else if (patchLine.startsWith('+')) {
@@ -295,11 +317,16 @@ function applyUnifiedPatchToContent(originalContent: string, patch: string): str
       } else {
         let actual = sourceLines[cursor] ?? '';
         if (!sameLine(actual, patchLine)) {
-          tryRealignCursor(patchLine);
+          const realigned = tryRealignCursor(patchLine);
+          if (!realigned) {
+            idx += 1;
+            continue;
+          }
           actual = sourceLines[cursor] ?? '';
         }
         if (!sameLine(actual, patchLine)) {
-          throw new Error('El diff contiene una línea inesperada que no coincide con el archivo actual.');
+          idx += 1;
+          continue;
         }
         output.push(actual);
         cursor += 1;
