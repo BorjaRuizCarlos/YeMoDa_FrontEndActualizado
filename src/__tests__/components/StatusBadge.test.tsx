@@ -6,22 +6,22 @@ describe('StatusBadge', () => {
   describe('dot variant (default)', () => {
     it('renders default label for success', () => {
       render(<StatusBadge status="success" />);
-      expect(screen.getByText('En tiempo')).toBeInTheDocument();
+      expect(screen.getByText('On Track')).toBeInTheDocument();
     });
 
     it('renders default label for on_track', () => {
       render(<StatusBadge status="on_track" />);
-      expect(screen.getByText('En tiempo')).toBeInTheDocument();
+      expect(screen.getByText('On Track')).toBeInTheDocument();
     });
 
     it('renders default label for warning/at_risk', () => {
       render(<StatusBadge status="at_risk" />);
-      expect(screen.getByText('En riesgo')).toBeInTheDocument();
+      expect(screen.getByText('At Risk')).toBeInTheDocument();
     });
 
     it('renders default label for danger/delayed', () => {
       render(<StatusBadge status="delayed" />);
-      expect(screen.getByText('Retrasado')).toBeInTheDocument();
+      expect(screen.getByText('Delayed')).toBeInTheDocument();
     });
 
     it('renders default label for info', () => {
@@ -52,7 +52,7 @@ describe('StatusBadge', () => {
       const pill = container.firstChild as HTMLElement;
       expect(pill.className).toContain('rounded-full');
       expect(pill.className).toContain('border');
-      expect(screen.getByText('En riesgo')).toBeInTheDocument();
+      expect(screen.getByText('At Risk')).toBeInTheDocument();
     });
 
     it('applies sm size classes', () => {
@@ -67,13 +67,13 @@ describe('StatusBadge', () => {
       const { container } = render(<StatusBadge status="danger" variant="icon-only" />);
       const dot = container.firstChild as HTMLElement;
       expect(dot.tagName.toLowerCase()).toBe('span');
-      expect(dot).toHaveAttribute('title', 'Retrasado');
+      expect(dot).toHaveAttribute('title', 'Delayed');
       expect(dot.className).toContain('rounded-full');
     });
 
     it('does not render text label', () => {
       render(<StatusBadge status="success" variant="icon-only" />);
-      expect(screen.queryByText('En tiempo')).not.toBeInTheDocument();
+      expect(screen.queryByText('On Track')).not.toBeInTheDocument();
     });
   });
 

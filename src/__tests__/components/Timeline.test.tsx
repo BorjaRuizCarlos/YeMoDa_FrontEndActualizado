@@ -3,9 +3,13 @@ import { render, screen } from '@testing-library/react';
 import { Timeline } from '../../app/components/Timeline';
 
 const useApiTasksMock = vi.fn();
+const useApiSprintsMock = vi.fn();
+const useApiBoardColumnsMock = vi.fn();
 
 vi.mock('../../app/hooks/useProjectData', () => ({
   useApiTasks: (...args: unknown[]) => useApiTasksMock(...args),
+  useApiSprints: (...args: unknown[]) => useApiSprintsMock(...args),
+  useApiBoardColumns: (...args: unknown[]) => useApiBoardColumnsMock(...args),
 }));
 
 describe('Timeline', () => {
@@ -36,6 +40,8 @@ describe('Timeline', () => {
       loading: false,
       statuses: [],
     });
+    useApiSprintsMock.mockReturnValue({ data: [] });
+    useApiBoardColumnsMock.mockReturnValue({ data: [] });
   });
 
   it('centers the today marker inside the current day column', () => {

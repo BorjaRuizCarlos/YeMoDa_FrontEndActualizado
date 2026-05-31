@@ -769,24 +769,6 @@ export function TaskDetailPanel({
     }
   };
 
-  const handleLoadSourceFile = async () => {
-    if (!repoFullName || !aiSourcePath.trim()) {
-      toast.error('Indica la ruta del archivo para cargar el código actual.');
-      return;
-    }
-    setAiSourceLoading(true);
-    try {
-      await loadSourceFileContent(aiSourcePath.trim(), aiSourceBranch || 'main', true);
-    } catch (err) {
-      const detail = err instanceof ApiRequestError
-        ? String(err.body?.detail ?? 'Verifica ruta y branch.')
-        : err instanceof Error ? err.message : 'Verifica ruta y branch.';
-      toast.error('No se pudo cargar ese archivo.', { description: detail });
-    } finally {
-      setAiSourceLoading(false);
-    }
-  };
-
   const handleCommitAiFix = async () => {
     if (!task || !repoFullName) {
       toast.error('No hay repositorio vinculado para hacer commit.');
