@@ -118,6 +118,85 @@ function parseAiDiff(diffText: string): AiFilePatch[] {
   return files;
 }
 
+function applyUnifiedPatchToContent(originalContent: string, patch: string): string {
+  const source = originalContent.replace(/\r\n/g, '\n');
+  const sourceLines = source.split('\n');
+  const patchLines = patch.replace(/\r\n/g, '\n').split('\n');
+
+  let cursor = 0;
+  let idx = 0;
+  const output: string[] = [];
+  let sawHunk = false;
+
+  while (idx < patchLines.length) {
+    const line = patchLines[idx];
+    if (!line.startsWith('@@')) {
+      idx += 1;
+      continue;
+    }
+
+    const hunkMatch = line.match(/^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/);
+    if (!hunkMatch) {
+      throw new Error('Formato de hunk inválido en el diff.');
+    }
+
+    sawHunk = true;
+    const oldStart = Number(hunkMatch[1]);
+    const oldIndex = Math.max(0, oldStart - 1);
+
+    while (cursor < oldIndex && cursor < sourceLines.length) {
+      output.push(sourceLines[cursor]);
+      cursor += 1;
+    }
+
+    idx += 1;
+    while (idx < patchLines.length && !patchLines[idx].startsWith('@@')) {
+      const patchLine = patchLines[idx];
+
+      if (patchLine.startsWith(' ')) {
+        const expected = patchLine.slice(1);
+        const actual = sourceLines[cursor] ?? '';
+        if (actual !== expected) {
+          throw new Error('El diff no coincide con el contenido actual del archivo (línea de contexto).');
+        }
+        output.push(actual);
+        cursor += 1;
+      } else if (patchLine.startsWith('-')) {
+        const expected = patchLine.slice(1);
+        const actual = sourceLines[cursor] ?? '';
+        if (actual !== expected) {
+          throw new Error('El diff no coincide con el contenido actual del archivo (línea removida).');
+        }
+        cursor += 1;
+      } else if (patchLine.startsWith('+')) {
+        output.push(patchLine.slice(1));
+      } else if (patchLine.startsWith('\\')) {
+        // "\ No newline at end of file" marker, ignore.
+      } else {
+        const actual = sourceLines[cursor] ?? '';
+        if (actual !== patchLine) {
+          throw new Error('El diff contiene una línea inesperada que no coincide con el archivo actual.');
+        }
+        output.push(actual);
+        cursor += 1;
+      }
+
+      idx += 1;
+    }
+  }
+
+  if (!sawHunk) {
+    throw new Error('La respuesta de IA no contiene hunks de diff aplicables.');
+  }
+
+  while (cursor < sourceLines.length) {
+    output.push(sourceLines[cursor]);
+    cursor += 1;
+  }
+
+  return output.join('\n');
+}
+
 interface TaskDetailPanelProps {
   task: ApiTask | null;
   statuses: ApiTaskStatus[];
@@ -223,6 +302,7 @@ export function TaskDetailPanel({
   const [aiRepoFilesLoading, setAiRepoFilesLoading] = useState(false);
   const [aiSuggestedContent, setAiSuggestedContent] = useState('');
   const [aiSuggestedPatches, setAiSuggestedPatches] = useState<AiFilePatch[]>([]);
+  const [aiSelectedPatchFile, setAiSelectedPatchFile] = useState('');
   const [aiModalPrompt, setAiModalPrompt] = useState('');
   const [committingAiFix, setCommittingAiFix] = useState(false);
   const [taskForm, setTaskForm] = useState({
@@ -337,6 +417,17 @@ export function TaskDetailPanel({
   useEffect(() => {
     setAiSuggestedPatches(parseAiDiff(aiSuggestedContent));
   }, [aiSuggestedContent]);
+
+  useEffect(() => {
+    if (aiSuggestedPatches.length === 0) {
+      setAiSelectedPatchFile('');
+      return;
+    }
+    setAiSelectedPatchFile((current) => {
+      if (current && aiSuggestedPatches.some((patch) => patch.filename === current)) return current;
+      return aiSuggestedPatches[0].filename;
+    });
+  }, [aiSuggestedPatches]);
 
   const buildRefCandidates = (ref: string): string[] => {
     const candidates = [ref.trim(), 'main', 'master', ''];
@@ -701,19 +792,58 @@ export function TaskDetailPanel({
       toast.error('No hay repositorio vinculado para hacer commit.');
       return;
     }
-    if (!aiSourcePath || !aiSuggestedContent.trim()) {
+    if (!aiSuggestedContent.trim()) {
       toast.error('No hay propuesta de código para confirmar.');
+      return;
+    }
+    if (aiSuggestedContent.trim().toUpperCase() === 'NO_CHANGES') {
+      toast.info('La IA indicó que no hay cambios para aplicar.');
       return;
     }
 
     setCommittingAiFix(true);
     try {
-      await githubService.commitChanges({
-        repo: repoFullName,
-        branch: aiSourceBranch || 'main',
-        message: `feat: ai fix tarea #${task.id_task}`,
-        files: [{ path: aiSourcePath, content: aiSuggestedContent }],
-      });
+      if (aiSuggestedPatches.length > 0) {
+        const filesToCommit: Array<{ path: string; content: string }> = [];
+        let resolvedBranch = aiSourceBranch || 'main';
+
+        for (const patchItem of aiSuggestedPatches) {
+          const targetPath = patchItem.filename.trim();
+          if (!targetPath) continue;
+
+          const { result, resolvedRef } = await getContentsWithRefFallback(targetPath, resolvedBranch);
+          const fileData = Array.isArray(result) ? result.find((item) => item.type === 'file') : result;
+          if (!fileData || fileData.type !== 'file') {
+            throw new Error(`No se pudo obtener el archivo base para aplicar diff: ${targetPath}`);
+          }
+
+          const currentContent = decodeGitHubContent(fileData.content);
+          const updatedContent = applyUnifiedPatchToContent(currentContent, patchItem.patch);
+          filesToCommit.push({ path: targetPath, content: updatedContent });
+          if (resolvedRef) resolvedBranch = resolvedRef;
+        }
+
+        if (filesToCommit.length === 0) {
+          throw new Error('La respuesta de IA no contiene cambios aplicables por archivo.');
+        }
+
+        await githubService.commitChanges({
+          repo: repoFullName,
+          branch: resolvedBranch,
+          message: `feat: ai fix tarea #${task.id_task} (${filesToCommit.length} archivos)`,
+          files: filesToCommit,
+        });
+      } else {
+        if (!aiSourcePath) {
+          throw new Error('No hay archivo activo para aplicar el cambio.');
+        }
+        await githubService.commitChanges({
+          repo: repoFullName,
+          branch: aiSourceBranch || 'main',
+          message: `feat: ai fix tarea #${task.id_task}`,
+          files: [{ path: aiSourcePath, content: aiSuggestedContent }],
+        });
+      }
       toast.success('Commit / push realizado con los cambios de IA.');
       setShowAiCodeModal(false);
     } catch (err) {
@@ -1762,9 +1892,24 @@ export function TaskDetailPanel({
                 <div className="flex-1 min-h-0 bg-card p-3 overflow-auto">
                   {aiSuggestedPatches.length > 0 ? (
                     <div className="space-y-2">
-                      {aiSuggestedPatches.map((patch) => (
-                        <CodeDiffViewer key={`${patch.filename}:${patch.patch.slice(0, 40)}`} filename={patch.filename} patch={patch.patch} />
-                      ))}
+                      <div className="flex items-center gap-2">
+                        <label className="text-[10px] text-muted-foreground">Archivo modificado</label>
+                        <select
+                          value={aiSelectedPatchFile}
+                          onChange={(e) => setAiSelectedPatchFile(e.target.value)}
+                          className="h-8 rounded-[4px] border border-border bg-card px-2 text-[11px] min-w-[280px]"
+                        >
+                          {aiSuggestedPatches.map((patch) => (
+                            <option key={patch.filename} value={patch.filename}>{patch.filename}</option>
+                          ))}
+                        </select>
+                      </div>
+                      {(() => {
+                        const selectedPatch = aiSuggestedPatches.find((patch) => patch.filename === aiSelectedPatchFile) ?? aiSuggestedPatches[0];
+                        return selectedPatch
+                          ? <CodeDiffViewer filename={selectedPatch.filename} patch={selectedPatch.patch} />
+                          : <p className="text-[11px] text-muted-foreground">No hay diff seleccionado.</p>;
+                      })()}
                     </div>
                   ) : (
                     <pre className="text-[11px] font-mono text-foreground whitespace-pre-wrap">{aiSuggestedContent || 'La respuesta de IA aparecerá aquí.'}</pre>
@@ -1778,7 +1923,7 @@ export function TaskDetailPanel({
               <button
                 type="button"
                 onClick={() => void handleCommitAiFix()}
-                disabled={committingAiFix || !aiSuggestedContent.trim() || !aiSourcePath || aiSuggestedContent === aiSourceContent}
+                disabled={committingAiFix || !aiSuggestedContent.trim() || aiSuggestedContent.trim().toUpperCase() === 'NO_CHANGES' || (aiSuggestedPatches.length === 0 && (!aiSourcePath || aiSuggestedContent === aiSourceContent))}
                 className="h-8 px-3 bg-primary text-primary-foreground rounded-[4px] text-[11px] inline-flex items-center gap-1.5 disabled:opacity-50"
               >
                 {committingAiFix ? <Loader2 className="w-3 h-3 animate-spin" /> : <GitCommit className="w-3 h-3" />}
