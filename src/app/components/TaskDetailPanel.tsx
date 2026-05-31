@@ -152,6 +152,15 @@ function highlightSourceCode(content: string, language: string | null): string {
   return Prism.highlight(content, grammar, language);
 }
 
+function highlightSourceCodeLines(content: string, language: string | null): string[] {
+  if (!content) return [];
+  const lines = content.replace(/\r\n/g, '\n').split('\n');
+  return lines.map((line) => {
+    const safe = line.length > 0 ? line : ' ';
+    return highlightSourceCode(safe, language);
+  });
+}
+
 interface AiFilePatch {
   filename: string;
   patch: string;
@@ -182,6 +191,18 @@ function applyUnifiedPatchToContent(originalContent: string, patch: string): str
   const sourceLines = source.split('\n');
   const patchLines = patch.replace(/\r\n/g, '\n').split('\n');
 
+  const normalizeLine = (line: string) => line.replace(/\s+$/g, '');
+  const sameLine = (a: string, b: string) => normalizeLine(a) === normalizeLine(b);
+  const findNearestMatchingLine = (needle: string, preferredIndex: number): number => {
+    if (!needle) return -1;
+    const start = Math.max(0, preferredIndex - 25);
+    const end = Math.min(sourceLines.length - 1, preferredIndex + 180);
+    for (let i = start; i <= end; i += 1) {
+      if (sameLine(sourceLines[i] ?? '', needle)) return i;
+    }
+    return -1;
+  };
+
   let cursor = 0;
   let idx = 0;
   const output: string[] = [];
@@ -201,7 +222,23 @@ function applyUnifiedPatchToContent(originalContent: string, patch: string): str
 
     sawHunk = true;
     const oldStart = Number(hunkMatch[1]);
-    const oldIndex = Math.max(0, oldStart - 1);
+    let oldIndex = Math.max(0, oldStart - 1);
+
+    // Fuzzy realignment: if line numbers are slightly off, align by first context/remove line.
+    let probe = idx + 1;
+    let anchor = '';
+    while (probe < patchLines.length && !patchLines[probe].startsWith('@@')) {
+      const probeLine = patchLines[probe];
+      if (probeLine.startsWith(' ') || probeLine.startsWith('-')) {
+        anchor = probeLine.slice(1);
+        break;
+      }
+      probe += 1;
+    }
+    if (anchor && !sameLine(sourceLines[oldIndex] ?? '', anchor)) {
+      const nearest = findNearestMatchingLine(anchor, oldIndex);
+      if (nearest >= 0) oldIndex = nearest;
+    }
 
     while (cursor < oldIndex && cursor < sourceLines.length) {
       output.push(sourceLines[cursor]);
@@ -212,10 +249,15 @@ function applyUnifiedPatchToContent(originalContent: string, patch: string): str
     while (idx < patchLines.length && !patchLines[idx].startsWith('@@')) {
       const patchLine = patchLines[idx];
 
+      if (patchLine.startsWith('```')) {
+        idx += 1;
+        continue;
+      }
+
       if (patchLine.startsWith(' ')) {
         const expected = patchLine.slice(1);
         const actual = sourceLines[cursor] ?? '';
-        if (actual !== expected) {
+        if (!sameLine(actual, expected)) {
           throw new Error('El diff no coincide con el contenido actual del archivo (línea de contexto).');
         }
         output.push(actual);
@@ -223,7 +265,7 @@ function applyUnifiedPatchToContent(originalContent: string, patch: string): str
       } else if (patchLine.startsWith('-')) {
         const expected = patchLine.slice(1);
         const actual = sourceLines[cursor] ?? '';
-        if (actual !== expected) {
+        if (!sameLine(actual, expected)) {
           throw new Error('El diff no coincide con el contenido actual del archivo (línea removida).');
         }
         cursor += 1;
@@ -233,7 +275,7 @@ function applyUnifiedPatchToContent(originalContent: string, patch: string): str
         // "\ No newline at end of file" marker, ignore.
       } else {
         const actual = sourceLines[cursor] ?? '';
-        if (actual !== patchLine) {
+        if (!sameLine(actual, patchLine)) {
           throw new Error('El diff contiene una línea inesperada que no coincide con el archivo actual.');
         }
         output.push(actual);
@@ -390,6 +432,11 @@ export function TaskDetailPanel({
 
   const highlightedAiSourceContent = useMemo(
     () => highlightSourceCode(aiSourceContent, aiSourceLanguage),
+    [aiSourceContent, aiSourceLanguage],
+  );
+
+  const highlightedAiSourceLines = useMemo(
+    () => highlightSourceCodeLines(aiSourceContent, aiSourceLanguage),
     [aiSourceContent, aiSourceLanguage],
   );
 
@@ -869,7 +916,13 @@ export function TaskDetailPanel({
           }
 
           const currentContent = decodeGitHubContent(fileData.content);
-          const updatedContent = applyUnifiedPatchToContent(currentContent, patchItem.patch);
+          let updatedContent = '';
+          try {
+            updatedContent = applyUnifiedPatchToContent(currentContent, patchItem.patch);
+          } catch (error) {
+            const detail = error instanceof Error ? error.message : 'Error al aplicar patch';
+            throw new Error(`No se pudo aplicar el diff en '${targetPath}': ${detail}`);
+          }
           filesToCommit.push({ path: targetPath, content: updatedContent });
           if (resolvedRef) resolvedBranch = resolvedRef;
         }
@@ -1931,15 +1984,28 @@ export function TaskDetailPanel({
                 <div className="px-3 py-2 border-b border-border bg-surface-secondary/30 text-[10px] text-muted-foreground">
                   Código actual {aiSourcePath ? `(${aiSourcePath})` : ''}
                 </div>
-                <pre className="flex-1 min-h-0 bg-card p-3 text-[11px] font-mono text-muted-foreground overflow-auto whitespace-pre">
+                <div className="flex-1 min-h-0 bg-card p-3 text-[11px] font-mono text-muted-foreground overflow-auto">
                   {aiSourceLoading ? (
                     'Cargando código actual...'
                   ) : aiSourceContent ? (
-                    <code className="code-tokenized" dangerouslySetInnerHTML={{ __html: highlightedAiSourceContent }} />
+                    <table className="w-full border-collapse">
+                      <tbody>
+                        {highlightedAiSourceLines.map((lineHtml, index) => (
+                          <tr key={index}>
+                            <td className="w-12 pr-3 text-right align-top select-none text-[10px] text-muted-foreground/50 border-r border-border/30">
+                              {index + 1}
+                            </td>
+                            <td className="pl-3 align-top whitespace-pre">
+                              <span className="code-tokenized" dangerouslySetInnerHTML={{ __html: lineHtml }} />
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   ) : (
                     'Selecciona un archivo para ver su contenido.'
                   )}
-                </pre>
+                </div>
               </div>
               <div className="min-h-0 flex flex-col">
                 <div className="px-3 py-2 border-b border-border bg-surface-secondary/30 text-[10px] text-muted-foreground flex items-center justify-between">
