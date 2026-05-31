@@ -6,6 +6,19 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
+import Prism from 'prismjs';
+import 'prismjs/components/prism-bash';
+import 'prismjs/components/prism-csharp';
+import 'prismjs/components/prism-go';
+import 'prismjs/components/prism-java';
+import 'prismjs/components/prism-json';
+import 'prismjs/components/prism-jsx';
+import 'prismjs/components/prism-markdown';
+import 'prismjs/components/prism-python';
+import 'prismjs/components/prism-sql';
+import 'prismjs/components/prism-tsx';
+import 'prismjs/components/prism-typescript';
+import 'prismjs/components/prism-yaml';
 import { chatService, tasksService, githubService, usersService } from '../../services';
 import { ApiRequestError } from '../../services/api';
 import type { AIProvider, ApiTask, ApiTaskStatus, ApiTaskPriority, ApiTaskComment, ApiTaskWarning, ApiTaskAssignment, ApiTag, ChatModelsResponse, GitHubRepo, CreateBranchResponse, ApiBoardColumn, ApiSprint, ApiTaskAIReviewResult } from '../../services';
@@ -20,6 +33,28 @@ const DONE_STATUS_NAMES = new Set(['done', 'completada', 'completado']);
 const EMPTY_ASSIGNABLE_USERS: Array<{ id: number; name: string }> = [];
 const EMPTY_TASK_ASSIGNMENTS: ApiTaskAssignment[] = [];
 const MAX_AI_FILE_LIST = 400;
+const LANGUAGE_BY_EXTENSION: Record<string, string> = {
+  py: 'python',
+  ts: 'typescript',
+  tsx: 'tsx',
+  js: 'javascript',
+  jsx: 'jsx',
+  json: 'json',
+  css: 'css',
+  scss: 'css',
+  less: 'css',
+  html: 'markup',
+  htm: 'markup',
+  xml: 'markup',
+  yml: 'yaml',
+  yaml: 'yaml',
+  md: 'markdown',
+  sh: 'bash',
+  sql: 'sql',
+  go: 'go',
+  java: 'java',
+  cs: 'csharp',
+};
 const AI_FIX_DIFF_INSTRUCTION = [
   'RESPONDE SOLO EN FORMATO UNIFIED DIFF (git patch).',
   'Incluye encabezados diff --git, rutas a/ y b/, y bloques @@ por cada archivo modificado.',
@@ -91,6 +126,30 @@ function decodeGitHubContent(content?: string): string {
   } catch {
     return content;
   }
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function detectLanguageFromFilename(filename: string): string | null {
+  const lowerName = filename.toLowerCase();
+  if (lowerName.endsWith('.dockerfile') || lowerName === 'dockerfile') return 'bash';
+  const ext = lowerName.split('.').pop() ?? '';
+  return LANGUAGE_BY_EXTENSION[ext] ?? null;
+}
+
+function highlightSourceCode(content: string, language: string | null): string {
+  if (!content) return '';
+  if (!language) return escapeHtml(content);
+
+  const grammar = Prism.languages[language];
+  if (!grammar) return escapeHtml(content);
+
+  return Prism.highlight(content, grammar, language);
 }
 
 interface AiFilePatch {
@@ -322,6 +381,16 @@ export function TaskDetailPanel({
   const doneStatusIds = useMemo(
     () => new Set(statuses.filter((s) => DONE_STATUS_NAMES.has(s.name.trim().toLowerCase())).map((s) => s.id_status)),
     [statuses],
+  );
+
+  const aiSourceLanguage = useMemo(
+    () => detectLanguageFromFilename(aiSourcePath || ''),
+    [aiSourcePath],
+  );
+
+  const highlightedAiSourceContent = useMemo(
+    () => highlightSourceCode(aiSourceContent, aiSourceLanguage),
+    [aiSourceContent, aiSourceLanguage],
   );
 
   const openBranchModal = () => {
@@ -1863,7 +1932,13 @@ export function TaskDetailPanel({
                   Código actual {aiSourcePath ? `(${aiSourcePath})` : ''}
                 </div>
                 <pre className="flex-1 min-h-0 bg-card p-3 text-[11px] font-mono text-muted-foreground overflow-auto whitespace-pre">
-                  {aiSourceLoading ? 'Cargando código actual...' : (aiSourceContent || 'Selecciona un archivo para ver su contenido.')}
+                  {aiSourceLoading ? (
+                    'Cargando código actual...'
+                  ) : aiSourceContent ? (
+                    <code className="code-tokenized" dangerouslySetInnerHTML={{ __html: highlightedAiSourceContent }} />
+                  ) : (
+                    'Selecciona un archivo para ver su contenido.'
+                  )}
                 </pre>
               </div>
               <div className="min-h-0 flex flex-col">
