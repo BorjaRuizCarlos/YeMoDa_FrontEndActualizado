@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import {
   X, Calendar, User, MessageSquare, AlertTriangle,
   GitCommit, Send, Loader2, Pencil, Trash2, Plus,
-  GitBranch, Copy, Check, Info, ShieldAlert, FileCode2,
+  GitBranch, Copy, Check, Info, ShieldAlert,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
@@ -1810,9 +1810,36 @@ export function TaskDetailPanel({
                 </button>
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-[1fr_160px_auto] gap-2 items-center">
-                <div className="h-8 rounded-[4px] border border-border bg-card px-2.5 text-[11px] text-muted-foreground flex items-center truncate">
-                  Archivo activo: {aiSourcePath || 'Ninguno'}
-                </div>
+                <select
+                  value={aiSourcePath}
+                  onChange={(e) => {
+                    const nextPath = e.target.value;
+                    if (!nextPath) {
+                      setAiSourcePath('');
+                      setAiSourceContent('');
+                      return;
+                    }
+                    void handleSelectRepoFile(nextPath);
+                  }}
+                  disabled={aiRepoFilesLoading || aiSourceLoading}
+                  className="h-8 rounded-[4px] border border-border bg-card px-2 text-[11px]"
+                >
+                  <option value="">
+                    {aiRepoFilesLoading
+                      ? 'Cargando archivos...'
+                      : aiRepoFiles.length > 0
+                        ? 'Selecciona un archivo...'
+                        : 'Sin archivos disponibles'}
+                  </option>
+                  {aiRepoFiles.map((filePath) => {
+                    const hasPatch = aiSuggestedPatches.some((patch) => patch.filename === filePath);
+                    return (
+                      <option key={filePath} value={filePath}>
+                        {hasPatch ? `[CAMBIO] ${filePath}` : filePath}
+                      </option>
+                    );
+                  })}
+                </select>
                 <div
                   className="h-8 rounded-[4px] border border-border bg-card px-2.5 text-[11px] text-muted-foreground flex items-center"
                   title={aiSourceBranch || 'main'}
@@ -1832,36 +1859,9 @@ export function TaskDetailPanel({
 
             <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-2">
               <div className="border-r border-border min-h-0 flex flex-col">
-                <div className="px-3 py-2 border-b border-border bg-surface-secondary/30 text-[10px] text-muted-foreground">Archivos del repositorio ({aiRepoFiles.length})</div>
-                <div className="h-44 border-b border-border overflow-auto bg-card">
-                  {aiRepoFilesLoading ? (
-                    <div className="h-full flex items-center justify-center text-[11px] text-muted-foreground gap-2">
-                      <Loader2 className="w-3 h-3 animate-spin" /> Cargando archivos...
-                    </div>
-                  ) : aiRepoFiles.length === 0 ? (
-                    <div className="h-full flex items-center justify-center text-[11px] text-muted-foreground">Sin archivos disponibles</div>
-                  ) : (
-                    <div className="p-2 space-y-1">
-                      {aiRepoFiles.map((filePath) => {
-                        const isActive = filePath === aiSourcePath;
-                        const hasPatch = aiSuggestedPatches.some((patch) => patch.filename === filePath);
-                        return (
-                          <button
-                            key={filePath}
-                            type="button"
-                            onClick={() => void handleSelectRepoFile(filePath)}
-                            className={`w-full text-left px-2 py-1 rounded-[3px] text-[11px] flex items-center gap-2 ${isActive ? 'bg-primary/10 text-primary border border-primary/30' : 'hover:bg-surface-secondary/50 text-muted-foreground border border-transparent'}`}
-                          >
-                            <FileCode2 className="w-3.5 h-3.5 shrink-0" />
-                            <span className="truncate flex-1">{filePath}</span>
-                            {hasPatch && <span className="w-2 h-2 rounded-full bg-warning shrink-0" title="Detectado como archivo modificado por IA" />}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
+                <div className="px-3 py-2 border-b border-border bg-surface-secondary/30 text-[10px] text-muted-foreground">
+                  Código actual {aiSourcePath ? `(${aiSourcePath})` : ''}
                 </div>
-                <div className="px-3 py-2 border-b border-border bg-surface-secondary/30 text-[10px] text-muted-foreground">Código actual</div>
                 <pre className="flex-1 min-h-0 bg-card p-3 text-[11px] font-mono text-muted-foreground overflow-auto whitespace-pre">
                   {aiSourceLoading ? 'Cargando código actual...' : (aiSourceContent || 'Selecciona un archivo para ver su contenido.')}
                 </pre>
