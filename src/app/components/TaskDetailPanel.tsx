@@ -430,11 +430,6 @@ export function TaskDetailPanel({
     [aiSourcePath],
   );
 
-  const highlightedAiSourceContent = useMemo(
-    () => highlightSourceCode(aiSourceContent, aiSourceLanguage),
-    [aiSourceContent, aiSourceLanguage],
-  );
-
   const highlightedAiSourceLines = useMemo(
     () => highlightSourceCodeLines(aiSourceContent, aiSourceLanguage),
     [aiSourceContent, aiSourceLanguage],
