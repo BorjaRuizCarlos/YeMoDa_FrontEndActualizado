@@ -301,14 +301,42 @@ export function TaskDetailPanel({
     });
   }, [aiProvider, aiModels]);
 
-  const loadRepoFiles = async (branch: string, preferredPath?: string): Promise<string[]> => {
+  const buildRefCandidates = (ref: string): string[] => {
+    const candidates = [ref.trim(), 'main', 'master', ''];
+    return Array.from(new Set(candidates));
+  };
+
+  const getContentsWithRefFallback = async (
+    path: string,
+    ref: string,
+  ): Promise<{ result: Awaited<ReturnType<typeof githubService.getContents>>; resolvedRef: string }> => {
+    if (!repoFullName) {
+      throw new Error('No hay repositorio vinculado.');
+    }
+
+    let lastError: unknown = null;
+    for (const candidateRef of buildRefCandidates(ref)) {
+      try {
+        const result = await githubService.getContents(repoFullName, path, candidateRef || undefined);
+        return { result, resolvedRef: candidateRef };
+      } catch (err) {
+        lastError = err;
+      }
+    }
+    throw lastError ?? new Error('No se pudo consultar contenidos del repositorio.');
+  };
+
+  const loadRepoFiles = async (branch: string, preferredPath?: string): Promise<{ files: string[]; resolvedBranch: string }> => {
     if (!repoFullName) {
       setAiRepoFiles([]);
-      return [];
+      return { files: [], resolvedBranch: branch };
     }
 
     setAiRepoFilesLoading(true);
     try {
+      const root = await getContentsWithRefFallback('', branch);
+      const effectiveBranch = root.resolvedRef;
+
       const queue: string[] = [''];
       const visited = new Set<string>();
       const collected: string[] = [];
@@ -318,7 +346,9 @@ export function TaskDetailPanel({
         if (visited.has(currentPath)) continue;
         visited.add(currentPath);
 
-        const content = await githubService.getContents(repoFullName, currentPath, branch || 'main');
+        const content = currentPath === ''
+          ? root.result
+          : await githubService.getContents(repoFullName, currentPath, effectiveBranch || undefined);
         if (Array.isArray(content)) {
           for (const item of content) {
             if (item.type === 'file' && item.path) {
@@ -342,11 +372,15 @@ export function TaskDetailPanel({
         setAiSourcePath((current) => current || files[0] || '');
       }
 
-      return files;
+      if (effectiveBranch && effectiveBranch !== branch) {
+        setAiSourceBranch(effectiveBranch);
+      }
+
+      return { files, resolvedBranch: effectiveBranch || branch };
     } catch {
       setAiRepoFiles([]);
       toast.error('No se pudo cargar el listado de archivos del repositorio.');
-      return [];
+      return { files: [], resolvedBranch: branch };
     } finally {
       setAiRepoFilesLoading(false);
     }
@@ -359,7 +393,7 @@ export function TaskDetailPanel({
   ): Promise<string> => {
     if (!repoFullName || !filePath.trim()) return '';
 
-    const result = await githubService.getContents(repoFullName, filePath.trim(), branch || 'main');
+    const { result, resolvedRef } = await getContentsWithRefFallback(filePath.trim(), branch || 'main');
     const fileData = Array.isArray(result) ? result.find((item) => item.type === 'file') : result;
 
     if (!fileData || fileData.type !== 'file') {
@@ -368,6 +402,9 @@ export function TaskDetailPanel({
 
     const decoded = decodeGitHubContent(fileData.content);
     setAiSourceContent(decoded);
+    if (resolvedRef && resolvedRef !== branch) {
+      setAiSourceBranch(resolvedRef);
+    }
     if (showSuccessToast) toast.success('Código actual cargado.');
     return decoded;
   };
@@ -388,9 +425,29 @@ export function TaskDetailPanel({
 
     setSendingToAi(true);
     setAiSuggestedContent('');
-    const effectiveProvider: AIProvider = aiProvider === 'copilot' && !githubToken ? 'yemoda' : aiProvider;
-    if (effectiveProvider !== aiProvider) {
-      toast.info('Copilot no está disponible en tu cuenta. Se usará Yemoda AI para esta solicitud.');
+    let effectiveProvider: AIProvider = aiProvider;
+    let copilotStatusDetail = '';
+
+    if (aiProvider === 'copilot') {
+      if (!githubToken) {
+        effectiveProvider = 'yemoda';
+        toast.info('Copilot no está disponible en tu cuenta. Se usará Yemoda AI para esta solicitud.');
+      } else {
+        try {
+          const statusInfo = await chatService.getCopilotStatus(githubToken);
+          copilotStatusDetail = statusInfo.detail || '';
+          if (!statusInfo.copilot_access) {
+            effectiveProvider = 'yemoda';
+            toast.info(
+              'Tu cuenta de GitHub no tiene acceso activo a Copilot. Se usará Yemoda AI para esta solicitud.',
+              { description: copilotStatusDetail || undefined },
+            );
+          }
+        } catch {
+          effectiveProvider = 'yemoda';
+          toast.info('No se pudo validar el acceso a Copilot. Se usará Yemoda AI para esta solicitud.');
+        }
+      }
     }
     try {
       let latestDiff: string | null = null;
@@ -462,7 +519,9 @@ export function TaskDetailPanel({
       toast.success('Respuesta recibida desde IA.');
     } catch (err) {
       if (err instanceof ApiRequestError && effectiveProvider === 'copilot' && (err.status === 401 || err.status === 403)) {
-        toast.error('Tu cuenta no tiene acceso activo a GitHub Copilot. Cambia a Yemoda AI o activa Copilot.');
+        toast.error('Tu cuenta no tiene acceso activo a GitHub Copilot. Cambia a Yemoda AI o activa Copilot.', {
+          description: copilotStatusDetail || undefined,
+        });
       } else {
         const detail = err instanceof ApiRequestError
           ? String(err.body?.detail ?? '')
@@ -514,8 +573,11 @@ export function TaskDetailPanel({
       }
 
       let discoveredFiles: string[] = [];
+      let resolvedBranch = nextBranch;
       if (repoFullName) {
-        discoveredFiles = await loadRepoFiles(nextBranch, nextPath);
+        const repoFilesResult = await loadRepoFiles(nextBranch, nextPath);
+        discoveredFiles = repoFilesResult.files;
+        resolvedBranch = repoFilesResult.resolvedBranch;
       }
 
       if (!nextPath && discoveredFiles.length > 0) {
@@ -523,7 +585,8 @@ export function TaskDetailPanel({
       }
 
       if (repoFullName && nextPath) {
-        nextContent = await loadSourceFileContent(nextPath, nextBranch, false);
+        nextContent = await loadSourceFileContent(nextPath, resolvedBranch, false);
+        nextBranch = resolvedBranch;
       }
     } catch (err) {
       const detail = err instanceof ApiRequestError

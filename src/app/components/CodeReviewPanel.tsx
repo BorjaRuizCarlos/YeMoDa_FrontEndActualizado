@@ -177,9 +177,28 @@ export function CodeReviewPanel({ projectId, repoFullName }: CodeReviewPanelProp
   const sendCodeReviewMessage = async (task: ApiTask) => {
     const input = (chatInputByTask.get(task.id_task) ?? '').trim();
     if (!input) return;
-    const effectiveProvider: AIProvider = aiProvider === 'copilot' && !githubToken ? 'yemoda' : aiProvider;
-    if (effectiveProvider !== aiProvider) {
-      toast.info('Copilot no está disponible en tu cuenta. Se usará Yemoda AI para esta solicitud.');
+    let effectiveProvider: AIProvider = aiProvider;
+    let copilotStatusDetail = '';
+    if (aiProvider === 'copilot') {
+      if (!githubToken) {
+        effectiveProvider = 'yemoda';
+        toast.info('Copilot no está disponible en tu cuenta. Se usará Yemoda AI para esta solicitud.');
+      } else {
+        try {
+          const statusInfo = await chatService.getCopilotStatus(githubToken);
+          copilotStatusDetail = statusInfo.detail || '';
+          if (!statusInfo.copilot_access) {
+            effectiveProvider = 'yemoda';
+            toast.info(
+              'Tu cuenta de GitHub no tiene acceso activo a Copilot. Se usará Yemoda AI para esta solicitud.',
+              { description: copilotStatusDetail || undefined },
+            );
+          }
+        } catch {
+          effectiveProvider = 'yemoda';
+          toast.info('No se pudo validar el acceso a Copilot. Se usará Yemoda AI para esta solicitud.');
+        }
+      }
     }
 
     const history = taskHistories.get(task.id_task)?.matches ?? [];
@@ -278,7 +297,9 @@ export function CodeReviewPanel({ projectId, repoFullName }: CodeReviewPanelProp
       );
 
       if (isCopilotAuthError) {
-        toast.error('Tu cuenta no tiene acceso activo a GitHub Copilot. Cambia a Yemoda AI o activa Copilot.');
+        toast.error('Tu cuenta no tiene acceso activo a GitHub Copilot. Cambia a Yemoda AI o activa Copilot.', {
+          description: copilotStatusDetail || undefined,
+        });
       } else {
         const detail = err instanceof ApiRequestError
           ? String(err.body?.detail ?? '')

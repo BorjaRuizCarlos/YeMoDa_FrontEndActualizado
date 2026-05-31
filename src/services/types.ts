@@ -402,6 +402,13 @@ export interface ChatModelsResponse {
   [provider: string]: ChatModelInfo[] | undefined;
 }
 
+export interface CopilotStatusResponse {
+  github_token_valid: boolean;
+  copilot_access: boolean;
+  github_login?: string | null;
+  detail: string;
+}
+
 export interface ApiTaskAIReviewResult {
   id_review_result: number;
   task: number;
