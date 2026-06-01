@@ -1480,6 +1480,80 @@ const MOCK_ALERTS_CR = [
   { id: 5, tipo: 'info',    titulo: 'Nuevo miembro agregado', proyecto: 'Core Platform',       tiempo: '4h ago',  detalle: 'Maria G. → Developer'     },
 ];
 
+interface AiFixDemoFile {
+  path: string;
+  warnings: string[];
+  sourceCode: string[];
+  aiDiff: MockDiffLine[];
+  summary: string;
+}
+
+const AI_FIX_DEMO_FILES: AiFixDemoFile[] = [
+  {
+    path: 'backend/api/auth.py',
+    warnings: [
+      'CRITICAL: docstring incompleto entre líneas 76-83',
+      'WARNING: validación de payload mezclada con comentario de documentación',
+      'WARNING: retorno de errores no consistente para campos faltantes',
+    ],
+    sourceCode: [
+      'def login(request):',
+      '    """Validate security-sensitive',
+      '    configuration values.)',
+      '    email = request.json.get("email")',
+      '    password = request.json.get("password")',
+      '    if not email or not password:',
+      '        return {"message": "missing credentials"}',
+      '    user = auth_service.find_user(email)',
+      '    if not user:',
+      '        return {"message": "invalid credentials"}',
+      '    return {"token": auth_service.issue_token(user)}',
+    ],
+    aiDiff: [
+      { type: 'header', content: '@@ -1,11 +1,20 @@ def login(request):' },
+      { type: 'remove', content: '-    """Validate security-sensitive' },
+      { type: 'remove', content: '-    configuration values.)' },
+      { type: 'add', content: '+    """Authenticate a user and return an auth token."""' },
+      { type: 'context', content: '     email = request.json.get("email")' },
+      { type: 'context', content: '     password = request.json.get("password")' },
+      { type: 'remove', content: '-    if not email or not password:' },
+      { type: 'remove', content: '-        return {"message": "missing credentials"}' },
+      { type: 'add', content: '+    if not email or not password:' },
+      { type: 'add', content: '+        return {"message": "Missing required fields"}, 400' },
+      { type: 'context', content: '     user = auth_service.find_user(email)' },
+      { type: 'context', content: '     if not user:' },
+      { type: 'remove', content: '-        return {"message": "invalid credentials"}' },
+      { type: 'add', content: '+        return {"message": "Invalid credentials"}, 401' },
+    ],
+    summary: 'La IA repara la sintaxis del docstring y normaliza respuestas 400 y 401 sin tocar la lógica de negocio.',
+  },
+  {
+    path: 'backend/api/routes.py',
+    warnings: [
+      'CRITICAL: endpoint de admin sin verificación de rol',
+      'WARNING: falta validación de header Authorization',
+    ],
+    sourceCode: [
+      'def list_admin_reports(request):',
+      '    token = request.headers.get("Authorization")',
+      '    user = auth_service.user_from_token(token)',
+      '    return report_service.get_all_reports()',
+    ],
+    aiDiff: [
+      { type: 'header', content: '@@ -1,4 +1,11 @@ def list_admin_reports(request):' },
+      { type: 'context', content: ' def list_admin_reports(request):' },
+      { type: 'context', content: '     token = request.headers.get("Authorization")' },
+      { type: 'add', content: '+    if not token:' },
+      { type: 'add', content: '+        return {"message": "Authorization header is required"}, 401' },
+      { type: 'context', content: '     user = auth_service.user_from_token(token)' },
+      { type: 'add', content: '+    if not user or not user.is_admin:' },
+      { type: 'add', content: '+        return {"message": "Forbidden"}, 403' },
+      { type: 'context', content: '     return report_service.get_all_reports()' },
+    ],
+    summary: 'La IA agrega guardas de autorización y rol admin para que el endpoint no exponga reportes sensibles.',
+  },
+];
+
 export function CodeReviewShowcase() {
   return (
     <section className="bg-card/30 border-y border-border">
@@ -1584,6 +1658,145 @@ export function CodeReviewShowcase() {
           </AppFrame>
         </motion.div>
       </div>
+    </section>
+  );
+}
+
+export function AiFixShowcase() {
+  const [selectedFileIndex, setSelectedFileIndex] = useState(0);
+  const selectedFile = AI_FIX_DEMO_FILES[selectedFileIndex];
+
+  return (
+    <section className="container mx-auto px-6 py-24 max-w-6xl">
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: '-80px' }}
+        transition={{ duration: 0.45, ease: 'easeOut' }}
+        className="text-center mb-12"
+      >
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-[3px] border border-primary/20 bg-primary/10 text-primary text-[11px] font-medium mb-4">
+          <Sparkles className="w-3 h-3" />
+          AI Fix workflow demo
+        </div>
+        <h2 className="text-2xl md:text-3xl font-semibold text-foreground mb-3">
+          Resolve warnings with AI, then approve and push
+        </h2>
+        <p className="text-sm text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+          The same flow your team uses in product: select warnings, send context to AI, inspect unified diff output, and approve only when changes are safe.
+        </p>
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: '-80px' }}
+        transition={{ duration: 0.5, ease: 'easeOut', delay: 0.1 }}
+      >
+        <AppFrame url="app.yemoda.io/proyectos/atlas/tasks/51/ai-fix">
+          <div className="flex items-center justify-between gap-3 px-4 py-2.5 border-b border-border bg-surface-secondary/50">
+            <div className="min-w-0">
+              <div className="text-[10px] uppercase tracking-[0.08em] text-muted-foreground">Task branch</div>
+              <div className="text-[12px] font-semibold text-foreground truncate">51-auth-hardening</div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button className="text-[10px] px-2.5 py-1 rounded-[3px] border border-border text-muted-foreground">Copy prompt</button>
+              <button className="text-[10px] px-2.5 py-1 rounded-[3px] bg-primary text-primary-foreground font-medium">Send to AI</button>
+            </div>
+          </div>
+
+          <div className="grid lg:grid-cols-[0.85fr_1.2fr_1fr] max-h-[520px]">
+            <div className="border-r border-border bg-card/40 overflow-y-auto">
+              <div className="sticky top-0 z-10 px-3 py-2 border-b border-border bg-card/80">
+                <div className="text-[11px] font-semibold text-foreground">Warnings and links</div>
+                <div className="text-[9px] text-muted-foreground">{selectedFile.warnings.length} selected for this iteration</div>
+              </div>
+              <div className="p-3 space-y-1.5">
+                {selectedFile.warnings.map((warning, index) => (
+                  <label key={index} className="flex items-start gap-2 p-2 rounded-[3px] border border-border bg-background">
+                    <input type="checkbox" checked readOnly className="mt-0.5 w-3.5 h-3.5 accent-primary shrink-0" />
+                    <span className="text-[10px] text-foreground leading-snug">{warning}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="border-r border-border overflow-y-auto bg-background">
+              <div className="sticky top-0 z-10 px-3 py-2 border-b border-border bg-card/70">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[11px] font-semibold text-foreground">Current code</span>
+                  <div className="flex items-center gap-1.5">
+                    {AI_FIX_DEMO_FILES.map((file, index) => (
+                      <button
+                        key={file.path}
+                        type="button"
+                        onClick={() => setSelectedFileIndex(index)}
+                        className={`text-[9px] px-2 py-0.5 rounded-[3px] border transition-colors ${
+                          selectedFileIndex === index
+                            ? 'bg-primary/10 border-primary/40 text-foreground'
+                            : 'border-border text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        {file.path.split('/').slice(-1)[0]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="text-[9px] text-muted-foreground font-mono mt-1 truncate">{selectedFile.path}</div>
+              </div>
+
+              <table className="w-full font-mono text-[10px] leading-[18px]">
+                <tbody>
+                  {selectedFile.sourceCode.map((line, index) => (
+                    <tr key={index} className="hover:bg-surface-secondary/30">
+                      <td className="w-9 text-right pr-2 border-r border-border/50 text-muted-foreground/70 select-none">{index + 1}</td>
+                      <td className="px-3 whitespace-pre text-foreground">{line}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="overflow-y-auto bg-background">
+              <div className="sticky top-0 z-10 px-3 py-2 border-b border-border bg-card/70">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[11px] font-semibold text-foreground">AI response</span>
+                  <span className="text-[9px] px-1.5 py-0.5 rounded-[3px] bg-success/10 text-success">Diff ready</span>
+                </div>
+                <div className="text-[9px] text-muted-foreground mt-1 leading-relaxed">{selectedFile.summary}</div>
+              </div>
+
+              <table className="w-full font-mono text-[10px] leading-[18px]">
+                <tbody>
+                  {selectedFile.aiDiff.map((line, index) => (
+                    <tr key={index} className={DIFF_ROW_STYLE[line.type]}>
+                      <td className="w-5 text-center select-none text-[9px] border-r border-border/30 text-muted-foreground/50 px-1">
+                        {line.type === 'add' ? '+' : line.type === 'remove' ? '−' : ''}
+                      </td>
+                      <td className="px-3 whitespace-pre">{line.content}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              <div className="sticky bottom-0 px-3 py-2.5 border-t border-border bg-card/85 backdrop-blur-sm flex items-center justify-between gap-2">
+                <div className="text-[9px] text-muted-foreground">Persistence is non-blocking. Commit only after approval.</div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button className="text-[10px] px-2.5 py-1 rounded-[3px] border border-border text-muted-foreground">Reject</button>
+                  <button className="text-[10px] px-2.5 py-1 rounded-[3px] bg-primary text-primary-foreground font-medium inline-flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" />
+                    Approve and push
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </AppFrame>
+
+        <div className="mt-4 text-center text-[11px] text-muted-foreground">
+          Interactive mock: switch files, inspect line-numbered source and AI diff, then approve the push.
+        </div>
+      </motion.div>
     </section>
   );
 }
