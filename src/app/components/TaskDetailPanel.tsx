@@ -27,6 +27,7 @@ import { TaskAssigneePicker } from './TaskAssigneePicker';
 import { DatePickerField } from './DatePickerField';
 import { TagColorPicker } from './TagColorPicker';
 import { CodeDiffViewer } from './CodeDiffViewer';
+import { TaskSubtasks } from './TaskSubtasks';
 import { useAuth } from '../context/AuthContext';
 
 const DONE_STATUS_NAMES = new Set(['done', 'completada', 'completado']);
@@ -1219,8 +1220,9 @@ export function TaskDetailPanel({
       const updated = await tasksService.update(task.id_task, { board_column: columnId });
       onTaskUpdated?.(updated);
       toast.success('Columna actualizada.');
-    } catch {
-      toast.error('No se pudo cambiar la columna.');
+    } catch (err) {
+      // Surfaces the backend's close-block message (e.g. parent with open subtasks → 400).
+      toast.error(err instanceof ApiRequestError ? err.message : 'No se pudo cambiar la columna.');
     } finally {
       setSavingBoardColumn(false);
     }
@@ -1685,6 +1687,15 @@ export function TaskDetailPanel({
                   )}
                 </div>
               </div>
+
+              {/* Subtasks */}
+              <TaskSubtasks
+                parentTask={task}
+                projectId={projectId}
+                canEdit={canEditTask}
+                boardColumnsByBoard={boardColumnsByBoard}
+                onParentRefreshed={onTaskUpdated}
+              />
 
               {/* Comments */}
               <div>

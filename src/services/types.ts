@@ -99,6 +99,14 @@ export interface ApiTask {
 
   story_points?: number | null;
 
+  // ── Subtasks / epics (self-referential hierarchy) ──
+  // A task with a `parent` is a subtask. Hierarchy supports arbitrary depth.
+  parent?: number | null;
+  // Completion progress over direct subtasks (computed by the backend).
+  subtask_progress?: { total: number; completed: number; percent: number };
+  // Sum of story_points across leaf descendants (only leaves carry real points).
+  rolled_up_points?: number | null;
+
   // Legacy compatibility fields retained while frontend migrates.
   board?: number;
   status?: number | null;

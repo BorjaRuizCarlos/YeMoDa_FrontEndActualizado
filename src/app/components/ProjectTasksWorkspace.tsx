@@ -13,7 +13,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Bot, Calendar, Check, Filter, GripVertical, LayoutDashboard, LayoutList, Loader2, Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import { Bot, Calendar, Check, Filter, GitBranch, GripVertical, LayoutDashboard, LayoutList, Loader2, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   useApiBoardColumns,
@@ -87,6 +87,21 @@ function TaskCard({
           {task.due_date && (
             <div className="mt-2 flex items-center gap-2 text-muted-foreground">
               <span className="inline-flex items-center gap-1"><Calendar className="w-3 h-3" />{task.due_date}</span>
+            </div>
+          )}
+          {task.subtask_progress && task.subtask_progress.total > 0 && (
+            <div className="mt-2">
+              <span
+                title={`${task.subtask_progress.completed} de ${task.subtask_progress.total} subtareas completadas`}
+                className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium ${
+                  task.subtask_progress.completed === task.subtask_progress.total
+                    ? 'border-success/30 bg-success/10 text-success'
+                    : 'border-border bg-surface-secondary/70 text-muted-foreground'
+                }`}
+              >
+                <GitBranch className="w-3 h-3" />
+                {task.subtask_progress.completed}/{task.subtask_progress.total}
+              </span>
             </div>
           )}
           {task.tags.length > 0 && (
@@ -378,8 +393,10 @@ export function ProjectTasksWorkspace({
     return map;
   }, [boards, columns]);
 
+  // Subtasks (task.parent != null) are managed inside their parent's detail panel,
+  // so they are excluded from the board/backlog to avoid cluttering them as cards.
   const backlogTasks = useMemo(
-    () => tasks ?? [],
+    () => (tasks ?? []).filter((task) => task.parent == null),
     [tasks],
   );
 
@@ -446,7 +463,10 @@ export function ProjectTasksWorkspace({
   }, [columns]);
 
   const sprintTasks = useMemo(() => {
-    const source = (tasks ?? []).filter((task) => selectedSprintId != null && task.sprint === selectedSprintId);
+    // Exclude subtasks (managed in the parent's detail panel) from board cards.
+    const source = (tasks ?? []).filter(
+      (task) => task.parent == null && selectedSprintId != null && task.sprint === selectedSprintId,
+    );
     const withTagFilter = selectedTagIds.length > 0
       ? source.filter((task) => selectedTagIds.every((tagId) => task.tags.includes(tagId)))
       : source;

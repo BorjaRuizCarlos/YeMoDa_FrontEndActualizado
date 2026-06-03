@@ -21,7 +21,8 @@ export default function Backlog() {
 
   const loading = loadingProjects || loadingTasks || loadingTags;
 
-  const backlogTasks = useMemo(() => tasks ?? [], [tasks]);
+  // Subtasks are managed from their parent's detail panel, not listed standalone here.
+  const backlogTasks = useMemo(() => (tasks ?? []).filter((task) => task.parent == null), [tasks]);
   const filteredTasks = useMemo(() => {
     if (selectedTagIds.length === 0) return backlogTasks;
     return backlogTasks.filter((task) => selectedTagIds.every((tagId) => task.tags.includes(tagId)));

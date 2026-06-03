@@ -29,6 +29,7 @@ export interface CreateTaskPayload {
   sprint?: number | null;
   milestone?: number | null;
   tags?: number[];
+  parent?: number | null;   // parent task id → this task becomes a subtask
 }
 
 export interface UpdateTaskPayload {
@@ -44,6 +45,7 @@ export interface UpdateTaskPayload {
   milestone?: number | null;
   tags?: number[];
   story_points?: number | null;
+  parent?: number | null;   // reparent the task (null = promote to top level)
 }
 
 export interface UpdateTaskCommentPayload {
@@ -77,6 +79,8 @@ export const tasksService = {
       milestoneId?: number;
       boardColumnId?: number;
       tagId?: number;
+      parentId?: number;   // ?parent= → direct subtasks of a task
+      topLevel?: boolean;  // ?top_level=true → only tasks without a parent
     },
   ): Promise<ApiTask[]> {
     const params = new URLSearchParams();
@@ -86,6 +90,8 @@ export const tasksService = {
     if (filters?.milestoneId) params.set('milestone', String(filters.milestoneId));
     if (filters?.boardColumnId) params.set('board_column', String(filters.boardColumnId));
     if (filters?.tagId) params.set('tag', String(filters.tagId));
+    if (filters?.parentId) params.set('parent', String(filters.parentId));
+    if (filters?.topLevel) params.set('top_level', 'true');
     const qs = params.toString();
     return api.get<ApiTask[]>(`/tasks/${qs ? `?${qs}` : ''}`);
   },
@@ -93,6 +99,11 @@ export const tasksService = {
   /** GET /api/tasks/:id/ */
   get(id: number): Promise<ApiTask> {
     return api.get<ApiTask>(`/tasks/${id}/`);
+  },
+
+  /** GET /api/tasks/?parent=:id — direct subtasks of a task */
+  listSubtasks(parentId: number, projectId?: number): Promise<ApiTask[]> {
+    return this.list(undefined, projectId, { parentId });
   },
 
   /** POST /api/tasks/ */
