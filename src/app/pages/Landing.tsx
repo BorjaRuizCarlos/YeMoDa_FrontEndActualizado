@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router';
 import {
   BarChart3,
@@ -15,6 +15,7 @@ import {
   Clock,
   AlertTriangle,
   ChevronDown,
+  Check,
   Menu,
   X
 } from 'lucide-react';
@@ -22,6 +23,40 @@ import { DashboardShowcase, CodeReviewShowcase, ProjectDetailShowcase, AiFixShow
 
 export default function Landing() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Respect prefers-reduced-motion: pause the background video for users
+  // who opt out of motion (also covers data-saver / vestibular needs).
+  useEffect(() => {
+    const mql = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const apply = () => {
+      const video = videoRef.current;
+      if (!video) return;
+      if (mql.matches) {
+        video.pause();
+      } else {
+        void video.play().catch(() => {});
+      }
+    };
+    apply();
+    mql.addEventListener('change', apply);
+    return () => mql.removeEventListener('change', apply);
+  }, []);
+
+  // Mobile menu: close on Escape and lock body scroll while open.
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMobileMenuOpen(false);
+    };
+    document.addEventListener('keydown', onKeyDown);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [mobileMenuOpen]);
 
   const navLinks = [
     { href: '#features', label: 'Features' },
@@ -79,13 +114,15 @@ export default function Landing() {
     <div className="min-h-screen bg-background">
       {/* ── Hero with full-screen video background ─────────────────────────── */}
       <div className="relative min-h-screen overflow-hidden">
-        {/* Video background */}
+        {/* Video background — playback is gated on prefers-reduced-motion via the effect above */}
         <video
-          className="absolute inset-0 w-full h-full object-cover z-0"
+          ref={videoRef}
+          className="absolute inset-0 w-full h-full object-cover z-0 bg-[var(--hero-dark)]"
           autoPlay
           loop
           muted
           playsInline
+          preload="auto"
           aria-hidden="true"
         >
           <source
@@ -93,6 +130,12 @@ export default function Landing() {
             type="video/mp4"
           />
         </video>
+
+        {/* Contrast scrim — guarantees readable text over arbitrary video frames */}
+        <div
+          className="absolute inset-0 z-[1] bg-gradient-to-b from-black/50 via-black/35 to-black/65"
+          aria-hidden="true"
+        />
 
         {/* Header (transparent overlay) */}
         <header className="relative z-20 w-full" role="banner">
@@ -141,6 +184,8 @@ export default function Landing() {
               onClick={() => setMobileMenuOpen(true)}
               className="md:hidden text-white"
               aria-label="Open menu"
+              aria-expanded={mobileMenuOpen}
+              aria-controls="mobile-menu"
             >
               <Menu className="w-6 h-6" />
             </button>
@@ -149,7 +194,7 @@ export default function Landing() {
 
         {/* Mobile menu overlay */}
         {mobileMenuOpen && (
-          <div className="fixed inset-0 z-50 bg-black/95 flex flex-col md:hidden">
+          <div id="mobile-menu" role="dialog" aria-modal="true" aria-label="Site menu" className="fixed inset-0 z-50 bg-black/95 flex flex-col md:hidden">
             <div className="flex items-center justify-between px-6 py-4">
               <div className="flex items-center gap-2.5">
                 <div className="w-7 h-7 bg-[var(--hero-purple)] rounded-[6px] flex items-center justify-center">
@@ -234,10 +279,13 @@ export default function Landing() {
             </a>
           </div>
 
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 justify-center font-['Inter'] text-[12px] text-white/70">
-            <span><span className="text-white font-semibold">✓</span> AI that works for your team</span>
-            <span><span className="text-white font-semibold">✓</span> Designed for today's challenges</span>
-            <span><span className="text-white font-semibold">✓</span> Up and running in minutes</span>
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 justify-center font-['Inter'] text-[12px] text-white/80">
+            {['AI that works for your team', "Designed for today's challenges", 'Up and running in minutes'].map((item) => (
+              <span key={item} className="inline-flex items-center gap-1.5">
+                <Check className="w-3.5 h-3.5 text-white" aria-hidden="true" />
+                {item}
+              </span>
+            ))}
           </div>
         </section>
       </div>
