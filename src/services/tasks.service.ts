@@ -106,6 +106,15 @@ export const tasksService = {
     return this.list(undefined, projectId, { parentId });
   },
 
+  /**
+   * POST /api/tasks/:id/ai-review/ — trigger an on-demand AI review of a parent task.
+   * Only succeeds when the task has subtasks and all of them are completed. The review
+   * runs in the background against the project's latest push, so the result arrives later.
+   */
+  requestAiReview(taskId: number): Promise<{ detail: string }> {
+    return api.post<{ detail: string }>(`/tasks/${taskId}/ai-review/`, {});
+  },
+
   /** POST /api/tasks/ */
   create(payload: CreateTaskPayload): Promise<ApiTask> {
     return api.post<ApiTask>('/tasks/', payload);

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Plus, Loader2, Check, Trash2, GitBranch } from 'lucide-react';
+import { Plus, Loader2, Check, Trash2, GitBranch, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { tasksService } from '../../services';
 import { ApiRequestError } from '../../services/api';
@@ -34,6 +34,9 @@ export function TaskSubtasks({
   const [newTitle, setNewTitle] = useState('');
   const [creating, setCreating] = useState(false);
   const [busyId, setBusyId] = useState<number | null>(null);
+  // Set when completing the LAST open subtask → confirmation modal before triggering AI.
+  const [confirmSub, setConfirmSub] = useState<ApiTask | null>(null);
+  const [confirmBusy, setConfirmBusy] = useState(false);
 
   // All column groups; used to locate the board a given column belongs to.
   const boardGroups = useMemo(
@@ -104,29 +107,76 @@ export function TaskSubtasks({
     }
   };
 
-  const handleToggle = async (sub: ApiTask) => {
-    if (!canEdit || busyId != null) return;
+  /** Move a subtask to the final (done) or first open (pending) column. Returns success. */
+  const moveSubtask = async (sub: ApiTask, toFinal: boolean): Promise<boolean> => {
     const cols = colsForColumnId(sub.board_column);
-    const done = sub.completed_at != null;
-    const target = done ? cols.find((c) => !c.is_final) : cols.find((c) => c.is_final);
+    const target = toFinal ? cols.find((c) => c.is_final) : cols.find((c) => !c.is_final);
     if (!target) {
       toast.error(
-        done
-          ? 'El tablero no tiene una columna inicial configurada.'
-          : 'El tablero no tiene una columna final para completar la subtarea.',
+        toFinal
+          ? 'El tablero no tiene una columna final para completar la subtarea.'
+          : 'El tablero no tiene una columna inicial configurada.',
       );
-      return;
+      return false;
     }
     setBusyId(sub.id_task);
     try {
       await tasksService.update(sub.id_task, { board_column: target.id_column });
-      load();
-      refreshParent();
+      return true;
     } catch (err) {
       toast.error(err instanceof ApiRequestError ? err.message : 'No se pudo actualizar la subtarea.');
+      return false;
     } finally {
       setBusyId(null);
     }
+  };
+
+  const handleToggle = async (sub: ApiTask) => {
+    if (!canEdit || busyId != null) return;
+
+    // Reopening a completed subtask: just move it back, no AI involved.
+    if (sub.completed_at != null) {
+      if (await moveSubtask(sub, false)) {
+        load();
+        refreshParent();
+      }
+      return;
+    }
+
+    // Completing: if this is the LAST open subtask, confirm before triggering the AI review.
+    const openSubtasks = subtasks.filter((s) => s.completed_at == null);
+    if (openSubtasks.length <= 1) {
+      setConfirmSub(sub);
+      return;
+    }
+
+    if (await moveSubtask(sub, true)) {
+      load();
+      refreshParent();
+    }
+  };
+
+  /** Confirmed completion of the last subtask → complete it, then trigger the parent's AI review. */
+  const handleConfirmComplete = async () => {
+    if (!confirmSub) return;
+    setConfirmBusy(true);
+    const ok = await moveSubtask(confirmSub, true);
+    if (ok) {
+      load();
+      refreshParent();
+      try {
+        await tasksService.requestAiReview(parentId);
+        toast.success('Subtarea completada. La IA revisará la tarea en segundo plano.');
+      } catch (err) {
+        toast.error(
+          err instanceof ApiRequestError
+            ? err.message
+            : 'Subtarea completada, pero no se pudo iniciar la revisión con IA.',
+        );
+      }
+    }
+    setConfirmBusy(false);
+    setConfirmSub(null);
   };
 
   const handleDelete = async (sub: ApiTask) => {
@@ -250,6 +300,55 @@ export function TaskSubtasks({
             {creating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
             Añadir
           </button>
+        </div>
+      )}
+
+      {/* Last-subtask confirmation: remind to push, then trigger the parent's AI review. */}
+      {confirmSub && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4"
+          onClick={() => { if (!confirmBusy) setConfirmSub(null); }}
+        >
+          <div
+            className="w-full max-w-md rounded-[6px] border border-border bg-card p-4 shadow-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 text-warning mt-0.5 shrink-0" />
+              <div>
+                <p className="text-[13px] font-semibold text-foreground">Última subtarea pendiente</p>
+                <p className="mt-1 text-[11px] text-muted-foreground leading-relaxed">
+                  Al completar esta subtarea, la tarea{' '}
+                  <span className="font-medium text-foreground">"{parentTask.title}"</span>{' '}
+                  será revisada automáticamente por la IA.
+                </p>
+                <p className="mt-2 text-[11px] text-muted-foreground leading-relaxed">
+                  Asegúrate de haber subido tus cambios a git
+                  (<span className="font-mono text-foreground">git push</span>) antes de continuar —
+                  la IA revisa el código que está en el repositorio, no el local.
+                </p>
+              </div>
+            </div>
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirmSub(null)}
+                disabled={confirmBusy}
+                className="h-7 px-3 rounded-[3px] border border-border bg-surface-secondary text-[11px] text-foreground hover:bg-accent disabled:opacity-50"
+              >
+                Regresar
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleConfirmComplete()}
+                disabled={confirmBusy}
+                className="h-7 px-3 rounded-[3px] border border-primary bg-primary text-[11px] font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 inline-flex items-center gap-1"
+              >
+                {confirmBusy ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                Continuar
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
