@@ -1,10 +1,58 @@
-/* ─── Landing hero typography ──────────────────────────────────────── */
-/* Manrope → UI/nav · Cabin → buttons/tags · Instrument Serif → headlines · Inter → body */
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Cabin:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap');
+/* ─── Landing typography ───────────────────────────────────────────── */
+/* Plus Jakarta Sans → display + body (single geometric sans, Linear/Vercel feel) */
+/* JetBrains Mono → eyebrows / labels / mono accents                              */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 :root {
-  --font-manrope: 'Manrope', var(--font-family);
-  --font-cabin: 'Cabin', var(--font-family);
-  --font-serif-display: 'Instrument Serif', Georgia, serif;
-  --font-inter: 'Inter', var(--font-family);
+  --font-display: 'Plus Jakarta Sans', var(--font-family);
+  --font-body: 'Plus Jakarta Sans', var(--font-family);
+  --font-mono-lp: 'JetBrains Mono', var(--font-mono);
+}
+
+/* ─── Landing ambient background ────────────────────────────────────── */
+/* Decorative-only; unlayered so it composes with Tailwind utilities.    */
+
+/* Faint grid that fades toward the edges (radial mask). */
+.lp-grid {
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 56px 56px;
+  -webkit-mask-image: radial-gradient(ellipse 75% 65% at 50% 0%, #000 30%, transparent 78%);
+          mask-image: radial-gradient(ellipse 75% 65% at 50% 0%, #000 30%, transparent 78%);
+}
+
+/* Ambient violet glow (brand accent) behind the hero / CTA. */
+.lp-glow {
+  background: radial-gradient(
+    ellipse 60% 55% at 50% 0%,
+    rgba(147, 51, 234, 0.40),
+    rgba(124, 58, 237, 0.12) 45%,
+    transparent 72%
+  );
+}
+
+/* ─── Landing motion (entrance + subtle pulse) ──────────────────────── */
+@keyframes lpFadeUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes lpGlowPulse {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 0.85; }
+}
+
+.lp-fade-up {
+  animation: lpFadeUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.lp-glow-pulse {
+  animation: lpGlowPulse 7s ease-in-out infinite;
+}
+
+/* Respect reduced-motion: drop entrance + pulse, keep final state. */
+@media (prefers-reduced-motion: reduce) {
+  .lp-fade-up { animation: none; }
+  .lp-glow-pulse { animation: none; }
 }

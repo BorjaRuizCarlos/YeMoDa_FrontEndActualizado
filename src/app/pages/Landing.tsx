@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, type ReactNode, type ComponentType } from 'react';
 import { Link } from 'react-router';
 import {
   BarChart3,
@@ -14,34 +14,59 @@ import {
   ChevronRight,
   Clock,
   AlertTriangle,
-  ChevronDown,
   Check,
   Menu,
-  X
+  X,
 } from 'lucide-react';
-import { DashboardShowcase, CodeReviewShowcase, ProjectDetailShowcase, AiFixShowcase } from '../components/LandingShowcase';
+import {
+  DashboardShowcase,
+  CodeReviewShowcase,
+  ProjectDetailShowcase,
+  AiFixShowcase,
+} from '../components/LandingShowcase';
+
+// Shared focus ring — visible keyboard focus on the near-black canvas.
+const FOCUS =
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background';
+
+type Icon = ComponentType<{ className?: string }>;
+
+// ── Small building blocks ─────────────────────────────────────────────────────
+
+function Eyebrow({ children }: { children: ReactNode }) {
+  return (
+    <span
+      className="inline-flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.18em] text-[#c084fc]"
+      style={{ fontFamily: 'var(--font-mono-lp)' }}
+    >
+      <span className="h-1 w-1 rounded-full bg-[#c084fc]" aria-hidden="true" />
+      {children}
+    </span>
+  );
+}
+
+// A thin gradient divider with a centered chapter label — frames each demo
+// without competing with the showcase's own internal heading.
+function ChapterLabel({ children }: { children: ReactNode }) {
+  return (
+    <div className="mx-auto flex max-w-6xl items-center gap-4 px-6 pt-20">
+      <span className="h-px flex-1 bg-gradient-to-r from-transparent to-white/10" aria-hidden="true" />
+      <Eyebrow>{children}</Eyebrow>
+      <span className="h-px flex-1 bg-gradient-to-l from-transparent to-white/10" aria-hidden="true" />
+    </div>
+  );
+}
+
+// Wraps a showcase so the marketing display font does not cascade into the
+// dense demo UI (keeps the demos pixel-identical to before).
+function DemoReset({ children }: { children: ReactNode }) {
+  return <div style={{ fontFamily: 'var(--font-family)' }}>{children}</div>;
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function Landing() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
-
-  // Respect prefers-reduced-motion: pause the background video for users
-  // who opt out of motion (also covers data-saver / vestibular needs).
-  useEffect(() => {
-    const mql = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const apply = () => {
-      const video = videoRef.current;
-      if (!video) return;
-      if (mql.matches) {
-        video.pause();
-      } else {
-        void video.play().catch(() => {});
-      }
-    };
-    apply();
-    mql.addEventListener('change', apply);
-    return () => mql.removeEventListener('change', apply);
-  }, []);
 
   // Mobile menu: close on Escape and lock body scroll while open.
   useEffect(() => {
@@ -60,415 +85,486 @@ export default function Landing() {
 
   const navLinks = [
     { href: '#features', label: 'Features' },
-    { href: '#demo', label: 'Services', chevron: true },
+    { href: '#demo', label: 'Demo' },
     { href: '#how-it-works', label: 'How it works' },
   ];
 
-  const features = [
-    {
-      icon: <BarChart3 className="w-5 h-5" />,
-      title: 'Real-Time KPIs',
-      description: 'Continuous monitoring of progress, budget, and critical metrics across your entire portfolio.'
-    },
-    {
-      icon: <Bell className="w-5 h-5" />,
-      title: 'Early Warning Alerts',
-      description: 'Smart notifications to identify risks before they turn into blockers for your team.'
-    },
-    {
-      icon: <Brain className="w-5 h-5" />,
-      title: 'AI That Works For You',
-      description: 'Yemoda uses AI to surface blockers and flag risks early — as a clear signal your team can act on, not a black box that slows you down.'
-    },
-    {
-      icon: <Shield className="w-5 h-5" />,
-      title: 'Enterprise Security',
-      description: 'Granular roles and permissions per project to safeguard sensitive business data.'
-    },
-    {
-      icon: <TrendingUp className="w-5 h-5" />,
-      title: 'Executive Dashboards',
-      description: 'Customizable dashboards with actionable insights tailored for stakeholders and leads.'
-    },
-    {
-      icon: <Users className="w-5 h-5" />,
-      title: 'Built for Real Teams',
-      description: 'Async updates, clear ownership, and a single source of truth — for engineers, leads, and stakeholders, without switching between a dozen tools.'
-    }
+  const trust = [
+    'AI that works for your team',
+    "Designed for today's challenges",
+    'Up and running in minutes',
   ];
 
   const stats = [
     { value: '99.9%', label: 'Uptime guaranteed' },
-    { value: '150+',  label: 'Projects managed' },
-    { value: '40%',   label: 'Fewer delays' },
+    { value: '150+', label: 'Projects managed' },
+    { value: '40%', label: 'Fewer delays' },
     { value: '4.8/5', label: 'User satisfaction' },
   ];
 
-  const steps = [
-    { number: '01', icon: <Layers className="w-5 h-5" />, title: 'Set up your projects', description: 'Import or create projects with timelines, budgets, and assigned teams in minutes.' },
-    { number: '02', icon: <GitBranch className="w-5 h-5" />, title: 'Monitor in real time', description: 'Visualize KPIs, sprint progress, and deviations with automatically updated dashboards.' },
-    { number: '03', icon: <Zap className="w-5 h-5" />, title: 'Act with confidence', description: 'AI surfaces blockers early so your team can respond — clear, actionable signals, not noise.' },
+  const painPoints: { icon: Icon; title: string; desc: string; tint: string; bg: string; ring: string }[] = [
+    {
+      icon: Clock,
+      title: 'Too many status meetings',
+      desc: 'Hours lost chasing updates that should be visible to the whole team automatically.',
+      tint: 'text-destructive',
+      bg: 'bg-destructive/10',
+      ring: 'border-destructive/20',
+    },
+    {
+      icon: AlertTriangle,
+      title: 'Blockers caught too late',
+      desc: "Issues surface only when it's too late to course-correct — delays become inevitable.",
+      tint: 'text-warning',
+      bg: 'bg-warning/10',
+      ring: 'border-warning/20',
+    },
+    {
+      icon: Brain,
+      title: 'AI tools that add friction',
+      desc: 'Complex AI features that require setup, disrupt workflows, and feel like extra work rather than help.',
+      tint: 'text-info',
+      bg: 'bg-info/10',
+      ring: 'border-info/20',
+    },
+  ];
+
+  const features: { icon: Icon; title: string; description: string }[] = [
+    {
+      icon: BarChart3,
+      title: 'Real-Time KPIs',
+      description: 'Continuous monitoring of progress, budget, and critical metrics across your entire portfolio.',
+    },
+    {
+      icon: Bell,
+      title: 'Early Warning Alerts',
+      description: 'Smart notifications to identify risks before they turn into blockers for your team.',
+    },
+    {
+      icon: Brain,
+      title: 'AI That Works For You',
+      description:
+        'Yemoda surfaces blockers and flags risks early — as a clear signal your team can act on, not a black box that slows you down.',
+    },
+    {
+      icon: Shield,
+      title: 'Enterprise Security',
+      description: 'Granular roles and permissions per project to safeguard sensitive business data.',
+    },
+    {
+      icon: TrendingUp,
+      title: 'Executive Dashboards',
+      description: 'Customizable dashboards with actionable insights tailored for stakeholders and leads.',
+    },
+    {
+      icon: Users,
+      title: 'Built for Real Teams',
+      description:
+        'Async updates, clear ownership, and a single source of truth — for engineers, leads, and stakeholders alike.',
+    },
+  ];
+
+  const steps: { number: string; icon: Icon; title: string; description: string }[] = [
+    {
+      number: '01',
+      icon: Layers,
+      title: 'Set up your projects',
+      description: 'Import or create projects with timelines, budgets, and assigned teams in minutes.',
+    },
+    {
+      number: '02',
+      icon: GitBranch,
+      title: 'Monitor in real time',
+      description: 'Visualize KPIs, sprint progress, and deviations with automatically updated dashboards.',
+    },
+    {
+      number: '03',
+      icon: Zap,
+      title: 'Act with confidence',
+      description: 'AI surfaces blockers early so your team can respond — clear, actionable signals, not noise.',
+    },
   ];
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* ── Hero with full-screen video background ─────────────────────────── */}
-      <div className="relative min-h-screen overflow-hidden">
-        {/* Video background — playback is gated on prefers-reduced-motion via the effect above */}
-        <video
-          ref={videoRef}
-          className="absolute inset-0 w-full h-full object-cover z-0 bg-[var(--hero-dark)]"
-          autoPlay
-          loop
-          muted
-          playsInline
-          preload="auto"
-          aria-hidden="true"
-        >
-          <source
-            src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260210_031346_d87182fb-b0af-4273-84d1-c6fd17d6bf0f.mp4"
-            type="video/mp4"
-          />
-        </video>
+    // `dark` forces the deep-dark palette for the whole landing — including the
+    // showcases — regardless of the app's active theme. Display font set here;
+    // each <DemoReset> opts the demos back out so their metrics stay unchanged.
+    <div
+      className="dark relative min-h-screen overflow-x-hidden bg-background text-foreground antialiased"
+      style={{ fontFamily: 'var(--font-display)' }}
+    >
+      {/* ── Floating glass nav ─────────────────────────────────────────────── */}
+      <header className="fixed inset-x-0 top-0 z-50 px-4 pt-4" role="banner">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 rounded-2xl border border-white/10 bg-[#0D1117]/70 px-4 py-2.5 shadow-[0_8px_30px_-12px_rgba(0,0,0,0.7)] backdrop-blur-xl sm:px-5">
+          <Link to="/" className={`flex items-center gap-2.5 rounded-lg ${FOCUS}`} aria-label="Yemoda home">
+            <span className="flex h-7 w-7 items-center justify-center rounded-[7px] bg-primary">
+              <span className="text-[11px] font-bold text-primary-foreground">YM</span>
+            </span>
+            <span className="text-[15px] font-semibold text-foreground">Yemoda</span>
+          </Link>
 
-        {/* Contrast scrim — guarantees readable text over arbitrary video frames */}
+          <nav className="hidden items-center gap-8 md:flex" aria-label="Main navigation">
+            {navLinks.map((link) => (
+              <a
+                key={link.label}
+                href={link.href}
+                className={`rounded text-[14px] font-medium text-slate-300 transition-colors hover:text-foreground ${FOCUS}`}
+              >
+                {link.label}
+              </a>
+            ))}
+          </nav>
+
+          <div className="hidden items-center gap-2.5 md:flex">
+            <Link
+              to="/login"
+              className={`rounded-lg px-3.5 py-2 text-[14px] font-medium text-slate-300 transition-colors hover:bg-white/5 hover:text-foreground ${FOCUS}`}
+            >
+              Sign in
+            </Link>
+            <Link
+              to="/login"
+              className={`rounded-lg bg-primary px-4 py-2 text-[14px] font-semibold text-primary-foreground transition-colors hover:bg-primary-hover ${FOCUS}`}
+            >
+              Get started
+            </Link>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setMobileMenuOpen(true)}
+            className={`rounded-lg p-1.5 text-foreground transition-colors hover:bg-white/5 md:hidden ${FOCUS}`}
+            aria-label="Open menu"
+            aria-expanded={mobileMenuOpen}
+            aria-controls="mobile-menu"
+          >
+            <Menu className="h-6 w-6" />
+          </button>
+        </div>
+      </header>
+
+      {/* Mobile menu overlay */}
+      {mobileMenuOpen && (
         <div
-          className="absolute inset-0 z-[1] bg-gradient-to-b from-black/50 via-black/35 to-black/65"
-          aria-hidden="true"
-        />
-
-        {/* Header (transparent overlay) */}
-        <header className="relative z-20 w-full" role="banner">
-          <div className="flex items-center justify-between px-6 lg:px-[120px] py-4">
-            {/* Logo */}
+          id="mobile-menu"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Site menu"
+          className="fixed inset-0 z-[60] flex flex-col bg-[#07090D]/98 backdrop-blur-md md:hidden"
+        >
+          <div className="flex items-center justify-between px-6 pt-6">
             <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 bg-[var(--hero-purple)] rounded-[6px] flex items-center justify-center">
-                <span className="text-white font-semibold text-xs">YM</span>
-              </div>
-              <span className="font-semibold text-white text-[15px] font-['Manrope']">Yemoda</span>
+              <span className="flex h-7 w-7 items-center justify-center rounded-[7px] bg-primary">
+                <span className="text-[11px] font-bold text-primary-foreground">YM</span>
+              </span>
+              <span className="text-[15px] font-semibold text-foreground">Yemoda</span>
             </div>
-
-            {/* Nav links (desktop) */}
-            <nav className="hidden md:flex items-center gap-7" aria-label="Main navigation">
-              {navLinks.map((link) => (
-                <a
-                  key={link.label}
-                  href={link.href}
-                  className="flex items-center gap-1 font-['Manrope'] font-medium text-[14px] text-white hover:opacity-80 transition-opacity"
-                >
-                  {link.label}
-                  {link.chevron && <ChevronDown className="w-4 h-4" />}
-                </a>
-              ))}
-            </nav>
-
-            {/* Action buttons (desktop) */}
-            <div className="hidden md:flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen(false)}
+              className={`rounded-lg p-1.5 text-foreground transition-colors hover:bg-white/5 ${FOCUS}`}
+              aria-label="Close menu"
+            >
+              <X className="h-6 w-6" />
+            </button>
+          </div>
+          <nav className="flex flex-1 flex-col items-center justify-center gap-8" aria-label="Mobile navigation">
+            {navLinks.map((link) => (
+              <a
+                key={link.label}
+                href={link.href}
+                onClick={() => setMobileMenuOpen(false)}
+                className={`rounded text-[22px] font-medium text-foreground transition-colors hover:text-primary ${FOCUS}`}
+              >
+                {link.label}
+              </a>
+            ))}
+            <div className="mt-4 flex w-60 flex-col items-center gap-3">
               <Link
                 to="/login"
-                className="px-4 py-2 bg-white border border-[#d4d4d4] rounded-[8px] text-[#171717] font-['Manrope'] font-semibold text-[14px] hover:bg-white/90 transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`w-full rounded-lg border border-white/15 bg-white/5 py-3 text-center text-[15px] font-semibold text-foreground ${FOCUS}`}
               >
                 Sign in
               </Link>
               <Link
                 to="/login"
-                className="px-4 py-2 bg-[var(--hero-purple)] hover:bg-[var(--hero-purple-hover)] rounded-[8px] text-[#fafafa] font-['Manrope'] font-semibold text-[14px] shadow-md transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`w-full rounded-lg bg-primary py-3 text-center text-[15px] font-semibold text-primary-foreground ${FOCUS}`}
               >
-                Get Started
+                Get started
               </Link>
             </div>
+          </nav>
+        </div>
+      )}
 
-            {/* Mobile hamburger */}
-            <button
-              type="button"
-              onClick={() => setMobileMenuOpen(true)}
-              className="md:hidden text-white"
-              aria-label="Open menu"
-              aria-expanded={mobileMenuOpen}
-              aria-controls="mobile-menu"
+      {/* ── Hero ───────────────────────────────────────────────────────────── */}
+      <section className="relative overflow-hidden px-6 pt-36 pb-24 sm:pt-44 lg:pb-28">
+        {/* Ambient background — decorative, motion gated by prefers-reduced-motion */}
+        <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
+          <div className="absolute inset-0 lp-grid" />
+          <div className="lp-glow lp-glow-pulse absolute inset-x-0 top-0 h-[640px]" />
+          <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-background to-transparent" />
+        </div>
+
+        <div className="mx-auto flex max-w-4xl flex-col items-center text-center">
+          <div className="lp-fade-up mb-8 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 py-1 pl-1 pr-3.5 backdrop-blur-md">
+            <span
+              className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary-foreground"
+              style={{ fontFamily: 'var(--font-mono-lp)' }}
             >
-              <Menu className="w-6 h-6" />
-            </button>
-          </div>
-        </header>
-
-        {/* Mobile menu overlay */}
-        {mobileMenuOpen && (
-          <div id="mobile-menu" role="dialog" aria-modal="true" aria-label="Site menu" className="fixed inset-0 z-50 bg-black/95 flex flex-col md:hidden">
-            <div className="flex items-center justify-between px-6 py-4">
-              <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 bg-[var(--hero-purple)] rounded-[6px] flex items-center justify-center">
-                  <span className="text-white font-semibold text-xs">YM</span>
-                </div>
-                <span className="font-semibold text-white text-[15px] font-['Manrope']">Yemoda</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => setMobileMenuOpen(false)}
-                className="text-white"
-                aria-label="Close menu"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-            <nav className="flex flex-col items-center justify-center gap-8 flex-1" aria-label="Mobile navigation">
-              {navLinks.map((link) => (
-                <a
-                  key={link.label}
-                  href={link.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="font-['Manrope'] font-medium text-[20px] text-white hover:opacity-80 transition-opacity"
-                >
-                  {link.label}
-                </a>
-              ))}
-              <div className="flex flex-col items-center gap-3 mt-4 w-56">
-                <Link
-                  to="/login"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="w-full text-center px-4 py-2.5 bg-white border border-[#d4d4d4] rounded-[8px] text-[#171717] font-['Manrope'] font-semibold text-[14px]"
-                >
-                  Sign in
-                </Link>
-                <Link
-                  to="/login"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="w-full text-center px-4 py-2.5 bg-[var(--hero-purple)] rounded-[8px] text-[#fafafa] font-['Manrope'] font-semibold text-[14px] shadow-md"
-                >
-                  Get Started
-                </Link>
-              </div>
-            </nav>
-          </div>
-        )}
-
-        {/* Hero Content (centered) */}
-        <section className="relative z-10 flex flex-col items-center text-center px-6 mt-32 pb-24">
-          {/* Tagline pill — glassmorphism */}
-          <div className="inline-flex items-center gap-2 h-[38px] px-2 rounded-[10px] bg-[rgba(85,80,110,0.4)] backdrop-blur-md border border-[rgba(164,132,215,0.5)] mb-8">
-            <span className="px-2 py-0.5 rounded-[6px] bg-[var(--hero-purple)] text-white font-['Cabin'] font-medium text-[12px]">
               New
             </span>
-            <span className="font-['Cabin'] font-medium text-[14px] text-white pr-1">
-              Built for modern engineering teams
-            </span>
+            <span className="text-[13px] text-slate-200">Built for modern engineering teams</span>
           </div>
 
-          <h1 className="font-['Instrument_Serif'] text-white text-5xl md:text-7xl lg:text-[96px] leading-[1.1] mb-6 max-w-5xl">
-            Intelligent Project <span className="italic px-1">Management</span>
+          <h1
+            className="lp-fade-up text-[2.75rem] font-semibold leading-[1.05] tracking-[-0.03em] text-foreground sm:text-6xl lg:text-7xl"
+            style={{ animationDelay: '0.05s' }}
+          >
+            Intelligent project{' '}
+            <span className="bg-gradient-to-r from-primary via-[#a855f7] to-[#c084fc] bg-clip-text text-transparent">
+              management
+            </span>
           </h1>
 
-          <p className="font-['Inter'] font-normal text-[18px] text-white/70 max-w-[662px] mx-auto mb-9 leading-relaxed">
-            The project platform built around how teams actually work. Real-time visibility, early warnings, and AI that helps your team move faster — not get in the way.
+          <p
+            className="lp-fade-up mx-auto mt-7 max-w-2xl text-[17px] leading-relaxed text-slate-300 sm:text-lg"
+            style={{ animationDelay: '0.1s' }}
+          >
+            The project platform built around how teams actually work. Real-time visibility, early warnings,
+            and AI that helps your team move faster — not get in the way.
           </p>
 
-          <div className="flex flex-col sm:flex-row items-center gap-3 justify-center mb-7">
+          <div
+            className="lp-fade-up mt-9 flex w-full flex-col items-center gap-3 sm:w-auto sm:flex-row"
+            style={{ animationDelay: '0.15s' }}
+          >
             <Link
               to="/login"
-              className="px-6 py-3 bg-[var(--hero-purple)] hover:bg-[var(--hero-purple-hover)] text-white rounded-[10px] font-['Cabin'] font-medium text-[16px] transition-colors inline-flex items-center gap-2"
+              className={`group inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 text-[15px] font-semibold text-primary-foreground shadow-[0_8px_30px_-8px_rgba(147,51,234,0.6)] transition-colors hover:bg-primary-hover sm:w-auto ${FOCUS}`}
             >
               Get started
-              <ArrowRight className="w-4 h-4" />
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
             </Link>
             <a
               href="#demo"
-              className="px-6 py-3 bg-[var(--hero-dark)] hover:bg-[var(--hero-dark-hover)] text-[#f6f7f9] rounded-[10px] font-['Cabin'] font-medium text-[16px] transition-colors inline-flex items-center gap-2"
+              className={`inline-flex w-full items-center justify-center gap-2 rounded-lg border border-white/15 bg-white/5 px-6 py-3 text-[15px] font-medium text-slate-100 backdrop-blur-md transition-colors hover:bg-white/10 sm:w-auto ${FOCUS}`}
             >
               See the demo
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="h-4 w-4" aria-hidden="true" />
             </a>
           </div>
 
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 justify-center font-['Inter'] text-[12px] text-white/80">
-            {['AI that works for your team', "Designed for today's challenges", 'Up and running in minutes'].map((item) => (
-              <span key={item} className="inline-flex items-center gap-1.5">
-                <Check className="w-3.5 h-3.5 text-white" aria-hidden="true" />
+          <ul
+            className="lp-fade-up mt-9 flex flex-wrap items-center justify-center gap-x-6 gap-y-2"
+            style={{ animationDelay: '0.2s' }}
+          >
+            {trust.map((item) => (
+              <li key={item} className="inline-flex items-center gap-1.5 text-[13px] text-slate-400">
+                <Check className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
                 {item}
-              </span>
+              </li>
             ))}
-          </div>
-        </section>
-      </div>
-
-      <DashboardShowcase />
-      <ProjectDetailShowcase />
-      <CodeReviewShowcase />
-      <AiFixShowcase />
-
-      {/* Stats Bar */}
-      <section className="border-y border-border bg-card/50">
-        <div className="container mx-auto px-6 py-10 max-w-6xl">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {stats.map((stat, i) => (
-              <div key={i} className="text-center">
-                <p className="text-2xl font-semibold text-foreground mb-1">{stat.value}</p>
-                <p className="text-xs text-muted-foreground">{stat.label}</p>
-              </div>
-            ))}
-          </div>
+          </ul>
         </div>
       </section>
 
-      {/* Pain Points */}
-      <section className="container mx-auto px-6 py-16 max-w-6xl">
-        <div className="text-center mb-10">
-          <p className="text-xs font-medium text-primary uppercase tracking-wider mb-2">The Problem</p>
-          <h2 className="text-2xl md:text-3xl font-semibold text-foreground mb-3">
-            Most project tools were built for managers, not teams
-          </h2>
-          <p className="text-sm text-muted-foreground max-w-lg mx-auto">
-            The result? Visibility gaps, late surprises, and AI features nobody actually uses.
-          </p>
-        </div>
-
-        <div className="grid md:grid-cols-3 gap-4 max-w-5xl mx-auto mb-8">
-          <div className="bg-destructive/5 border border-destructive/15 rounded-[4px] p-5">
-            <div className="w-8 h-8 bg-destructive/10 rounded-[3px] flex items-center justify-center text-destructive mb-3">
-              <Clock className="w-4 h-4" />
-            </div>
-            <h3 className="text-[12px] font-semibold text-foreground mb-1.5">Too many status meetings</h3>
-            <p className="text-[11px] text-muted-foreground leading-relaxed">
-              Hours lost chasing updates that should be visible to the whole team automatically.
-            </p>
-          </div>
-          <div className="bg-warning/5 border border-warning/15 rounded-[4px] p-5">
-            <div className="w-8 h-8 bg-warning/10 rounded-[3px] flex items-center justify-center text-warning mb-3">
-              <AlertTriangle className="w-4 h-4" />
-            </div>
-            <h3 className="text-[12px] font-semibold text-foreground mb-1.5">Blockers caught too late</h3>
-            <p className="text-[11px] text-muted-foreground leading-relaxed">
-              Issues surface only when it&apos;s too late to course-correct &mdash; delays become inevitable.
-            </p>
-          </div>
-          <div className="bg-info/5 border border-info/15 rounded-[4px] p-5">
-            <div className="w-8 h-8 bg-info/10 rounded-[3px] flex items-center justify-center text-info mb-3">
-              <Brain className="w-4 h-4" />
-            </div>
-            <h3 className="text-[12px] font-semibold text-foreground mb-1.5">AI tools that add friction</h3>
-            <p className="text-[11px] text-muted-foreground leading-relaxed">
-              Complex AI features that require setup, disrupt workflows, and feel like extra work rather than help.
-            </p>
-          </div>
-        </div>
-
-        <div className="text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-[3px] text-primary text-[12px] font-medium">
-            <Zap className="w-3.5 h-3.5" />
-            Yemoda was designed specifically to solve all three
-          </div>
-        </div>
-      </section>
-
-      {/* Features */}
-      <section id="features" className="container mx-auto px-6 py-20 max-w-6xl scroll-mt-13">
-        <div className="text-center mb-14">
-          <p className="text-xs font-medium text-primary uppercase tracking-wider mb-2">Why teams choose Yemoda</p>
-          <h2 className="text-2xl md:text-3xl font-semibold text-foreground mb-3">
-            Built for the problems engineering teams face today
-          </h2>
-          <p className="text-sm text-muted-foreground max-w-lg mx-auto">
-            Too many status meetings, blockers caught too late, AI tools that feel like extra work. Yemoda was built to solve all three.
-          </p>
-        </div>
-
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-5xl mx-auto">
-          {features.map((feature, index) => (
-            <div
-              key={index}
-              className="bg-card border border-border rounded-[4px] p-4 hover:border-primary/30 transition-colors group"
-            >
-              <div className="w-9 h-9 bg-primary/10 rounded-[3px] flex items-center justify-center text-primary mb-3 group-hover:bg-primary/15 transition-colors">
-                {feature.icon}
-              </div>
-              <h3 className="text-[12px] font-semibold text-foreground mb-1.5">{feature.title}</h3>
-              <p className="text-[11px] text-muted-foreground leading-relaxed">{feature.description}</p>
+      {/* ── Stats band ─────────────────────────────────────────────────────── */}
+      <section aria-label="Key metrics" className="border-y border-white/[0.07] bg-[#0B0E14]">
+        <div className="mx-auto grid max-w-5xl grid-cols-2 gap-8 px-6 py-10 sm:grid-cols-4">
+          {stats.map((stat) => (
+            <div key={stat.label} className="text-center">
+              <p
+                className="text-3xl font-bold tracking-tight text-foreground md:text-4xl"
+                style={{ fontFamily: 'var(--font-mono-lp)' }}
+              >
+                {stat.value}
+              </p>
+              <p className="mt-1.5 text-[12px] uppercase tracking-wider text-slate-400">{stat.label}</p>
             </div>
           ))}
         </div>
       </section>
 
-      {/* How it works */}
-      <section id="how-it-works" className="bg-card/50 border-y border-border scroll-mt-25">
-        <div className="container mx-auto px-6 py-20 max-w-6xl">
-          <div className="text-center mb-14">
-            <p className="text-xs font-medium text-primary uppercase tracking-wider mb-2">Process</p>
-            <h2 className="text-2xl md:text-3xl font-semibold text-foreground mb-3">
+      {/* ── The problem ────────────────────────────────────────────────────── */}
+      <section className="mx-auto max-w-6xl px-6 py-24">
+        <div className="mx-auto max-w-2xl text-center">
+          <Eyebrow>The problem</Eyebrow>
+          <h2 className="mt-4 text-3xl font-semibold tracking-[-0.02em] text-foreground md:text-4xl">
+            Most project tools were built for managers, not teams
+          </h2>
+          <p className="mt-4 text-[15px] leading-relaxed text-slate-400">
+            The result? Visibility gaps, late surprises, and AI features nobody actually uses.
+          </p>
+        </div>
+
+        <div className="mx-auto mt-12 grid max-w-5xl gap-4 md:grid-cols-3">
+          {painPoints.map((p) => (
+            <div
+              key={p.title}
+              className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6 transition-colors hover:border-white/15"
+            >
+              <span className={`mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl border ${p.ring} ${p.bg} ${p.tint}`}>
+                <p.icon className="h-5 w-5" />
+              </span>
+              <h3 className="text-[15px] font-semibold text-foreground">{p.title}</h3>
+              <p className="mt-2 text-[13px] leading-relaxed text-slate-400">{p.desc}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-10 text-center">
+          <span className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-4 py-2 text-[13px] font-medium text-[#c084fc]">
+            <Zap className="h-4 w-4" aria-hidden="true" />
+            Yemoda was designed specifically to solve all three
+          </span>
+        </div>
+      </section>
+
+      {/* ── Product tour: dashboard + project workspace ────────────────────── */}
+      <ChapterLabel>Product tour</ChapterLabel>
+      <DemoReset>
+        <DashboardShowcase />
+      </DemoReset>
+      <DemoReset>
+        <ProjectDetailShowcase />
+      </DemoReset>
+
+      {/* ── Features ───────────────────────────────────────────────────────── */}
+      <section id="features" className="mx-auto max-w-6xl scroll-mt-24 px-6 py-24">
+        <div className="mx-auto max-w-2xl text-center">
+          <Eyebrow>Why teams choose Yemoda</Eyebrow>
+          <h2 className="mt-4 text-3xl font-semibold tracking-[-0.02em] text-foreground md:text-4xl">
+            Built for the problems engineering teams face today
+          </h2>
+          <p className="mt-4 text-[15px] leading-relaxed text-slate-400">
+            Too many status meetings, blockers caught too late, AI tools that feel like extra work. Yemoda was
+            built to solve all three.
+          </p>
+        </div>
+
+        <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {features.map((feature) => (
+            <div
+              key={feature.title}
+              className="group rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6 transition-colors hover:border-primary/30 hover:bg-white/[0.04]"
+            >
+              <span className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary transition-colors group-hover:bg-primary/15">
+                <feature.icon className="h-5 w-5" />
+              </span>
+              <h3 className="text-[15px] font-semibold text-foreground">{feature.title}</h3>
+              <p className="mt-2 text-[13px] leading-relaxed text-slate-400">{feature.description}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── AI workflow: code review + AI fix ──────────────────────────────── */}
+      <ChapterLabel>The AI workflow</ChapterLabel>
+      <DemoReset>
+        <CodeReviewShowcase />
+      </DemoReset>
+      <DemoReset>
+        <AiFixShowcase />
+      </DemoReset>
+
+      {/* ── How it works ───────────────────────────────────────────────────── */}
+      <section id="how-it-works" className="scroll-mt-24 border-y border-white/[0.07] bg-[#0B0E14]">
+        <div className="mx-auto max-w-6xl px-6 py-24">
+          <div className="mx-auto max-w-2xl text-center">
+            <Eyebrow>Process</Eyebrow>
+            <h2 className="mt-4 text-3xl font-semibold tracking-[-0.02em] text-foreground md:text-4xl">
               Up and running in 3 steps
             </h2>
-            <p className="text-sm text-muted-foreground max-w-md mx-auto">
-              From setup to actionable intelligence in minutes
+            <p className="mt-4 text-[15px] leading-relaxed text-slate-400">
+              From setup to actionable intelligence in minutes.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+          <div className="mx-auto mt-14 grid max-w-4xl gap-6 md:grid-cols-3">
             {steps.map((step, index) => (
-              <div key={index} className="relative text-center">
-                <div className="w-11 h-11 rounded-[4px] bg-primary/10 flex items-center justify-center text-primary mx-auto mb-4">
-                  {step.icon}
-                </div>
-                <span className="text-[10px] font-semibold text-primary uppercase tracking-widest">{step.number}</span>
-                <h3 className="text-sm font-semibold text-foreground mt-1 mb-2">{step.title}</h3>
-                <p className="text-xs text-muted-foreground leading-relaxed">{step.description}</p>
+              <div key={step.number} className="relative">
                 {index < steps.length - 1 && (
-                  <div className="hidden md:block absolute top-6 left-[60%] w-[80%] border-t border-dashed border-border" />
+                  <span
+                    className="absolute left-[calc(50%+2rem)] top-6 hidden h-px w-[calc(100%-2rem)] bg-gradient-to-r from-white/15 to-transparent md:block"
+                    aria-hidden="true"
+                  />
                 )}
+                <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6">
+                  <div className="flex items-center justify-between">
+                    <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
+                      <step.icon className="h-5 w-5" />
+                    </span>
+                    <span
+                      className="text-[13px] font-semibold tracking-widest text-[#c084fc]"
+                      style={{ fontFamily: 'var(--font-mono-lp)' }}
+                    >
+                      {step.number}
+                    </span>
+                  </div>
+                  <h3 className="mt-4 text-[15px] font-semibold text-foreground">{step.title}</h3>
+                  <p className="mt-2 text-[13px] leading-relaxed text-slate-400">{step.description}</p>
+                </div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-
-      {/* CTA */}
-      <section className="container mx-auto px-6 pb-20 max-w-6xl">
-        <div className="bg-card border border-border rounded-[4px] p-8 md:p-12 text-center max-w-3xl mx-auto relative overflow-hidden">
-          <div className="absolute inset-0 bg-primary/[0.02]" />
+      {/* ── Final CTA ──────────────────────────────────────────────────────── */}
+      <section className="px-6 py-24">
+        <div className="relative mx-auto max-w-4xl overflow-hidden rounded-3xl border border-white/10 bg-[#0B0E14] px-8 py-16 text-center sm:px-16">
+          <div className="lp-glow lp-glow-pulse pointer-events-none absolute inset-x-0 -top-24 h-72" aria-hidden="true" />
           <div className="relative">
-            <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-3">
+            <h2 className="text-3xl font-semibold tracking-[-0.02em] text-foreground md:text-4xl">
               Give your team the clarity they need to ship.
             </h2>
-            <p className="text-sm text-muted-foreground mb-8 max-w-md mx-auto">
-              No steep learning curve, no AI black boxes — just real insights your whole team can act on from day one.
+            <p className="mx-auto mt-4 max-w-xl text-[15px] leading-relaxed text-slate-300">
+              No steep learning curve, no AI black boxes — just real insights your whole team can act on from
+              day one.
             </p>
-            <div className="flex items-center gap-3 justify-center">
-              <Link 
+            <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
+              <Link
                 to="/login"
-                className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary hover:bg-primary-hover text-primary-foreground rounded-[3px] text-[13px] font-medium transition-colors"
+                className={`group inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 text-[15px] font-semibold text-primary-foreground shadow-[0_8px_30px_-8px_rgba(147,51,234,0.6)] transition-colors hover:bg-primary-hover sm:w-auto ${FOCUS}`}
               >
                 Get started
-                <ArrowRight className="w-4 h-4" />
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
               </Link>
-              <Link 
+              <Link
                 to="/login"
-                className="inline-flex items-center gap-2 px-6 py-2.5 bg-secondary hover:bg-accent text-foreground rounded-[3px] text-[13px] font-medium transition-colors"
+                className={`inline-flex w-full items-center justify-center gap-2 rounded-lg border border-white/15 bg-white/5 px-6 py-3 text-[15px] font-medium text-slate-100 transition-colors hover:bg-white/10 sm:w-auto ${FOCUS}`}
               >
                 Sign in
-                <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-border" role="contentinfo">
-        <div className="container mx-auto px-6 py-8 max-w-6xl">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2.5">
-              <div className="w-6 h-6 bg-primary rounded-[3px] flex items-center justify-center">
-                <span className="text-primary-foreground font-semibold text-[10px]">YM</span>
-              </div>
-              <span className="text-[13px] font-medium text-foreground">Yemoda</span>
-            </div>
-            <div className="flex items-center gap-6">
-              <a href="#" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Terms</a>
-              <a href="#" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Privacy</a>
-              <a href="#" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Contact</a>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              &copy; 2026 Yemoda. All rights reserved.
-            </p>
+      {/* ── Footer ─────────────────────────────────────────────────────────── */}
+      <footer className="border-t border-white/[0.07]" role="contentinfo">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 py-10 md:flex-row">
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-6 w-6 items-center justify-center rounded-[6px] bg-primary">
+              <span className="text-[10px] font-bold text-primary-foreground">YM</span>
+            </span>
+            <span className="text-[14px] font-semibold text-foreground">Yemoda</span>
           </div>
+          <nav className="flex items-center gap-6" aria-label="Footer">
+            {['Terms', 'Privacy', 'Contact'].map((item) => (
+              <a
+                key={item}
+                href="#"
+                className={`rounded text-[13px] text-slate-400 transition-colors hover:text-foreground ${FOCUS}`}
+              >
+                {item}
+              </a>
+            ))}
+          </nav>
+          <p className="text-[13px] text-slate-400">&copy; 2026 Yemoda. All rights reserved.</p>
         </div>
       </footer>
     </div>
