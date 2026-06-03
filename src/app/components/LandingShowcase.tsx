@@ -71,7 +71,7 @@ function AppFrame({
   className?: string;
 }) {
   return (
-    <div className={`rounded-[10px] border border-border bg-card overflow-hidden shadow-[0_32px_80px_-24px_rgba(0,0,0,0.45)] ${className}`}>
+    <div className={`lp-demo-scroll rounded-[10px] border border-border bg-card overflow-hidden shadow-[0_32px_80px_-24px_rgba(0,0,0,0.45)] ${className}`}>
       <div className="flex items-center gap-2 px-4 py-2.5 bg-surface-secondary/80 border-b border-border shrink-0">
         <div className="flex gap-1.5 shrink-0">
           <div className="w-3 h-3 rounded-full bg-[#FF5F57]/75" />
@@ -616,7 +616,7 @@ function ReportesView() {
 
         {/* Trend + Priority */}
         <div className="grid grid-cols-3 gap-1.5">
-          <div className="col-span-2 rounded-[3px] border border-border bg-background p-2">
+          <div className="col-span-2 rounded-[3px] border border-border bg-background p-2 flex flex-col">
             <div className="flex items-start justify-between">
               <div>
                 <div className="text-[7px] text-muted-foreground uppercase tracking-wider">Trend · 2 weeks</div>
@@ -627,21 +627,24 @@ function ReportesView() {
                 <div className="text-[7px] text-red-400">−18% vs prior</div>
               </div>
             </div>
-            <svg viewBox="0 0 120 46" className="w-full h-12 mt-1">
-              <defs>
-                <linearGradient id="repTrend" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#D4192C" stopOpacity="0.35" />
-                  <stop offset="100%" stopColor="#D4192C" stopOpacity="0.02" />
-                </linearGradient>
-              </defs>
-              <line x1="12" y1="8"  x2="116" y2="8"  stroke="rgba(255,255,255,0.07)" strokeWidth="0.5" strokeDasharray="2 2" />
-              <line x1="12" y1="20" x2="116" y2="20" stroke="rgba(255,255,255,0.07)" strokeWidth="0.5" strokeDasharray="2 2" />
-              <line x1="12" y1="32" x2="116" y2="32" stroke="rgba(255,255,255,0.07)" strokeWidth="0.5" strokeDasharray="2 2" />
-              <path d="M12 10 L46 14 L80 24 L116 33" stroke="#D4192C" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M12 10 L46 14 L80 24 L116 33 L116 40 L12 40 Z" fill="url(#repTrend)" />
-              <text x="12" y="45" fill="rgba(255,255,255,0.3)" fontSize="5">26 May</text>
-              <text x="92" y="45" fill="rgba(255,255,255,0.3)" fontSize="5">02 Jun</text>
-            </svg>
+            <div className="flex-1 min-h-[56px] mt-1.5">
+              <svg viewBox="0 0 100 40" preserveAspectRatio="none" className="w-full h-full">
+                <defs>
+                  <linearGradient id="repTrend" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#D4192C" stopOpacity="0.35" />
+                    <stop offset="100%" stopColor="#D4192C" stopOpacity="0.02" />
+                  </linearGradient>
+                </defs>
+                <line x1="0" y1="10" x2="100" y2="10" stroke="rgba(255,255,255,0.06)" strokeWidth="0.5" vectorEffect="non-scaling-stroke" />
+                <line x1="0" y1="20" x2="100" y2="20" stroke="rgba(255,255,255,0.06)" strokeWidth="0.5" vectorEffect="non-scaling-stroke" />
+                <line x1="0" y1="30" x2="100" y2="30" stroke="rgba(255,255,255,0.06)" strokeWidth="0.5" vectorEffect="non-scaling-stroke" />
+                <path d="M0 40 L0 11 L33 16 L66 25 L100 31 L100 40 Z" fill="url(#repTrend)" />
+                <path d="M0 11 L33 16 L66 25 L100 31" fill="none" stroke="#D4192C" strokeWidth="1.5" vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+            <div className="flex justify-between text-[6px] text-muted-foreground mt-0.5">
+              <span>12 May</span><span>19 May</span><span>26 May</span><span>02 Jun</span>
+            </div>
           </div>
           <div className="rounded-[3px] border border-border bg-background p-2">
             <div className="text-[7px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5">Priority Attention</div>
@@ -1160,12 +1163,14 @@ const PROJ_BOARDS: Board[] = [
   },
 ];
 
-const PROJ_TIMELINE_ITEMS: { title: string; id: number; start: number; width: number; color: string; done: boolean; meta: string }[] = [
-  { title: 'Payment gateway',   id: 1,  start: 30, width: 44, color: '#1D4ED8', done: false, meta: '12 May - 02 Jun - Alex G. - Building' },
-  { title: 'Mobile responsive', id: 4,  start: 12, width: 40, color: '#9333EA', done: false, meta: '08 May - 28 May - Ana L. - QA Review' },
-  { title: 'Checkout flow',     id: 5,  start: 48, width: 46, color: '#D97706', done: false, meta: '20 May - 10 Jun - Alex G. - Building' },
-  { title: 'Cart persistence',  id: 2,  start: 18, width: 34, color: '#0A5F38', done: true,  meta: '10 May - 24 May - Maria S. - Shipped' },
-  { title: 'Analytics integ.',  id: 8,  start: 58, width: 38, color: '#0EA5A4', done: false, meta: '24 May - 14 Jun - Carlos R. - To Do' },
+// Timeline tasks in absolute day-offsets from 08 May 2026 (day 0). The visible
+// window scales per zoom, so bars expand on Day and shrink on Month.
+const PROJ_TIMELINE_ITEMS: { title: string; id: number; startDay: number; endDay: number; color: string; done: boolean; meta: string }[] = [
+  { title: 'Payment gateway',   id: 1, startDay: 4,  endDay: 25, color: '#1D4ED8', done: false, meta: '12 May - 02 Jun - Alex G. - Building' },
+  { title: 'Mobile responsive', id: 4, startDay: 0,  endDay: 20, color: '#9333EA', done: false, meta: '08 May - 28 May - Ana L. - QA Review' },
+  { title: 'Checkout flow',     id: 5, startDay: 12, endDay: 33, color: '#D97706', done: false, meta: '20 May - 10 Jun - Alex G. - Building' },
+  { title: 'Cart persistence',  id: 2, startDay: 2,  endDay: 16, color: '#0A5F38', done: true,  meta: '10 May - 24 May - Maria S. - Shipped' },
+  { title: 'Analytics integ.',  id: 8, startDay: 16, endDay: 37, color: '#0EA5A4', done: false, meta: '24 May - 14 Jun - Carlos R. - To Do' },
 ];
 
 const PROJ_SPRINTS: { id: number; name: string; status: 'active' | 'closed' | 'planned'; end: string }[] = [
@@ -1348,15 +1353,18 @@ function ProjBacklogTab() {
   );
 }
 
-const TIMELINE_TICKS: Record<'Day' | 'Week' | 'Month', string[]> = {
-  Day: ['08', '11', '14', '17', '20', '23', '26', '29', '01', '04', '07'],
-  Week: ['08 May', '15 May', '22 May', '29 May', '05 Jun'],
-  Month: ['May 2026', 'Jun 2026'],
+// Per-zoom visible window (in days). Smaller window = bars take more width
+// (Day zooms in → wider bars); larger window = bars shrink (Month zooms out).
+const TIMELINE_ZOOMS: Record<'Day' | 'Week' | 'Month', { window: number; today: number; ticks: { d: number; l: string }[] }> = {
+  Day:   { window: 18, today: 14, ticks: [{ d: 0, l: '08 May' }, { d: 3, l: '11 May' }, { d: 6, l: '14 May' }, { d: 9, l: '17 May' }, { d: 12, l: '20 May' }, { d: 15, l: '23 May' }, { d: 18, l: '26 May' }] },
+  Week:  { window: 35, today: 14, ticks: [{ d: 0, l: '08 May' }, { d: 7, l: '15 May' }, { d: 14, l: '22 May' }, { d: 21, l: '29 May' }, { d: 28, l: '05 Jun' }, { d: 35, l: '12 Jun' }] },
+  Month: { window: 63, today: 14, ticks: [{ d: 0, l: 'May 2026' }, { d: 24, l: 'Jun 2026' }, { d: 54, l: 'Jul 2026' }] },
 };
 
 function ProjTimelineTab() {
   const [zoom, setZoom] = useState<'Day' | 'Week' | 'Month'>('Week');
-  const ticks = TIMELINE_TICKS[zoom];
+  const { window: win, today, ticks } = TIMELINE_ZOOMS[zoom];
+  const pos = (day: number) => (day / win) * 100;
   return (
     <div className="p-2.5 space-y-2">
       <div className="flex items-center justify-between">
@@ -1377,19 +1385,27 @@ function ProjTimelineTab() {
         </div>
       </div>
       <div className="rounded-[3px] border border-border bg-background p-2.5">
-        {/* Axis labels */}
+        {/* Axis labels (positioned at true day offsets) */}
         <div className="flex">
           <div className="w-24 shrink-0" />
-          <div className="flex-1 flex justify-between text-[6px] text-muted-foreground font-medium border-b border-border/30 pb-1">
-            {ticks.map((t) => <span key={t}>{t}</span>)}
+          <div className="flex-1 relative h-3 border-b border-border/30">
+            {ticks.map((t, i) => (
+              <span
+                key={t.d}
+                className="absolute top-0 text-[6px] text-muted-foreground font-medium whitespace-nowrap"
+                style={{ left: `${pos(t.d)}%`, transform: i === 0 ? 'translateX(0)' : i === ticks.length - 1 ? 'translateX(-100%)' : 'translateX(-50%)' }}
+              >
+                {t.l}
+              </span>
+            ))}
           </div>
         </div>
-        {/* Rows + gridline/today overlay */}
+        {/* Rows + overlays */}
         <div className="relative pt-2 space-y-1.5">
+          {/* gridlines (behind the bars) */}
           <div className="absolute inset-y-0 left-24 right-0 pointer-events-none">
-            <div className="relative h-full flex justify-between">
-              {ticks.map((_, i) => <span key={i} className="w-px bg-white/[0.06]" />)}
-              <div className="absolute inset-y-0 w-px bg-red-500/90" style={{ left: '62%' }} />
+            <div className="relative h-full">
+              {ticks.map((t) => <span key={t.d} className="absolute inset-y-0 w-px bg-white/[0.06]" style={{ left: `${pos(t.d)}%` }} />)}
             </div>
           </div>
           {PROJ_TIMELINE_ITEMS.map((t, i) => (
@@ -1404,11 +1420,20 @@ function ProjTimelineTab() {
                 </div>
                 <div className="text-[5px] text-muted-foreground truncate pl-3.5">{t.meta}</div>
               </div>
-              <div className="flex-1 relative h-3">
-                <div className="absolute top-0.5 h-2 rounded-[2px]" style={{ left: `${t.start}%`, width: `${t.width}%`, background: t.color }} />
+              <div className="flex-1 relative h-3 overflow-hidden">
+                <div
+                  className="absolute top-0.5 h-2 rounded-[2px] transition-all duration-300 ease-out"
+                  style={{ left: `${pos(t.startDay)}%`, width: `${pos(t.endDay - t.startDay)}%`, background: t.color }}
+                />
               </div>
             </div>
           ))}
+          {/* today line (rendered on top → continuous across bars) */}
+          <div className="absolute inset-y-0 left-24 right-0 pointer-events-none">
+            <div className="relative h-full">
+              <div className="absolute inset-y-0 w-px bg-red-500 transition-all duration-300 ease-out" style={{ left: `${pos(today)}%` }} />
+            </div>
+          </div>
         </div>
       </div>
     </div>
