@@ -1,0 +1,10 @@
+/* ─── Landing hero typography ──────────────────────────────────────── */
+/* Manrope → UI/nav · Cabin → buttons/tags · Instrument Serif → headlines · Inter → body */
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Cabin:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap');
+
+:root {
+  --font-manrope: 'Manrope', var(--font-family);
+  --font-cabin: 'Cabin', var(--font-family);
+  --font-serif-display: 'Instrument Serif', Georgia, serif;
+  --font-inter: 'Inter', var(--font-family);
+}

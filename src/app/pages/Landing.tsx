@@ -1,9 +1,10 @@
+import { useState } from 'react';
 import { Link } from 'react-router';
-import { 
-  BarChart3, 
-  Bell, 
-  Brain, 
-  Shield, 
+import {
+  BarChart3,
+  Bell,
+  Brain,
+  Shield,
   TrendingUp,
   Users,
   ArrowRight,
@@ -12,11 +13,22 @@ import {
   Layers,
   ChevronRight,
   Clock,
-  AlertTriangle
+  AlertTriangle,
+  ChevronDown,
+  Menu,
+  X
 } from 'lucide-react';
 import { DashboardShowcase, CodeReviewShowcase, ProjectDetailShowcase, AiFixShowcase } from '../components/LandingShowcase';
 
 export default function Landing() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const navLinks = [
+    { href: '#features', label: 'Features' },
+    { href: '#demo', label: 'Services', chevron: true },
+    { href: '#how-it-works', label: 'How it works' },
+  ];
+
   const features = [
     {
       icon: <BarChart3 className="w-5 h-5" />,
@@ -65,74 +77,170 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-50" role="banner">
-        <div className="container mx-auto px-6 h-14 flex items-center justify-between max-w-6xl">
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 bg-primary rounded-[3px] flex items-center justify-center">
-              <span className="text-primary-foreground font-semibold text-xs">YM</span>
+      {/* ── Hero with full-screen video background ─────────────────────────── */}
+      <div className="relative min-h-screen overflow-hidden">
+        {/* Video background */}
+        <video
+          className="absolute inset-0 w-full h-full object-cover z-0"
+          autoPlay
+          loop
+          muted
+          playsInline
+          aria-hidden="true"
+        >
+          <source
+            src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260210_031346_d87182fb-b0af-4273-84d1-c6fd17d6bf0f.mp4"
+            type="video/mp4"
+          />
+        </video>
+
+        {/* Header (transparent overlay) */}
+        <header className="relative z-20 w-full" role="banner">
+          <div className="flex items-center justify-between px-6 lg:px-[120px] py-4">
+            {/* Logo */}
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 bg-[var(--hero-purple)] rounded-[6px] flex items-center justify-center">
+                <span className="text-white font-semibold text-xs">YM</span>
+              </div>
+              <span className="font-semibold text-white text-[15px] font-['Manrope']">Yemoda</span>
             </div>
-            <span className="font-semibold text-foreground text-[13px]">Yemoda</span>
-          </div>
-          <nav className="hidden md:flex items-center gap-6" aria-label="Main navigation">
-            <a href="#features" className="text-[12px] text-muted-foreground hover:text-foreground transition-colors">Features</a>
-            <a href="#demo" className="text-[12px] text-muted-foreground hover:text-foreground transition-colors">Demo</a>
-            <a href="#how-it-works" className="text-[12px] text-muted-foreground hover:text-foreground transition-colors">How it works</a>
-          </nav>
-          <div className="flex items-center gap-3">
-            <Link 
-              to="/login" 
-              className="text-[12px] text-muted-foreground hover:text-foreground transition-colors font-medium"
+
+            {/* Nav links (desktop) */}
+            <nav className="hidden md:flex items-center gap-7" aria-label="Main navigation">
+              {navLinks.map((link) => (
+                <a
+                  key={link.label}
+                  href={link.href}
+                  className="flex items-center gap-1 font-['Manrope'] font-medium text-[14px] text-white hover:opacity-80 transition-opacity"
+                >
+                  {link.label}
+                  {link.chevron && <ChevronDown className="w-4 h-4" />}
+                </a>
+              ))}
+            </nav>
+
+            {/* Action buttons (desktop) */}
+            <div className="hidden md:flex items-center gap-3">
+              <Link
+                to="/login"
+                className="px-4 py-2 bg-white border border-[#d4d4d4] rounded-[8px] text-[#171717] font-['Manrope'] font-semibold text-[14px] hover:bg-white/90 transition-colors"
+              >
+                Sign in
+              </Link>
+              <Link
+                to="/login"
+                className="px-4 py-2 bg-[var(--hero-purple)] hover:bg-[var(--hero-purple-hover)] rounded-[8px] text-[#fafafa] font-['Manrope'] font-semibold text-[14px] shadow-md transition-colors"
+              >
+                Get Started
+              </Link>
+            </div>
+
+            {/* Mobile hamburger */}
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen(true)}
+              className="md:hidden text-white"
+              aria-label="Open menu"
             >
-              Sign in
-            </Link>
+              <Menu className="w-6 h-6" />
+            </button>
           </div>
-        </div>
-      </header>
+        </header>
 
-      {/* Hero Section */}
-      <section className="container mx-auto px-6 pt-20 pb-16 max-w-6xl">
-        <div className="max-w-3xl mx-auto text-center">
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-[3px] bg-primary/10 text-primary text-[11px] font-medium mb-6">
-            <Zap className="w-3 h-3" />
-            Built for modern engineering teams
+        {/* Mobile menu overlay */}
+        {mobileMenuOpen && (
+          <div className="fixed inset-0 z-50 bg-black/95 flex flex-col md:hidden">
+            <div className="flex items-center justify-between px-6 py-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 bg-[var(--hero-purple)] rounded-[6px] flex items-center justify-center">
+                  <span className="text-white font-semibold text-xs">YM</span>
+                </div>
+                <span className="font-semibold text-white text-[15px] font-['Manrope']">Yemoda</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen(false)}
+                className="text-white"
+                aria-label="Close menu"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <nav className="flex flex-col items-center justify-center gap-8 flex-1" aria-label="Mobile navigation">
+              {navLinks.map((link) => (
+                <a
+                  key={link.label}
+                  href={link.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="font-['Manrope'] font-medium text-[20px] text-white hover:opacity-80 transition-opacity"
+                >
+                  {link.label}
+                </a>
+              ))}
+              <div className="flex flex-col items-center gap-3 mt-4 w-56">
+                <Link
+                  to="/login"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="w-full text-center px-4 py-2.5 bg-white border border-[#d4d4d4] rounded-[8px] text-[#171717] font-['Manrope'] font-semibold text-[14px]"
+                >
+                  Sign in
+                </Link>
+                <Link
+                  to="/login"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="w-full text-center px-4 py-2.5 bg-[var(--hero-purple)] rounded-[8px] text-[#fafafa] font-['Manrope'] font-semibold text-[14px] shadow-md"
+                >
+                  Get Started
+                </Link>
+              </div>
+            </nav>
+          </div>
+        )}
+
+        {/* Hero Content (centered) */}
+        <section className="relative z-10 flex flex-col items-center text-center px-6 mt-32 pb-24">
+          {/* Tagline pill — glassmorphism */}
+          <div className="inline-flex items-center gap-2 h-[38px] px-2 rounded-[10px] bg-[rgba(85,80,110,0.4)] backdrop-blur-md border border-[rgba(164,132,215,0.5)] mb-8">
+            <span className="px-2 py-0.5 rounded-[6px] bg-[var(--hero-purple)] text-white font-['Cabin'] font-medium text-[12px]">
+              New
+            </span>
+            <span className="font-['Cabin'] font-medium text-[14px] text-white pr-1">
+              Built for modern engineering teams
+            </span>
           </div>
 
-          <h1 className="text-4xl md:text-5xl lg:text-[3.5rem] font-semibold text-foreground mb-5 leading-[1.15] tracking-tight">
-            Intelligent Project{' '}
-            <span className="text-primary">Management</span>
+          <h1 className="font-['Instrument_Serif'] text-white text-5xl md:text-7xl lg:text-[96px] leading-[1.1] mb-6 max-w-5xl">
+            Intelligent Project <span className="italic px-1">Management</span>
           </h1>
-          
-          <p className="text-base md:text-lg text-muted-foreground mb-8 max-w-xl mx-auto leading-relaxed">
+
+          <p className="font-['Inter'] font-normal text-[18px] text-white/70 max-w-[662px] mx-auto mb-9 leading-relaxed">
             The project platform built around how teams actually work. Real-time visibility, early warnings, and AI that helps your team move faster — not get in the way.
           </p>
 
-          <div className="flex items-center gap-3 justify-center mb-6">
-            <Link 
+          <div className="flex flex-col sm:flex-row items-center gap-3 justify-center mb-7">
+            <Link
               to="/login"
-              className="px-6 py-2.5 bg-primary hover:bg-primary-hover text-primary-foreground rounded-[3px] text-[13px] font-medium transition-colors inline-flex items-center gap-2"
+              className="px-6 py-3 bg-[var(--hero-purple)] hover:bg-[var(--hero-purple-hover)] text-white rounded-[10px] font-['Cabin'] font-medium text-[16px] transition-colors inline-flex items-center gap-2"
             >
               Get started
               <ArrowRight className="w-4 h-4" />
             </Link>
             <a
               href="#demo"
-              className="px-6 py-2.5 bg-secondary hover:bg-accent text-foreground rounded-[3px] text-[13px] font-medium transition-colors inline-flex items-center gap-2"
+              className="px-6 py-3 bg-[var(--hero-dark)] hover:bg-[var(--hero-dark-hover)] text-[#f6f7f9] rounded-[10px] font-['Cabin'] font-medium text-[16px] transition-colors inline-flex items-center gap-2"
             >
               See the demo
               <ChevronRight className="w-4 h-4" />
             </a>
           </div>
 
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 justify-center text-[11px] text-muted-foreground mt-2">
-            <span><span className="text-primary font-semibold">✓</span> AI that works for your team</span>
-            <span><span className="text-primary font-semibold">✓</span> Designed for today's challenges</span>
-            <span><span className="text-primary font-semibold">✓</span> Up and running in minutes</span>
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 justify-center font-['Inter'] text-[12px] text-white/70">
+            <span><span className="text-white font-semibold">✓</span> AI that works for your team</span>
+            <span><span className="text-white font-semibold">✓</span> Designed for today's challenges</span>
+            <span><span className="text-white font-semibold">✓</span> Up and running in minutes</span>
           </div>
-
-        </div>
-      </section>
+        </section>
+      </div>
 
       <DashboardShowcase />
       <ProjectDetailShowcase />
