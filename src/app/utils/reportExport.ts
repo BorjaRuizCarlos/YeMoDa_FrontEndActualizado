@@ -139,11 +139,11 @@ function exportPDF(input: ReportInput, kpisList: ProjectKPIs[]): void {
 
   doc.setFontSize(18);
   doc.setTextColor(40, 40, 40);
-  doc.text('Reporte de Proyectos', 40, 50);
+  doc.text('Projects Report', 40, 50);
   doc.setFontSize(10);
   doc.setTextColor(120, 120, 120);
-  doc.text(`Generado: ${generatedAt}`, 40, 68);
-  doc.text(`Proyectos incluidos: ${kpisList.length}`, 40, 82);
+  doc.text(`Generated: ${generatedAt}`, 40, 68);
+  doc.text(`Projects included: ${kpisList.length}`, 40, 82);
 
   // Aggregate KPIs (totals across selected projects)
   const totals = kpisList.reduce(
@@ -161,13 +161,13 @@ function exportPDF(input: ReportInput, kpisList: ProjectKPIs[]): void {
 
   autoTable(doc, {
     startY: 100,
-    head: [['Métrica Global', 'Valor']],
+    head: [['Global Metric', 'Value']],
     body: [
-      ['Total de tareas', String(totals.totalTasks)],
-      ['Completadas', String(totals.completedTasks)],
-      ['Vencidas', String(totals.overdueTasks)],
-      ['Tasa de completado', `${aggCompletionRate}%`],
-      ['Warnings activos', String(totals.activeWarnings)],
+      ['Total tasks', String(totals.totalTasks)],
+      ['Completed', String(totals.completedTasks)],
+      ['Overdue', String(totals.overdueTasks)],
+      ['Completion rate', `${aggCompletionRate}%`],
+      ['Active warnings', String(totals.activeWarnings)],
     ],
     theme: 'striped',
     headStyles: { fillColor: [212, 25, 44], textColor: 255, fontSize: 10 },
@@ -179,11 +179,11 @@ function exportPDF(input: ReportInput, kpisList: ProjectKPIs[]): void {
   cursorY += 24;
   doc.setFontSize(12);
   doc.setTextColor(40, 40, 40);
-  doc.text('KPIs por Proyecto', 40, cursorY);
+  doc.text('KPIs by Project', 40, cursorY);
 
   autoTable(doc, {
     startY: cursorY + 8,
-    head: [['Proyecto', 'Total', 'Completadas', 'Vencidas', '% Comp.', 'Días prom.', 'Warnings']],
+    head: [['Project', 'Total', 'Completed', 'Overdue', '% Comp.', 'Avg. days', 'Warnings']],
     body: kpisList.map((k) => [
       k.projectName,
       String(k.totalTasks),
@@ -204,18 +204,18 @@ function exportPDF(input: ReportInput, kpisList: ProjectKPIs[]): void {
     doc.addPage();
     doc.setFontSize(14);
     doc.setTextColor(40, 40, 40);
-    doc.text(`Proyecto: ${k.projectName}`, 40, 50);
+    doc.text(`Project: ${k.projectName}`, 40, 50);
     doc.setFontSize(9);
     doc.setTextColor(120, 120, 120);
-    doc.text(`Tareas: ${k.totalTasks} · Completadas: ${k.completedTasks} · Vencidas: ${k.overdueTasks}`, 40, 66);
-    doc.text(`Tasa de completado: ${k.completionRate}% · Tiempo promedio: ${k.avgDays} días`, 40, 80);
+    doc.text(`Tasks: ${k.totalTasks} · Completed: ${k.completedTasks} · Overdue: ${k.overdueTasks}`, 40, 66);
+    doc.text(`Completion rate: ${k.completionRate}% · Average time: ${k.avgDays} days`, 40, 80);
 
     autoTable(doc, {
       startY: 100,
-      head: [['Estado', 'Cantidad']],
+      head: [['Status', 'Count']],
       body: k.statusBreakdown.length
         ? k.statusBreakdown.map((s) => [s.name, String(s.count)])
-        : [['Sin datos', '0']],
+        : [['No data', '0']],
       theme: 'striped',
       headStyles: { fillColor: [16, 185, 129], textColor: 255, fontSize: 9 },
       bodyStyles: { fontSize: 9 },
@@ -225,10 +225,10 @@ function exportPDF(input: ReportInput, kpisList: ProjectKPIs[]): void {
       (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? 200;
     autoTable(doc, {
       startY: afterStatusY + 16,
-      head: [['Prioridad', 'Cantidad']],
+      head: [['Priority', 'Count']],
       body: k.priorityBreakdown.length
         ? k.priorityBreakdown.map((p) => [p.name, String(p.count)])
-        : [['Sin datos', '0']],
+        : [['No data', '0']],
       theme: 'striped',
       headStyles: { fillColor: [245, 158, 11], textColor: 255, fontSize: 9 },
       bodyStyles: { fontSize: 9 },
@@ -240,7 +240,7 @@ function exportPDF(input: ReportInput, kpisList: ProjectKPIs[]): void {
         (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? 300;
       autoTable(doc, {
         startY: afterPriorityY + 20,
-        head: [['ID', 'Título', 'Estado', 'Prioridad', 'Vence', 'Completada']],
+        head: [['ID', 'Title', 'Status', 'Priority', 'Due', 'Completed']],
         body: projectTasks.slice(0, 200).map((t) => [
           String(t.id_task),
           (t.title ?? '').slice(0, 60),
@@ -262,10 +262,10 @@ function exportPDF(input: ReportInput, kpisList: ProjectKPIs[]): void {
     doc.setPage(i);
     doc.setFontSize(8);
     doc.setTextColor(150, 150, 150);
-    doc.text(`Página ${i} de ${totalPages}`, doc.internal.pageSize.getWidth() - 80, doc.internal.pageSize.getHeight() - 20);
+    doc.text(`Page ${i} of ${totalPages}`, doc.internal.pageSize.getWidth() - 80, doc.internal.pageSize.getHeight() - 20);
   }
 
-  doc.save(`reporte-proyectos-${new Date().toISOString().slice(0, 10)}.pdf`);
+  doc.save(`projects-report-${new Date().toISOString().slice(0, 10)}.pdf`);
 }
 
 function exportXLSX(input: ReportInput, kpisList: ProjectKPIs[]): void {
@@ -285,51 +285,51 @@ function exportXLSX(input: ReportInput, kpisList: ProjectKPIs[]): void {
     totals.totalTasks > 0 ? Math.round((totals.completedTasks / totals.totalTasks) * 100) : 0;
 
   const summaryRows = [
-    { Metrica: 'Generado', Valor: new Date().toLocaleString() },
-    { Metrica: 'Proyectos incluidos', Valor: kpisList.length },
-    { Metrica: 'Total de tareas', Valor: totals.totalTasks },
-    { Metrica: 'Completadas', Valor: totals.completedTasks },
-    { Metrica: 'Vencidas', Valor: totals.overdueTasks },
-    { Metrica: 'Tasa de completado (%)', Valor: aggCompletionRate },
-    { Metrica: 'Warnings activos', Valor: totals.activeWarnings },
+    { Metric: 'Generated', Value: new Date().toLocaleString() },
+    { Metric: 'Projects included', Value: kpisList.length },
+    { Metric: 'Total tasks', Value: totals.totalTasks },
+    { Metric: 'Completed', Value: totals.completedTasks },
+    { Metric: 'Overdue', Value: totals.overdueTasks },
+    { Metric: 'Completion rate (%)', Value: aggCompletionRate },
+    { Metric: 'Active warnings', Value: totals.activeWarnings },
   ];
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summaryRows), 'Resumen');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summaryRows), 'Summary');
 
   const kpiRows = kpisList.map((k) => ({
-    Proyecto: k.projectName,
+    Project: k.projectName,
     Total: k.totalTasks,
-    Completadas: k.completedTasks,
-    Vencidas: k.overdueTasks,
-    'Tasa (%)': k.completionRate,
-    'Días promedio': k.avgDays,
-    'Warnings activos': k.activeWarnings,
+    Completed: k.completedTasks,
+    Overdue: k.overdueTasks,
+    'Rate (%)': k.completionRate,
+    'Average days': k.avgDays,
+    'Active warnings': k.activeWarnings,
   }));
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(kpiRows), 'KPIs por proyecto');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(kpiRows), 'KPIs by project');
 
   const statusRows: Record<string, unknown>[] = [];
   for (const k of kpisList) {
     for (const s of k.statusBreakdown) {
-      statusRows.push({ Proyecto: k.projectName, Estado: s.name, Cantidad: s.count });
+      statusRows.push({ Project: k.projectName, Status: s.name, Count: s.count });
     }
   }
   XLSX.utils.book_append_sheet(
     wb,
-    XLSX.utils.json_to_sheet(statusRows.length ? statusRows : [{ Proyecto: '', Estado: '', Cantidad: '' }]),
-    'Estados',
+    XLSX.utils.json_to_sheet(statusRows.length ? statusRows : [{ Project: '', Status: '', Count: '' }]),
+    'Statuses',
   );
 
   const priorityRows: Record<string, unknown>[] = [];
   for (const k of kpisList) {
     for (const p of k.priorityBreakdown) {
-      priorityRows.push({ Proyecto: k.projectName, Prioridad: p.name, Cantidad: p.count });
+      priorityRows.push({ Project: k.projectName, Priority: p.name, Count: p.count });
     }
   }
   XLSX.utils.book_append_sheet(
     wb,
     XLSX.utils.json_to_sheet(
-      priorityRows.length ? priorityRows : [{ Proyecto: '', Prioridad: '', Cantidad: '' }],
+      priorityRows.length ? priorityRows : [{ Project: '', Priority: '', Count: '' }],
     ),
-    'Prioridades',
+    'Priorities',
   );
 
   if (input.includeTaskList) {
@@ -338,14 +338,14 @@ function exportXLSX(input: ReportInput, kpisList: ProjectKPIs[]): void {
       const projectTasks = tasksForProject(k.projectId, input.tasks, input.boards);
       for (const t of projectTasks) {
         taskRows.push({
-          Proyecto: k.projectName,
+          Project: k.projectName,
           ID: t.id_task,
-          Titulo: t.title,
-          Estado: input.statuses.find((s) => s.id_status === t.status)?.name ?? '',
-          Prioridad: input.priorities.find((p) => p.id_priority === t.priority)?.name ?? '',
-          Creada: formatDate(t.created_at),
-          Vence: formatDate(t.due_date),
-          Completada: formatDate(t.completed_at),
+          Title: t.title,
+          Status: input.statuses.find((s) => s.id_status === t.status)?.name ?? '',
+          Priority: input.priorities.find((p) => p.id_priority === t.priority)?.name ?? '',
+          Created: formatDate(t.created_at),
+          Due: formatDate(t.due_date),
+          Completed: formatDate(t.completed_at),
         });
       }
     }
@@ -354,13 +354,13 @@ function exportXLSX(input: ReportInput, kpisList: ProjectKPIs[]): void {
       XLSX.utils.json_to_sheet(
         taskRows.length
           ? taskRows
-          : [{ Proyecto: '', ID: '', Titulo: '', Estado: '', Prioridad: '', Creada: '', Vence: '', Completada: '' }],
+          : [{ Project: '', ID: '', Title: '', Status: '', Priority: '', Created: '', Due: '', Completed: '' }],
       ),
-      'Tareas',
+      'Tasks',
     );
   }
 
-  XLSX.writeFile(wb, `reporte-proyectos-${new Date().toISOString().slice(0, 10)}.xlsx`);
+  XLSX.writeFile(wb, `projects-report-${new Date().toISOString().slice(0, 10)}.xlsx`);
 }
 
 export function generateReport(input: ReportInput): void {

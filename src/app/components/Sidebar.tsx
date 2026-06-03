@@ -24,10 +24,10 @@ interface NavItem {
 const navItems: NavItem[] = [
   { name: 'Dashboard', path: '/dashboard', icon: LayoutGrid, group: 'main' },
   { name: 'Backlog', path: '/backlog', icon: ListChecks, group: 'main' },
-  { name: 'Proyectos', path: '/projects', icon: Briefcase, group: 'main' },
-  { name: 'Reportes', path: '/reports', icon: BarChart3, group: 'analytics' },
-  { name: 'Alertas', path: '/alerts', icon: Bell, group: 'analytics' },
-  { name: 'Perfil', path: '/profile', icon: CircleUser, group: 'user' },
+  { name: 'Projects', path: '/projects', icon: Briefcase, group: 'main' },
+  { name: 'Reports', path: '/reports', icon: BarChart3, group: 'analytics' },
+  { name: 'Alerts', path: '/alerts', icon: Bell, group: 'analytics' },
+  { name: 'Profile', path: '/profile', icon: CircleUser, group: 'user' },
 ];
 
 export function Sidebar() {
@@ -131,7 +131,7 @@ export function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 py-2 overflow-y-auto scrollbar-none" aria-label="Navegación principal">
+      <nav className="flex-1 py-2 overflow-y-auto scrollbar-none" aria-label="Main navigation">
         <div className="space-y-0.5">
           {mainItems.map((item) => (
             <NavLink key={item.path} item={item} />
@@ -140,7 +140,7 @@ export function Sidebar() {
 
         {analyticsItems.length > 0 && (
           <>
-            <GroupDivider label="Análisis" />
+            <GroupDivider label="Analytics" />
             <div className="space-y-0.5">
               {analyticsItems.map((item) => (
                 <NavLink key={item.path} item={item} />
@@ -149,7 +149,7 @@ export function Sidebar() {
           </>
         )}
 
-        <GroupDivider label="Usuario" />
+        <GroupDivider label="User" />
         <div className="space-y-0.5">
           {userItems.map((item) => (
             <NavLink key={item.path} item={item} />
@@ -197,7 +197,7 @@ export function Sidebar() {
             <TooltipTrigger asChild>
               <button
                 onClick={toggleCollapsed}
-                aria-label={collapsed ? 'Expandir sidebar' : 'Colapsar sidebar'}
+                aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
                 className="p-1.5 rounded-[3px] hover:bg-sidebar-accent transition-colors text-sidebar-muted hover:text-sidebar-foreground"
               >
                 {collapsed ? (
@@ -208,7 +208,7 @@ export function Sidebar() {
               </button>
             </TooltipTrigger>
             <TooltipContent side="right" sideOffset={8} className="text-xs">
-              {collapsed ? 'Expandir' : 'Colapsar'}
+              {collapsed ? 'Expand' : 'Collapse'}
             </TooltipContent>
           </Tooltip>
         </div>

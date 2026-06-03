@@ -57,7 +57,7 @@ export function mapUserRole(systemRoleId?: number | null, roleName?: string | nu
 }
 
 export function getSystemRoleLabel(systemRoleId: number, fallbackName?: string | null): string {
-  return SYSTEM_ROLE_LABELS[systemRoleId] ?? fallbackName ?? `Rol #${systemRoleId}`;
+  return SYSTEM_ROLE_LABELS[systemRoleId] ?? fallbackName ?? `Role #${systemRoleId}`;
 }
 
 export function getUserRoleLabel(role: UserRole): string {

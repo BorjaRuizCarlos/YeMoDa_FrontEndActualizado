@@ -504,7 +504,7 @@ export default function Dashboard() {
                   const rel = relativeDueLabel(task.due_date!, new Date());
                   const projectId = task.project ?? boardProjectMap.get(task.board ?? 0);
                   const projectName = projectId
-                    ? (projectById.get(projectId) ?? `Proyecto #${projectId}`)
+                    ? (projectById.get(projectId) ?? `Project #${projectId}`)
                     : 'No project';
                   const dotColor =
                     rel.tone === 'overdue' ? 'bg-red-500'
@@ -652,7 +652,7 @@ export default function Dashboard() {
                     const isOverdue = task.due_date && new Date(task.due_date) < new Date();
                     const projectId = task.project ?? boardProjectMap.get(task.board ?? 0);
                     const projectName = projectId
-                      ? (projectById.get(projectId) ?? `Proyecto #${projectId}`)
+                      ? (projectById.get(projectId) ?? `Project #${projectId}`)
                       : 'No project';
                     const statusLabel = task.status != null
                       ? (taskStatusNameById.get(task.status) ?? 'No status')

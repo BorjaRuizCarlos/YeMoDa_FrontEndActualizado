@@ -99,9 +99,9 @@ export function TaskSubtasks({
       setNewTitle('');
       load();
       refreshParent();
-      toast.success('Subtarea creada.');
+      toast.success('Subtask created.');
     } catch (err) {
-      toast.error(err instanceof ApiRequestError ? err.message : 'No se pudo crear la subtarea.');
+      toast.error(err instanceof ApiRequestError ? err.message : 'Could not create the subtask.');
     } finally {
       setCreating(false);
     }
@@ -114,8 +114,8 @@ export function TaskSubtasks({
     if (!target) {
       toast.error(
         toFinal
-          ? 'El tablero no tiene una columna final para completar la subtarea.'
-          : 'El tablero no tiene una columna inicial configurada.',
+          ? 'The board has no final column to complete the subtask.'
+          : 'The board has no starting column configured.',
       );
       return false;
     }
@@ -124,7 +124,7 @@ export function TaskSubtasks({
       await tasksService.update(sub.id_task, { board_column: target.id_column });
       return true;
     } catch (err) {
-      toast.error(err instanceof ApiRequestError ? err.message : 'No se pudo actualizar la subtarea.');
+      toast.error(err instanceof ApiRequestError ? err.message : 'Could not update the subtask.');
       return false;
     } finally {
       setBusyId(null);
@@ -166,12 +166,12 @@ export function TaskSubtasks({
       refreshParent();
       try {
         await tasksService.requestAiReview(parentId);
-        toast.success('Subtarea completada. La IA revisará la tarea en segundo plano.');
+        toast.success('Subtask completed. The AI will review the task in the background.');
       } catch (err) {
         toast.error(
           err instanceof ApiRequestError
             ? err.message
-            : 'Subtarea completada, pero no se pudo iniciar la revisión con IA.',
+            : 'Subtask completed, but the AI review could not be started.',
         );
       }
     }
@@ -186,9 +186,9 @@ export function TaskSubtasks({
       await tasksService.delete(sub.id_task);
       load();
       refreshParent();
-      toast.success('Subtarea eliminada.');
+      toast.success('Subtask deleted.');
     } catch (err) {
-      toast.error(err instanceof ApiRequestError ? err.message : 'No se pudo eliminar la subtarea.');
+      toast.error(err instanceof ApiRequestError ? err.message : 'Could not delete the subtask.');
     } finally {
       setBusyId(null);
     }
@@ -197,7 +197,7 @@ export function TaskSubtasks({
   return (
     <div>
       <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-[0.06em] mb-2 flex items-center gap-1.5">
-        <GitBranch className="w-3 h-3" /> Subtareas ({completed}/{total})
+        <GitBranch className="w-3 h-3" /> Subtasks ({completed}/{total})
       </p>
 
       {total > 0 && (
@@ -211,10 +211,10 @@ export function TaskSubtasks({
 
       {loading ? (
         <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-          <Loader2 className="w-3 h-3 animate-spin" /> Cargando…
+          <Loader2 className="w-3 h-3 animate-spin" /> Loading…
         </div>
       ) : total === 0 ? (
-        <p className="text-[11px] text-muted-foreground">Sin subtareas aún.</p>
+        <p className="text-[11px] text-muted-foreground">No subtasks yet.</p>
       ) : (
         <div className="space-y-1.5">
           {subtasks.map((sub) => {
@@ -229,7 +229,7 @@ export function TaskSubtasks({
                   type="button"
                   onClick={() => void handleToggle(sub)}
                   disabled={!canEdit || busy}
-                  title={done ? 'Marcar como pendiente' : 'Marcar como completada'}
+                  title={done ? 'Mark as pending' : 'Mark as completed'}
                   className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-[3px] border transition-colors disabled:opacity-50 ${
                     done
                       ? 'bg-primary border-primary text-primary-foreground'
@@ -263,7 +263,7 @@ export function TaskSubtasks({
                     type="button"
                     onClick={() => void handleDelete(sub)}
                     disabled={busy}
-                    title="Eliminar subtarea"
+                    title="Delete subtask"
                     className="text-muted-foreground hover:text-destructive disabled:opacity-50"
                   >
                     <Trash2 className="w-3 h-3" />
@@ -287,7 +287,7 @@ export function TaskSubtasks({
                 void handleCreate();
               }
             }}
-            placeholder="Nueva subtarea…"
+            placeholder="New subtask…"
             disabled={creating}
             className="flex-1 h-7 bg-surface-secondary border border-border rounded-[3px] px-2.5 text-[11px] disabled:opacity-60"
           />
@@ -298,7 +298,7 @@ export function TaskSubtasks({
             className="inline-flex items-center gap-1 rounded-[3px] border border-border bg-card px-2 py-1 text-[10px] text-muted-foreground hover:text-foreground disabled:opacity-50"
           >
             {creating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
-            Añadir
+            Add
           </button>
         </div>
       )}
@@ -316,16 +316,15 @@ export function TaskSubtasks({
             <div className="flex items-start gap-2">
               <AlertTriangle className="w-4 h-4 text-warning mt-0.5 shrink-0" />
               <div>
-                <p className="text-[13px] font-semibold text-foreground">Última subtarea pendiente</p>
+                <p className="text-[13px] font-semibold text-foreground">Last pending subtask</p>
                 <p className="mt-1 text-[11px] text-muted-foreground leading-relaxed">
-                  Al completar esta subtarea, la tarea{' '}
-                  <span className="font-medium text-foreground">"{parentTask.title}"</span>{' '}
-                  será revisada automáticamente por la IA.
+                  Completing this subtask will automatically trigger an AI review of the task{' '}
+                  <span className="font-medium text-foreground">"{parentTask.title}"</span>.
                 </p>
                 <p className="mt-2 text-[11px] text-muted-foreground leading-relaxed">
-                  Asegúrate de haber subido tus cambios a git
-                  (<span className="font-mono text-foreground">git push</span>) antes de continuar —
-                  la IA revisa el código que está en el repositorio, no el local.
+                  Make sure you have pushed your changes to git
+                  (<span className="font-mono text-foreground">git push</span>) before continuing —
+                  the AI reviews the code in the repository, not your local copy.
                 </p>
               </div>
             </div>
@@ -336,7 +335,7 @@ export function TaskSubtasks({
                 disabled={confirmBusy}
                 className="h-7 px-3 rounded-[3px] border border-border bg-surface-secondary text-[11px] text-foreground hover:bg-accent disabled:opacity-50"
               >
-                Regresar
+                Back
               </button>
               <button
                 type="button"
@@ -345,7 +344,7 @@ export function TaskSubtasks({
                 className="h-7 px-3 rounded-[3px] border border-primary bg-primary text-[11px] font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 inline-flex items-center gap-1"
               >
                 {confirmBusy ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
-                Continuar
+                Continue
               </button>
             </div>
           </div>

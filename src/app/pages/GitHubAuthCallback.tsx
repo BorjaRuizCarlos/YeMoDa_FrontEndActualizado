@@ -13,7 +13,7 @@ function readToken(value: string | null | undefined): string | null {
 
 export default function GitHubAuthCallback() {
   const [state, setState] = useState<CallbackState>('loading');
-  const [message, setMessage] = useState('Conectando tu cuenta de GitHub...');
+  const [message, setMessage] = useState('Connecting your GitHub account...');
 
   const searchParams = useMemo(() => new URLSearchParams(window.location.search), []);
 
@@ -21,7 +21,7 @@ export default function GitHubAuthCallback() {
     const error = searchParams.get('error');
     if (error) {
       setState('error');
-      setMessage('No se pudo completar la conexión con GitHub.');
+      setMessage('Could not complete the connection with GitHub.');
       return;
     }
 
@@ -30,13 +30,13 @@ export default function GitHubAuthCallback() {
 
     if (!accessToken || !refreshToken) {
       setState('error');
-      setMessage('La respuesta de GitHub no incluyó los tokens esperados.');
+      setMessage('The GitHub response did not include the expected tokens.');
       return;
     }
 
     tokenStore.set(accessToken, refreshToken);
     setState('success');
-    setMessage('GitHub conectado exitosamente. Redirigiendo...');
+    setMessage('GitHub connected successfully. Redirecting...');
 
     const redirectId = window.setTimeout(() => {
       window.location.replace('/github');
@@ -54,7 +54,7 @@ export default function GitHubAuthCallback() {
           {state === 'error' && <AlertCircle className="h-5 w-5" />}
         </div>
 
-        <h1 className="text-[18px] font-semibold text-foreground">Conexión con GitHub</h1>
+        <h1 className="text-[18px] font-semibold text-foreground">GitHub connection</h1>
         <p className="mt-2 text-[13px] leading-6 text-muted-foreground">{message}</p>
 
         {state === 'error' && (
@@ -63,7 +63,7 @@ export default function GitHubAuthCallback() {
               to="/github"
               className="inline-flex h-9 items-center justify-center rounded-[4px] bg-primary px-4 text-[12px] font-medium text-primary-foreground transition-colors hover:bg-primary-hover"
             >
-              Volver a GitHub
+              Back to GitHub
             </Link>
           </div>
         )}

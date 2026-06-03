@@ -50,27 +50,27 @@ function buildUserFromAccessToken(accessToken: string): User | null {
 function getOAuthErrorMessage(errorCode: string): string {
   switch (errorCode) {
     case 'nickname_taken':
-      return 'Ese nickname ya está en uso. Intenta nuevamente con uno diferente.';
+      return 'That nickname is already taken. Please try again with a different one.';
     case 'missing_nickname':
-      return 'Necesitas ingresar un nickname antes de iniciar con Google.';
+      return 'You need to enter a nickname before continuing with Google.';
     case 'invalid_state':
-      return 'La sesión OAuth expiró o es inválida. Intenta de nuevo.';
+      return 'The OAuth session expired or is invalid. Please try again.';
     case 'token_exchange_failed':
-      return 'No se pudo completar la autenticación con Google. Intenta nuevamente.';
+      return 'Could not complete authentication with Google. Please try again.';
     case 'no_access_token':
-      return 'Google no devolvió el token de acceso esperado.';
+      return 'Google did not return the expected access token.';
     case 'userinfo_failed':
-      return 'No se pudo obtener la información de tu cuenta de Google.';
+      return 'Could not retrieve your Google account information.';
     case 'no_email':
-      return 'Tu cuenta de Google no devolvió un correo válido.';
+      return 'Your Google account did not return a valid email.';
     default:
-      return 'No se pudo completar el inicio de sesión con Google.';
+      return 'Could not complete sign-in with Google.';
   }
 }
 
 export default function GoogleAuthCallback() {
   const [state, setState] = useState<CallbackState>('loading');
-  const [message, setMessage] = useState('Procesando inicio de sesión con Google...');
+  const [message, setMessage] = useState('Processing sign-in with Google...');
 
   const searchParams = useMemo(() => new URLSearchParams(window.location.search), []);
 
@@ -88,7 +88,7 @@ export default function GoogleAuthCallback() {
 
     if (!accessToken || !refreshToken) {
       setState('error');
-      setMessage('La respuesta de Google no incluyó los tokens esperados.');
+      setMessage('Google\'s response did not include the expected tokens.');
       return;
     }
 
@@ -104,7 +104,7 @@ export default function GoogleAuthCallback() {
     }
 
     setState('success');
-    setMessage('Sesión lista. Redirigiendo al dashboard...');
+    setMessage('Session ready. Redirecting to the dashboard...');
 
     const redirectId = window.setTimeout(() => {
       window.location.replace('/dashboard');
@@ -122,7 +122,7 @@ export default function GoogleAuthCallback() {
           {state === 'error' && <AlertCircle className="h-5 w-5" />}
         </div>
 
-        <h1 className="text-[18px] font-semibold text-foreground">Inicio de sesión con Google</h1>
+        <h1 className="text-[18px] font-semibold text-foreground">Sign in with Google</h1>
         <p className="mt-2 text-[13px] leading-6 text-muted-foreground">{message}</p>
 
         {state === 'error' && (
@@ -131,7 +131,7 @@ export default function GoogleAuthCallback() {
               to="/login"
               className="inline-flex h-9 items-center justify-center rounded-[4px] bg-primary px-4 text-[12px] font-medium text-primary-foreground transition-colors hover:bg-primary-hover"
             >
-              Volver al login
+              Back to login
             </Link>
           </div>
         )}

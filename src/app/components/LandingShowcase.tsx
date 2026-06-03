@@ -189,7 +189,7 @@ function DashboardView({ onNavigate }: { onNavigate: (v: DemoView) => void }) {
         ))}
       </div>
 
-      {/* Salud + Próximas */}
+      {/* Health + Upcoming */}
       <div className="grid grid-cols-2 gap-1.5">
         {/* Portfolio Health */}
         <div className="rounded-[3px] border border-border bg-background p-2">
@@ -236,7 +236,7 @@ function DashboardView({ onNavigate }: { onNavigate: (v: DemoView) => void }) {
         <div className="rounded-[3px] border border-border bg-background p-2 flex flex-col">
           <div className="flex items-center justify-between mb-1">
             <div className="text-[8px] font-semibold text-foreground">Upcoming Due</div>
-            <span className="text-[7px] text-muted-foreground">7 en 7 días</span>
+            <span className="text-[7px] text-muted-foreground">7 in 7 days</span>
           </div>
           <div className="space-y-1 flex-1 overflow-hidden">
             {PROXIMAS_VENCER.map((t) => (
@@ -270,9 +270,9 @@ function DashboardView({ onNavigate }: { onNavigate: (v: DemoView) => void }) {
               <div key={p.id} className="rounded-[3px] border border-border bg-card/50 px-2 py-1.5">
                 <p className="text-[8px] font-medium text-foreground truncate">{p.nombre}</p>
                 <div className="flex items-center justify-between mt-0.5">
-                  <span className="text-[7px] text-muted-foreground">{p.tareas} tareas</span>
+                  <span className="text-[7px] text-muted-foreground">{p.tareas} tasks</span>
                   <span className={`text-[7px] font-medium ${onTrack ? 'text-success' : 'text-warning'}`}>
-                    {onTrack ? 'Al día' : 'En riesgo'}
+                    {onTrack ? 'On track' : 'At risk'}
                   </span>
                 </div>
               </div>
@@ -291,15 +291,15 @@ function ProyectosView() {
     <div className="flex flex-col h-full overflow-hidden">
       <div className="px-3 py-2 border-b border-border bg-card/60 shrink-0 flex items-center justify-between">
         <div>
-          <div className="text-[11px] font-semibold text-foreground">Proyectos</div>
-          <div className="text-[9px] text-muted-foreground">Busca, filtra y ordena proyectos activos por fecha de entrega.</div>
+          <div className="text-[11px] font-semibold text-foreground">Projects</div>
+          <div className="text-[9px] text-muted-foreground">Search, filter and sort active projects by delivery date.</div>
         </div>
-        <button className="text-[9px] px-2 py-1 rounded-[3px] bg-primary text-primary-foreground font-medium">+ Nuevo Proyecto</button>
+        <button className="text-[9px] px-2 py-1 rounded-[3px] bg-primary text-primary-foreground font-medium">+ New Project</button>
       </div>
       <div className="flex items-center gap-1.5 px-3 py-1.5 border-b border-border bg-card/30 shrink-0">
-        <span className="text-[8px] px-2 py-0.5 rounded-full bg-primary/15 text-primary font-medium">Todos 5</span>
-        <span className="text-[8px] px-2 py-0.5 rounded-full border border-border text-muted-foreground">En progreso 3</span>
-        <span className="text-[8px] px-2 py-0.5 rounded-full border border-border text-muted-foreground">Planeación 2</span>
+        <span className="text-[8px] px-2 py-0.5 rounded-full bg-primary/15 text-primary font-medium">All 5</span>
+        <span className="text-[8px] px-2 py-0.5 rounded-full border border-border text-muted-foreground">In Progress 3</span>
+        <span className="text-[8px] px-2 py-0.5 rounded-full border border-border text-muted-foreground">Planning 2</span>
       </div>
       <div className="overflow-y-auto flex-1">
         <table className="w-full text-[9px]">
@@ -351,19 +351,19 @@ function ProyectosView() {
 
 function ReportesView() {
   const attProyectos = [
-    { nombre: 'API Gateway Migration',  salud: '20%', vencidas: '2 vencidas' },
-    { nombre: 'Admin Dashboard',        salud: '0%',  vencidas: '0 vencidas' },
-    { nombre: 'Mobile App v2',          salud: '45%', vencidas: '1 vencida'  },
-    { nombre: 'E-Commerce Redesign',    salud: '72%', vencidas: '1 vencida'  },
-    { nombre: 'Analytics Platform',     salud: '88%', vencidas: '0 vencidas' },
+    { nombre: 'API Gateway Migration',  salud: '20%', vencidas: '2 overdue' },
+    { nombre: 'Admin Dashboard',        salud: '0%',  vencidas: '0 overdue' },
+    { nombre: 'Mobile App v2',          salud: '45%', vencidas: '1 overdue'  },
+    { nombre: 'E-Commerce Redesign',    salud: '72%', vencidas: '1 overdue'  },
+    { nombre: 'Analytics Platform',     salud: '88%', vencidas: '0 overdue' },
   ];
   return (
     <div className="flex flex-col h-full overflow-y-auto p-2.5 space-y-2">
-      {/* Cabecera salud */}
+      {/* Health header */}
       <div className="rounded-[3px] border border-warning/30 bg-warning/5 p-2.5">
         <div className="flex items-center justify-between mb-1">
           <span className="text-[7px] px-1.5 py-0.5 rounded-[3px] bg-warning/15 text-warning font-semibold uppercase tracking-wider">Requires Attention</span>
-          <span className="text-[8px] text-muted-foreground">5 proyectos</span>
+          <span className="text-[8px] text-muted-foreground">5 projects</span>
         </div>
         <div className="text-[22px] font-bold text-foreground leading-none mb-1">48% <span className="text-[9px] font-normal text-muted-foreground">PORTFOLIO HEALTH</span></div>
         <div className="space-y-0.5">
@@ -377,7 +377,7 @@ function ReportesView() {
           </div>
           <div className="flex items-center gap-1 text-[8px] text-muted-foreground">
             <AlertTriangle className="w-2.5 h-2.5 text-warning shrink-0" />
-            Hay 2 warnings activos sin resolver
+            2 active warnings remain unresolved
           </div>
         </div>
       </div>
@@ -385,10 +385,10 @@ function ReportesView() {
       {/* KPIs */}
       <div className="grid grid-cols-4 gap-1.5">
         {[
-          { label: 'TOTAL TAREAS',  value: '34', sub: 'tareas registradas',  dot: 'bg-info'       },
-          { label: 'COMPLETADAS',   value: '21', sub: '62% del total',        dot: 'bg-success'    },
-          { label: 'PENDIENTES',    value: '13', sub: 'tareas por completar', dot: 'bg-warning'    },
-          { label: 'VENCIDAS',      value: '3',  sub: 'pasaron su fecha',     dot: 'bg-destructive'},
+          { label: 'TOTAL TASKS',   value: '34', sub: 'tasks registered',     dot: 'bg-info'       },
+          { label: 'COMPLETED',     value: '21', sub: '62% of total',         dot: 'bg-success'    },
+          { label: 'PENDING',       value: '13', sub: 'tasks to complete',    dot: 'bg-warning'    },
+          { label: 'OVERDUE',       value: '3',  sub: 'past their due date',  dot: 'bg-destructive'},
         ].map((k) => (
           <div key={k.label} className="rounded-[3px] border border-border bg-background p-1.5">
             <div className="flex items-center gap-1 mb-0.5">
@@ -401,11 +401,11 @@ function ReportesView() {
         ))}
       </div>
 
-      {/* Tendencia + Atención */}
+      {/* Trend + Attention */}
       <div className="grid grid-cols-2 gap-1.5">
         <div className="rounded-[3px] border border-border bg-background p-2">
           <div className="text-[8px] text-muted-foreground uppercase tracking-wider mb-0.5">Trend · 2 Weeks</div>
-          <div className="text-[9px] font-semibold text-foreground mb-1.5">Tareas completadas por semana</div>
+          <div className="text-[9px] font-semibold text-foreground mb-1.5">Tasks completed per week</div>
           {/* Sparkline */}
           <svg viewBox="0 0 120 50" className="w-full h-14">
             <defs>
@@ -429,8 +429,8 @@ function ReportesView() {
             {/* Area fill */}
             <path d="M12 8 L46 12 L80 21 L116 34 L116 43 L12 43 Z" fill="url(#demoSparkGrad)" />
             {/* X labels */}
-            <text x="12" y="49" fill="rgba(255,255,255,0.3)" fontSize="5">12 may</text>
-            <text x="88" y="49" fill="rgba(255,255,255,0.3)" fontSize="5">26 may</text>
+            <text x="12" y="49" fill="rgba(255,255,255,0.3)" fontSize="5">12 May</text>
+            <text x="88" y="49" fill="rgba(255,255,255,0.3)" fontSize="5">26 May</text>
           </svg>
         </div>
         <div className="rounded-[3px] border border-border bg-background p-2">
@@ -465,8 +465,8 @@ function AlertasView() {
         <span className="text-[8px] px-2 py-0.5 rounded-full border border-border text-muted-foreground">Resolved 2</span>
       </div>
       <div className="flex items-center gap-4 px-3 py-1.5 border-b border-border/50 bg-background/30 shrink-0 text-[8px] text-muted-foreground">
-        <span className="text-warning font-medium">▲ 3 activos</span>
-        <span className="text-success font-medium">○ 2 resueltos</span>
+        <span className="text-warning font-medium">▲ 3 active</span>
+        <span className="text-success font-medium">○ 2 resolved</span>
         <span>◎ 5 total</span>
       </div>
       <div className="flex-1 overflow-y-auto">
@@ -481,7 +481,7 @@ function AlertasView() {
                 <AlertTriangle className={`w-3 h-3 mt-0.5 shrink-0 ${a.tipo === 'danger' ? 'text-destructive' : 'text-warning'}`} />
                 <div className="flex-1 min-w-0">
                   <p className="text-[9px] text-foreground leading-tight line-clamp-2">{a.titulo}</p>
-                  <p className="text-[8px] text-muted-foreground mt-0.5 truncate">↗ Tarea: {a.tarea} · {a.tiempo}</p>
+                  <p className="text-[8px] text-muted-foreground mt-0.5 truncate">↗ Task: {a.tarea} · {a.tiempo}</p>
                 </div>
                 <span className="text-[7px] px-1.5 py-0.5 rounded-[3px] bg-destructive/15 text-destructive font-medium shrink-0">● {a.etiqueta}</span>
               </div>
@@ -499,7 +499,7 @@ function AlertasView() {
                 <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0 text-muted-foreground" />
                 <div className="flex-1 min-w-0">
                   <p className="text-[9px] text-muted-foreground leading-tight line-clamp-2 line-through">{a.titulo}</p>
-                  <p className="text-[8px] text-muted-foreground/60 mt-0.5 truncate">↗ Tarea: {a.tarea} · {a.tiempo}</p>
+                  <p className="text-[8px] text-muted-foreground/60 mt-0.5 truncate">↗ Task: {a.tarea} · {a.tiempo}</p>
                 </div>
                 <span className="text-[7px] px-1.5 py-0.5 rounded-[3px] bg-success/15 text-success font-medium shrink-0">✓ {a.etiqueta}</span>
               </div>
@@ -519,7 +519,7 @@ function PerfilView() {
       <div className="text-[11px] font-semibold text-foreground">My Profile</div>
 
       <div className="grid grid-cols-2 gap-2">
-        {/* Info personal */}
+        {/* Personal info */}
         <div className="rounded-[3px] border border-border bg-background p-2.5 space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-[9px] font-semibold text-foreground">Personal Info</span>
@@ -550,14 +550,14 @@ function PerfilView() {
           </div>
         </div>
 
-        {/* Preferencias + integraciones */}
+        {/* Preferences + integrations */}
         <div className="space-y-2">
           <div className="rounded-[3px] border border-border bg-background p-2">
             <div className="text-[9px] font-semibold text-foreground mb-1.5">Preferences</div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
                 <Clock className="w-3 h-3 text-muted-foreground" />
-                <span className="text-[8px] text-foreground">Tema — Oscuro</span>
+                <span className="text-[8px] text-foreground">Theme — Dark</span>
               </div>
               <div className="w-7 h-4 rounded-full bg-primary flex items-center justify-end px-0.5">
                 <div className="w-3 h-3 rounded-full bg-white" />
@@ -592,7 +592,7 @@ function PerfilView() {
         </div>
       </div>
 
-      {/* Mis proyectos table */}
+      {/* My projects table */}
       <div className="rounded-[3px] border border-border bg-background p-2">
         <div className="text-[9px] font-semibold text-foreground mb-1.5">My Projects</div>
         <table className="w-full text-[8px]">
@@ -631,7 +631,7 @@ export function DashboardShowcase() {
     <section id="demo" className="container mx-auto px-6 py-24 max-w-6xl scroll-mt-16">
       <div className="flex flex-col items-center gap-10">
 
-        {/* Texto */}
+        {/* Text */}
         <motion.div
           initial={{ opacity: 0, y: -16 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -825,30 +825,30 @@ const PROJECT_TABS: { id: ProjectTab; label: string; count?: number }[] = [
   { id: 'milestones',   label: 'Milestones' },
   { id: 'scrum-poker',  label: 'Scrum Poker' },
   { id: 'code-review',  label: 'Code Review' },
-  { id: 'repositorios', label: 'Repositorios' },
-  { id: 'equipo',       label: 'Equipo', count: 4 },
-  { id: 'configuracion',label: '⚙ Configuración' },
+  { id: 'repositorios', label: 'Repositories' },
+  { id: 'equipo',       label: 'Team', count: 4 },
+  { id: 'configuracion',label: '⚙ Settings' },
 ];
 
 const PROJ_TASKS = [
-  { id:1,  titulo:'Implement payment gateway',    prioridad:'Alta',  pColor:'text-destructive',      estado:'En progreso', eColor:'text-warning',         av:'AG' },
-  { id:2,  titulo:'Shopping cart persistence',    prioridad:'Media', pColor:'text-warning',          estado:'Completado',  eColor:'text-success',         av:'MS' },
-  { id:3,  titulo:'Product search & filters',     prioridad:'Media', pColor:'text-warning',          estado:'Completado',  eColor:'text-success',         av:'CR' },
-  { id:4,  titulo:'Mobile responsive layout',     prioridad:'Alta',  pColor:'text-destructive',      estado:'En revisión', eColor:'text-primary',         av:'AL' },
-  { id:5,  titulo:'User checkout flow',           prioridad:'Media', pColor:'text-warning',          estado:'En progreso', eColor:'text-warning',         av:'AG' },
-  { id:6,  titulo:'SEO meta tags setup',          prioridad:'Baja',  pColor:'text-muted-foreground', estado:'Pendiente',   eColor:'text-muted-foreground',av:'—'  },
-  { id:7,  titulo:'Email notifications',          prioridad:'Media', pColor:'text-warning',          estado:'Completado',  eColor:'text-success',         av:'MS' },
-  { id:8,  titulo:'Analytics integration',        prioridad:'Alta',  pColor:'text-destructive',      estado:'Completado',  eColor:'text-success',         av:'CR' },
-  { id:9,  titulo:'Performance optimization',     prioridad:'Media', pColor:'text-warning',          estado:'Pendiente',   eColor:'text-muted-foreground',av:'—'  },
-  { id:10, titulo:'Security audit',               prioridad:'Alta',  pColor:'text-destructive',      estado:'En progreso', eColor:'text-warning',         av:'AG' },
-  { id:11, titulo:'Developer documentation',      prioridad:'Baja',  pColor:'text-muted-foreground', estado:'Pendiente',   eColor:'text-muted-foreground',av:'—'  },
+  { id:1,  titulo:'Implement payment gateway',    prioridad:'High',  pColor:'text-destructive',      estado:'In progress', eColor:'text-warning',         av:'AG' },
+  { id:2,  titulo:'Shopping cart persistence',    prioridad:'Medium', pColor:'text-warning',          estado:'Completed',   eColor:'text-success',         av:'MS' },
+  { id:3,  titulo:'Product search & filters',     prioridad:'Medium', pColor:'text-warning',          estado:'Completed',   eColor:'text-success',         av:'CR' },
+  { id:4,  titulo:'Mobile responsive layout',     prioridad:'High',  pColor:'text-destructive',      estado:'In review',   eColor:'text-primary',         av:'AL' },
+  { id:5,  titulo:'User checkout flow',           prioridad:'Medium', pColor:'text-warning',          estado:'In progress', eColor:'text-warning',         av:'AG' },
+  { id:6,  titulo:'SEO meta tags setup',          prioridad:'Low',   pColor:'text-muted-foreground', estado:'Pending',     eColor:'text-muted-foreground',av:'—'  },
+  { id:7,  titulo:'Email notifications',          prioridad:'Medium', pColor:'text-warning',          estado:'Completed',   eColor:'text-success',         av:'MS' },
+  { id:8,  titulo:'Analytics integration',        prioridad:'High',  pColor:'text-destructive',      estado:'Completed',   eColor:'text-success',         av:'CR' },
+  { id:9,  titulo:'Performance optimization',     prioridad:'Medium', pColor:'text-warning',          estado:'Pending',     eColor:'text-muted-foreground',av:'—'  },
+  { id:10, titulo:'Security audit',               prioridad:'High',  pColor:'text-destructive',      estado:'In progress', eColor:'text-warning',         av:'AG' },
+  { id:11, titulo:'Developer documentation',      prioridad:'Low',   pColor:'text-muted-foreground', estado:'Pending',     eColor:'text-muted-foreground',av:'—'  },
 ];
 
 const PROJ_BOARD_COLS = [
-  { id:'todo',     label:'Por hacer',   lColor:'text-muted-foreground', taskIds:[6,9,11] },
-  { id:'progress', label:'En progreso', lColor:'text-warning',          taskIds:[1,5,10] },
-  { id:'review',   label:'En revisión', lColor:'text-primary',          taskIds:[4] },
-  { id:'done',     label:'Completado',  lColor:'text-success',          taskIds:[2,3,7,8] },
+  { id:'todo',     label:'To do',       lColor:'text-muted-foreground', taskIds:[6,9,11] },
+  { id:'progress', label:'In progress', lColor:'text-warning',          taskIds:[1,5,10] },
+  { id:'review',   label:'In review',   lColor:'text-primary',          taskIds:[4] },
+  { id:'done',     label:'Completed',   lColor:'text-success',          taskIds:[2,3,7,8] },
 ];
 
 const PROJ_TIMELINE_ITEMS = [
@@ -875,10 +875,10 @@ const PROJ_MILESTONES = [
 ];
 
 const PROJ_PRS = [
-  { id:'#44', titulo:'feat: payment gateway integration',    estado:'En revisión', av:'AG', rama:'feat/payment',    hace:'hace 2h',  merged:false },
-  { id:'#43', titulo:'fix: cart persistence on page reload', estado:'Merged',      av:'CR', rama:'fix/cart-state',  hace:'hace 1d',  merged:true  },
-  { id:'#42', titulo:'feat: mobile responsive redesign',     estado:'En revisión', av:'AL', rama:'feat/responsive', hace:'hace 5h',  merged:false },
-  { id:'#41', titulo:'chore: update package dependencies',   estado:'Merged',      av:'MS', rama:'chore/deps',      hace:'hace 2d',  merged:true  },
+  { id:'#44', titulo:'feat: payment gateway integration',    estado:'In review', av:'AG', rama:'feat/payment',    hace:'2h ago',  merged:false },
+  { id:'#43', titulo:'fix: cart persistence on page reload', estado:'Merged',    av:'CR', rama:'fix/cart-state',  hace:'1d ago',  merged:true  },
+  { id:'#42', titulo:'feat: mobile responsive redesign',     estado:'In review', av:'AL', rama:'feat/responsive', hace:'5h ago',  merged:false },
+  { id:'#41', titulo:'chore: update package dependencies',   estado:'Merged',    av:'MS', rama:'chore/deps',      hace:'2d ago',  merged:true  },
 ];
 
 const PROJ_MEMBERS = [
@@ -895,10 +895,10 @@ function ProjOverviewTab() {
     <div className="p-2.5 space-y-2">
       <div className="grid grid-cols-4 gap-1.5">
         {[
-          { title:'TAREAS',       value:'11', sub:'en el proyecto',    border:'border-l-2 border-l-sky-500/60' },
-          { title:'COMPLETADAS',  value:'8',  sub:'finalizadas',       border:'border-l-2 border-l-success/60' },
-          { title:'VENCIDAS',     value:'1',  sub:'requieren atención',border:'border-l-2 border-l-destructive/60' },
-          { title:'TIEMPO REST.', value:'12d',sub:'7 jun 2026',        border:'border-l-2 border-l-warning/60' },
+          { title:'TASKS',        value:'11', sub:'in the project',    border:'border-l-2 border-l-sky-500/60' },
+          { title:'COMPLETED',    value:'8',  sub:'finished',          border:'border-l-2 border-l-success/60' },
+          { title:'OVERDUE',      value:'1',  sub:'need attention',    border:'border-l-2 border-l-destructive/60' },
+          { title:'TIME LEFT',    value:'12d',sub:'7 Jun 2026',        border:'border-l-2 border-l-warning/60' },
         ].map(k => (
           <div key={k.title} className={`rounded-[3px] border border-border bg-background p-2 ${k.border}`}>
             <div className="text-[7px] text-muted-foreground font-medium uppercase tracking-wide mb-0.5">{k.title}</div>
@@ -908,14 +908,14 @@ function ProjOverviewTab() {
         ))}
       </div>
       <div className="rounded-[3px] border border-border bg-background p-2.5">
-        <div className="text-[8px] font-semibold text-muted-foreground uppercase tracking-wide mb-2">Información General</div>
+        <div className="text-[8px] font-semibold text-muted-foreground uppercase tracking-wide mb-2">General Information</div>
         <div className="grid grid-cols-2 gap-x-8 gap-y-1.5">
           {[
-            { label:'Estado',           val:'En progreso' },
-            { label:'Creado',           val:'12 abr 2026' },
-            { label:'Fecha fin',        val:'7 jun 2026' },
-            { label:'Tiempo restante',  val:'12 días' },
-            { label:'Miembros',         val:'4 personas' },
+            { label:'Status',           val:'In progress' },
+            { label:'Created',          val:'12 Apr 2026' },
+            { label:'End date',         val:'7 Jun 2026' },
+            { label:'Time remaining',   val:'12 days' },
+            { label:'Members',          val:'4 people' },
           ].map(({ label, val }) => (
             <div key={label}>
               <div className="text-[7px] text-muted-foreground">{label}</div>
@@ -926,13 +926,13 @@ function ProjOverviewTab() {
       </div>
       <div className="rounded-[3px] border border-border bg-background p-2.5">
         <div className="flex items-center justify-between mb-1.5">
-          <div className="text-[8px] font-semibold text-muted-foreground uppercase tracking-wide">Avance</div>
+          <div className="text-[8px] font-semibold text-muted-foreground uppercase tracking-wide">Progress</div>
           <div className="text-[10px] font-bold text-foreground">72%</div>
         </div>
         <div className="h-2 bg-surface-secondary/60 rounded-full overflow-hidden">
           <div className="h-full rounded-full bg-warning" style={{ width: '72%' }} />
         </div>
-        <div className="text-[7px] text-muted-foreground mt-1">8 de 11 tareas completadas</div>
+        <div className="text-[7px] text-muted-foreground mt-1">8 of 11 tasks completed</div>
       </div>
     </div>
   );
@@ -945,10 +945,10 @@ function ProjBacklogTab() {
         <table className="w-full text-[8px]">
           <thead>
             <tr className="border-b border-border bg-surface-secondary/40">
-              <th className="text-left px-2.5 py-1.5 text-muted-foreground font-medium w-[42%]">TÍTULO</th>
-              <th className="text-left px-2 py-1.5 text-muted-foreground font-medium">PRIORIDAD</th>
-              <th className="text-left px-2 py-1.5 text-muted-foreground font-medium">ESTADO</th>
-              <th className="text-left px-2 py-1.5 text-muted-foreground font-medium">ASIGNADO</th>
+              <th className="text-left px-2.5 py-1.5 text-muted-foreground font-medium w-[42%]">TITLE</th>
+              <th className="text-left px-2 py-1.5 text-muted-foreground font-medium">PRIORITY</th>
+              <th className="text-left px-2 py-1.5 text-muted-foreground font-medium">STATUS</th>
+              <th className="text-left px-2 py-1.5 text-muted-foreground font-medium">ASSIGNED</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border/30">
@@ -977,7 +977,7 @@ function ProjTimelineTab() {
     <div className="p-2.5">
       <div className="rounded-[3px] border border-border bg-background p-2.5">
         <div className="flex items-center justify-between mb-2 text-[7px] text-muted-foreground font-medium">
-          <span>may 2026</span><span>jun 2026</span>
+          <span>May 2026</span><span>Jun 2026</span>
         </div>
         <div className="border-t border-border/30 space-y-2 pt-2">
           {PROJ_TIMELINE_ITEMS.map((t, i) => (
@@ -1082,14 +1082,14 @@ function ProjMilestonesTab() {
           <div className="flex items-center justify-between mb-1">
             <span className="text-[9px] font-semibold text-foreground">{m.titulo}</span>
             <span className={`text-[7px] font-medium ${m.mColor}`}>
-              {m.progreso === 100 ? '✓ Completado' : m.progreso >= 50 ? '↻ En progreso' : '○ Pendiente'}
+              {m.progreso === 100 ? '✓ Completed' : m.progreso >= 50 ? '↻ In progress' : '○ Pending'}
             </span>
           </div>
           <div className="text-[7px] text-muted-foreground mb-1.5">{m.fecha}</div>
           <div className="h-1.5 bg-surface-secondary/60 rounded-full overflow-hidden">
             <div className={`h-full rounded-full ${m.bColor}`} style={{ width: `${m.progreso}%` }} />
           </div>
-          <div className="text-[7px] text-muted-foreground mt-0.5">{m.progreso}% completado</div>
+          <div className="text-[7px] text-muted-foreground mt-0.5">{m.progreso}% completed</div>
         </div>
       ))}
     </div>
@@ -1102,12 +1102,12 @@ function ProjScrumPokerTab() {
   return (
     <div className="p-2.5 space-y-2">
       <div className="rounded-[3px] border border-border bg-background p-2.5">
-        <div className="text-[8px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Historia a estimar</div>
+        <div className="text-[8px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Story to estimate</div>
         <div className="text-[9px] text-foreground">Implement payment gateway integration</div>
-        <div className="text-[7px] text-muted-foreground mt-0.5">4 participantes · 2 han votado</div>
+        <div className="text-[7px] text-muted-foreground mt-0.5">4 participants · 2 have voted</div>
       </div>
       <div className="rounded-[3px] border border-border bg-background p-2.5">
-        <div className="text-[8px] font-semibold text-muted-foreground uppercase tracking-wide mb-2">Tu estimación</div>
+        <div className="text-[8px] font-semibold text-muted-foreground uppercase tracking-wide mb-2">Your estimate</div>
         <div className="flex gap-1.5 flex-wrap">
           {cards.map(n => (
             <button
@@ -1135,12 +1135,12 @@ function ProjScrumPokerTab() {
         </div>
         {selected !== null && (
           <div className="mt-2 text-[8px] text-success font-medium">
-            ✓ Voto registrado: {selected === -1 ? '?' : selected} puntos
+            ✓ Vote recorded: {selected === -1 ? '?' : selected} points
           </div>
         )}
       </div>
       <div className="rounded-[3px] border border-border bg-background p-2">
-        <div className="text-[8px] font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Participantes</div>
+        <div className="text-[8px] font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Participants</div>
         <div className="space-y-1">
           {[
             { av:'AG', name:'Alex García',    voted:true  },
@@ -1156,7 +1156,7 @@ function ProjScrumPokerTab() {
                 <span className="text-[8px] text-foreground">{p.name}</span>
               </div>
               <span className={`text-[7px] ${p.voted ? 'text-success' : 'text-muted-foreground'}`}>
-                {p.voted ? '✓ Votó' : '⏳ Esperando'}
+                {p.voted ? '✓ Voted' : '⏳ Waiting'}
               </span>
             </div>
           ))}
@@ -1202,7 +1202,7 @@ function ProjRepositoriosTab() {
       <div className="rounded-[3px] border border-border bg-background p-2.5">
         <div className="flex items-center justify-between mb-2">
           <div className="text-[9px] font-semibold text-foreground">GitHub</div>
-          <span className="text-[7px] px-1.5 py-0.5 rounded-full bg-success/15 text-success font-medium">● Conectado</span>
+          <span className="text-[7px] px-1.5 py-0.5 rounded-full bg-success/15 text-success font-medium">● Connected</span>
         </div>
         <div className="flex items-center gap-2 p-2 rounded-[3px] bg-surface-secondary/40 border border-border/50">
           <Github className="w-4 h-4 text-foreground shrink-0" />
@@ -1212,11 +1212,11 @@ function ProjRepositoriosTab() {
           </div>
         </div>
         <div className="mt-2 space-y-0.5">
-          <div className="text-[7px] text-muted-foreground font-semibold uppercase tracking-wide mb-1.5">Commits recientes</div>
+          <div className="text-[7px] text-muted-foreground font-semibold uppercase tracking-wide mb-1.5">Recent commits</div>
           {[
-            { hash:'a3f8c2', msg:'feat: add payment gateway middleware',   time:'hace 2h', av:'AG' },
-            { hash:'9b2d14', msg:'fix: cart state reset on navigation',    time:'hace 1d', av:'CR' },
-            { hash:'7e5f31', msg:'style: responsive breakpoints mobile',   time:'hace 2d', av:'AL' },
+            { hash:'a3f8c2', msg:'feat: add payment gateway middleware',   time:'2h ago', av:'AG' },
+            { hash:'9b2d14', msg:'fix: cart state reset on navigation',    time:'1d ago', av:'CR' },
+            { hash:'7e5f31', msg:'style: responsive breakpoints mobile',   time:'2d ago', av:'AL' },
           ].map(c => (
             <div key={c.hash} className="flex items-center gap-2 py-0.5 border-b border-border/30 last:border-0">
               <span className="text-[7px] font-mono text-primary">{c.hash}</span>
@@ -1245,7 +1245,7 @@ function ProjEquipoTab() {
             <div className="text-[9px] font-semibold text-foreground">{m.name}</div>
             <div className="text-[7px] text-muted-foreground">{m.role}</div>
           </div>
-          <span className="text-[7px] px-1.5 py-0.5 rounded-[3px] border border-border text-muted-foreground shrink-0">Editar</span>
+          <span className="text-[7px] px-1.5 py-0.5 rounded-[3px] border border-border text-muted-foreground shrink-0">Edit</span>
         </div>
       ))}
       <div className="text-center pt-1">
@@ -1260,26 +1260,26 @@ function ProjConfiguracionTab() {
     <div className="p-2.5">
       <div className="rounded-[3px] border border-border bg-background p-2.5 space-y-2.5 max-w-sm">
         <div>
-          <label className="block text-[8px] font-semibold text-foreground mb-1">Etapa del proyecto</label>
+          <label className="block text-[8px] font-semibold text-foreground mb-1">Project stage</label>
           <div className="h-7 bg-surface-secondary border border-border rounded-[3px] px-2.5 flex items-center justify-between text-[8px] text-foreground">
-            En progreso<span className="text-muted-foreground">▾</span>
+            In progress<span className="text-muted-foreground">▾</span>
           </div>
         </div>
         <div>
-          <label className="block text-[8px] font-semibold text-foreground mb-1">Fecha de entrega</label>
+          <label className="block text-[8px] font-semibold text-foreground mb-1">Delivery date</label>
           <div className="h-7 bg-surface-secondary border border-border rounded-[3px] px-2.5 flex items-center justify-between text-[8px] text-foreground">
-            7 jun 2026<Calendar className="w-3 h-3 text-muted-foreground" />
+            7 Jun 2026<Calendar className="w-3 h-3 text-muted-foreground" />
           </div>
         </div>
         <div>
-          <label className="block text-[8px] font-semibold text-foreground mb-1">Descripción</label>
+          <label className="block text-[8px] font-semibold text-foreground mb-1">Description</label>
           <div className="h-14 bg-surface-secondary border border-border rounded-[3px] px-2.5 py-1.5 text-[7px] text-muted-foreground leading-relaxed overflow-hidden">
             Full redesign of the e-commerce platform including new checkout flow, mobile optimization and payment gateway integration.
           </div>
         </div>
         <div className="flex items-center justify-between pt-1">
-          <button className="text-[8px] text-destructive/70 hover:text-destructive transition-colors">Eliminar proyecto</button>
-          <button className="h-7 px-3 bg-primary text-primary-foreground rounded-[3px] text-[8px] font-medium">Guardar cambios</button>
+          <button className="text-[8px] text-destructive/70 hover:text-destructive transition-colors">Delete project</button>
+          <button className="h-7 px-3 bg-primary text-primary-foreground rounded-[3px] text-[8px] font-medium">Save changes</button>
         </div>
       </div>
     </div>
@@ -1295,7 +1295,7 @@ export function ProjectDetailShowcase() {
     <section id="project-demo" className="container mx-auto px-6 py-24 max-w-6xl scroll-mt-16">
       <div className="flex flex-col items-center gap-10">
 
-        {/* Texto marketing */}
+        {/* Marketing text */}
         <motion.div
           initial={{ opacity: 0, y: -16 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -1349,13 +1349,13 @@ export function ProjectDetailShowcase() {
               {/* App topbar */}
               <div className="flex items-center justify-between px-3 py-1.5 border-b border-border bg-card/80 shrink-0">
                 <div className="flex items-center gap-1 text-[8px] text-muted-foreground min-w-0">
-                  <span className="hover:text-foreground cursor-pointer transition-colors">Proyectos</span>
+                  <span className="hover:text-foreground cursor-pointer transition-colors">Projects</span>
                   <ChevronRight className="w-2.5 h-2.5 shrink-0" />
                   <span className="text-foreground font-medium truncate">E-Commerce Redesign</span>
                 </div>
                 <div className="flex items-center gap-2.5 shrink-0">
                   <div className="flex items-center gap-1 text-[8px] text-muted-foreground bg-surface-secondary/60 border border-border/50 rounded-[3px] px-2 py-0.5">
-                    <Activity className="w-2.5 h-2.5" /> Buscar...
+                    <Activity className="w-2.5 h-2.5" /> Search...
                   </div>
                   <div className="relative">
                     <Bell className="w-3.5 h-3.5 text-muted-foreground" />
@@ -1370,16 +1370,16 @@ export function ProjectDetailShowcase() {
               {/* CommandBar */}
               <div className="flex items-center gap-1.5 px-3 py-1.5 border-b border-border bg-card/60 shrink-0">
                 <button className="flex items-center gap-1 text-[8px] text-muted-foreground px-2 py-0.5 rounded-[3px] border border-border hover:text-foreground transition-colors">
-                  ← Volver
+                  ← Back
                 </button>
                 <button className="flex items-center gap-1 text-[8px] text-muted-foreground px-2 py-0.5 rounded-[3px] border border-border hover:text-foreground transition-colors">
-                  ↺ Actualizar
+                  ↺ Refresh
                 </button>
                 <button className="flex items-center gap-1 text-[8px] text-muted-foreground px-2 py-0.5 rounded-[3px] border border-border hover:text-foreground transition-colors">
-                  <Users className="w-2.5 h-2.5" /> Asignar responsable
+                  <Users className="w-2.5 h-2.5" /> Assign owner
                 </button>
                 <div className="ml-auto text-[7px] px-2 py-0.5 rounded-[3px] bg-warning/15 text-warning font-semibold border border-warning/30">
-                  ● En progreso
+                  ● In progress
                 </div>
               </div>
 
@@ -1387,9 +1387,9 @@ export function ProjectDetailShowcase() {
               <div className="px-3 pb-2 pt-1.5 border-b border-border shrink-0">
                 <h1 className="text-[11px] font-semibold text-foreground">E-Commerce Redesign</h1>
                 <div className="flex items-center gap-3 mt-0.5 text-[8px] text-muted-foreground">
-                  <span className="flex items-center gap-1"><Calendar className="w-2.5 h-2.5" />Inicio: 12 abr 2026</span>
-                  <span className="flex items-center gap-1"><Clock className="w-2.5 h-2.5" />Fin: 7 jun 2026</span>
-                  <span className="flex items-center gap-1"><Users className="w-2.5 h-2.5" />4 miembros</span>
+                  <span className="flex items-center gap-1"><Calendar className="w-2.5 h-2.5" />Start: 12 Apr 2026</span>
+                  <span className="flex items-center gap-1"><Clock className="w-2.5 h-2.5" />End: 7 Jun 2026</span>
+                  <span className="flex items-center gap-1"><Users className="w-2.5 h-2.5" />4 members</span>
                 </div>
               </div>
 
@@ -1474,10 +1474,10 @@ const DIFF_ROW_STYLE: Record<DiffLineType, string> = {
 
 const MOCK_ALERTS_CR = [
   { id: 1, tipo: 'danger',  titulo: 'API Gateway timeout',    proyecto: 'Phoenix Backend',     tiempo: '5m ago',  detalle: 'Avg latency 2.3s in prod' },
-  { id: 2, tipo: 'warning', titulo: 'Sprint retrasado',       proyecto: 'Dashboard Analytics', tiempo: '1h ago',  detalle: '4 tareas vencidas'        },
-  { id: 3, tipo: 'success', titulo: 'PR merged exitosamente', proyecto: 'Mobile App v2',       tiempo: '2h ago',  detalle: 'feat: health score · 6 archivos' },
-  { id: 4, tipo: 'warning', titulo: 'Presupuesto al 87%',     proyecto: 'Client Portal',       tiempo: '3h ago',  detalle: 'Proyección de desvío'     },
-  { id: 5, tipo: 'info',    titulo: 'Nuevo miembro agregado', proyecto: 'Core Platform',       tiempo: '4h ago',  detalle: 'Maria G. → Developer'     },
+  { id: 2, tipo: 'warning', titulo: 'Sprint behind schedule', proyecto: 'Dashboard Analytics', tiempo: '1h ago',  detalle: '4 overdue tasks'          },
+  { id: 3, tipo: 'success', titulo: 'PR merged successfully', proyecto: 'Mobile App v2',       tiempo: '2h ago',  detalle: 'feat: health score · 6 files' },
+  { id: 4, tipo: 'warning', titulo: 'Budget at 87%',          proyecto: 'Client Portal',       tiempo: '3h ago',  detalle: 'Overrun projected'        },
+  { id: 5, tipo: 'info',    titulo: 'New member added',       proyecto: 'Core Platform',       tiempo: '4h ago',  detalle: 'Maria G. → Developer'     },
 ];
 
 interface AiFixDemoFile {
@@ -1492,9 +1492,9 @@ const AI_FIX_DEMO_FILES: AiFixDemoFile[] = [
   {
     path: 'backend/api/auth.py',
     warnings: [
-      'CRITICAL: docstring incompleto entre líneas 76-83',
-      'WARNING: validación de payload mezclada con comentario de documentación',
-      'WARNING: retorno de errores no consistente para campos faltantes',
+      'CRITICAL: incomplete docstring between lines 76-83',
+      'WARNING: payload validation mixed with documentation comment',
+      'WARNING: inconsistent error responses for missing fields',
     ],
     sourceCode: [
       'def login(request):',
@@ -1525,13 +1525,13 @@ const AI_FIX_DEMO_FILES: AiFixDemoFile[] = [
       { type: 'remove', content: '-        return {"message": "invalid credentials"}' },
       { type: 'add', content: '+        return {"message": "Invalid credentials"}, 401' },
     ],
-    summary: 'La IA repara la sintaxis del docstring y normaliza respuestas 400 y 401 sin tocar la lógica de negocio.',
+    summary: 'The AI fixes the docstring syntax and normalizes 400 and 401 responses without touching business logic.',
   },
   {
     path: 'backend/api/routes.py',
     warnings: [
-      'CRITICAL: endpoint de admin sin verificación de rol',
-      'WARNING: falta validación de header Authorization',
+      'CRITICAL: admin endpoint without role verification',
+      'WARNING: missing Authorization header validation',
     ],
     sourceCode: [
       'def list_admin_reports(request):',
@@ -1550,7 +1550,7 @@ const AI_FIX_DEMO_FILES: AiFixDemoFile[] = [
       { type: 'add', content: '+        return {"message": "Forbidden"}, 403' },
       { type: 'context', content: '     return report_service.get_all_reports()' },
     ],
-    summary: 'La IA agrega guardas de autorización y rol admin para que el endpoint no exponga reportes sensibles.',
+    summary: 'The AI adds authorization and admin-role guards so the endpoint no longer exposes sensitive reports.',
   },
 ];
 
@@ -1594,7 +1594,7 @@ export function CodeReviewShowcase() {
                   <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center text-[8px] font-bold text-primary">AB</div>
                   a.bravo
                 </div>
-                <div className="text-[10px] text-muted-foreground border-l border-border pl-3">hace 3 horas</div>
+                <div className="text-[10px] text-muted-foreground border-l border-border pl-3">3 hours ago</div>
                 <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[3px] bg-success/10 text-success text-[10px] font-medium">
                   <GitMerge className="w-3 h-3" /> Merged
                 </div>
@@ -1627,8 +1627,8 @@ export function CodeReviewShowcase() {
 
               <div className="flex flex-col overflow-hidden bg-background">
                 <div className="px-4 py-2.5 border-b border-border bg-card/60 shrink-0 flex items-center justify-between">
-                  <div className="text-[11px] font-semibold text-foreground">Alertas del proyecto</div>
-                  <div className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-warning/15 text-warning">{MOCK_ALERTS_CR.length} activas</div>
+                  <div className="text-[11px] font-semibold text-foreground">Project alerts</div>
+                  <div className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-warning/15 text-warning">{MOCK_ALERTS_CR.length} active</div>
                 </div>
                 <div className="flex-1 overflow-y-auto divide-y divide-border">
                   {MOCK_ALERTS_CR.map((a) => (
@@ -1650,7 +1650,7 @@ export function CodeReviewShowcase() {
                 <div className="px-4 py-2.5 border-t border-border bg-surface-secondary/30 shrink-0">
                   <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
                     <AlertTriangle className="w-3 h-3 text-warning" />
-                    2 alertas críticas requieren acción
+                    2 critical alerts require action
                   </div>
                 </div>
               </div>

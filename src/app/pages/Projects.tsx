@@ -280,7 +280,7 @@ export default function Projects() {
                 type="button"
                 onClick={() => { void refetch(); void refetchMemberRows(); toast.success('List updated.'); }}
                 className="h-9 w-9 flex items-center justify-center bg-card border border-border rounded-[4px] text-muted-foreground hover:text-foreground hover:bg-accent/30 transition-colors shrink-0"
-                title="Actualizar"
+                title="Refresh"
               >
                 <RefreshCw className="w-4 h-4" />
               </button>
@@ -441,7 +441,7 @@ export default function Projects() {
 
                   <div className="mb-2">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-[10px] text-muted-foreground">Progreso</span>
+                      <span className="text-[10px] text-muted-foreground">Progress</span>
                         <span className="text-[10px] font-medium text-foreground tabular-nums">
                         {hasTasks ? `${pct}%` : 'No tasks'}
                       </span>
@@ -450,7 +450,7 @@ export default function Projects() {
                   </div>
 
                   <div className="pt-2 border-t border-border mt-auto">
-                    <span className="text-[10px] text-muted-foreground">Creado: {formatProjectDate(project.created_at)}</span>
+                    <span className="text-[10px] text-muted-foreground">Created: {formatProjectDate(project.created_at)}</span>
                   </div>
                 </Link>
               </motion.div>
@@ -483,7 +483,7 @@ export default function Projects() {
               Previous
             </button>
             <span className="text-[11px] text-muted-foreground">
-              Página {currentPage + 1} de {totalPages}
+              Page {currentPage + 1} of {totalPages}
             </span>
             <button
               type="button"

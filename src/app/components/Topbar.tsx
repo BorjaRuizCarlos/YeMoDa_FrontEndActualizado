@@ -74,7 +74,7 @@ export function Topbar() {
     const path = '/' + segments.slice(0, i + 1).join('/');
     const isLast = i === segments.length - 1;
     if (i === 1 && segments[0] === 'projects' && params.id) {
-      crumbs.push({ label: projectName ?? `Proyecto #${params.id}`, path: isLast ? undefined : path });
+      crumbs.push({ label: projectName ?? `Project #${params.id}`, path: isLast ? undefined : path });
     } else {
       crumbs.push({ label: routeLabels[segment] || segment, path: isLast ? undefined : path });
     }
@@ -108,7 +108,7 @@ export function Topbar() {
         {/* Search trigger */}
         <button
           onClick={openCommandPalette}
-          aria-label="Buscar (Ctrl+K)"
+          aria-label="Search (Ctrl+K)"
           className="flex items-center gap-2 pl-2 pr-2 py-1 bg-background rounded-[3px] border border-input text-[12px] text-muted-foreground hover:border-foreground/20 transition-colors cursor-pointer w-48 shrink-0"
         >
           <Search className="w-3.5 h-3.5 shrink-0" />

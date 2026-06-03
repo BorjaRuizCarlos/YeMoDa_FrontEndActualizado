@@ -151,16 +151,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               <LogOut className="h-5 w-5" />
             </div>
             <div className="text-center">
-              <h2 className="text-[18px] font-semibold text-foreground">Tu sesión venció</h2>
+              <h2 className="text-[18px] font-semibold text-foreground">Your session expired</h2>
               <p className="mt-2 text-[13px] leading-6 text-muted-foreground">
-                Tu login expiró y ya no pudimos renovarlo. Te enviaremos a la pantalla principal para que vuelvas a iniciar sesión.
+                Your login expired and we couldn't renew it. We'll take you back to the home screen so you can sign in again.
               </p>
             </div>
 
             <div className="mt-5 rounded-[8px] border border-border bg-surface-secondary/40 px-4 py-3">
               <div className="flex items-center justify-center gap-2 text-[12px] font-medium text-foreground">
                 <Clock3 className="h-3.5 w-3.5 text-muted-foreground" />
-                Redirigiendo en {redirectCountdown} segundo{redirectCountdown === 1 ? '' : 's'}
+                Redirecting in {redirectCountdown} second{redirectCountdown === 1 ? '' : 's'}
               </div>
             </div>
 
@@ -169,7 +169,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               onClick={() => { window.location.href = '/'; }}
               className="mt-4 h-10 w-full rounded-[6px] bg-primary text-[12px] font-medium text-primary-foreground transition-colors hover:bg-primary-hover"
             >
-              Ir ahora
+              Go now
             </button>
           </div>
         </div>

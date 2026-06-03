@@ -182,8 +182,8 @@ export default function Login() {
             {emailBlocked && (
               <div className="rounded-[3px] border border-destructive/30 bg-destructive/5 px-3 py-2.5 flex items-start gap-2.5">
                 <div className="flex-1 min-w-0">
-                  <p className="text-[12px] font-medium text-foreground mb-0.5">Cuenta bloqueada</p>
-                  <p className="text-[11px] text-muted-foreground">Han pasado más de 7 días sin verificar tu correo. Verifica tu cuenta para continuar.</p>
+                  <p className="text-[12px] font-medium text-foreground mb-0.5">Account locked</p>
+                  <p className="text-[11px] text-muted-foreground">More than 7 days have passed without verifying your email. Verify your account to continue.</p>
                 </div>
                 <LoadingButton
                   type="button"
@@ -192,7 +192,7 @@ export default function Login() {
                   className="shrink-0 flex items-center gap-1.5 text-[11px] text-primary hover:underline font-medium transition-colors"
                 >
                   <RefreshCw className="w-3 h-3" />
-                  Reenviar
+                  Resend
                 </LoadingButton>
               </div>
             )}

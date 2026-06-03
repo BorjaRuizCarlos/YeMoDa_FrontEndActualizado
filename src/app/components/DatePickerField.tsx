@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { enUS } from 'date-fns/locale';
 import { Calendar } from './ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 
@@ -23,7 +23,7 @@ function parseDateValue(value: string) {
 const CURRENT_YEAR = new Date().getFullYear();
 const YEAR_RANGE_HALF = 10;
 const MONTH_NAMES = Array.from({ length: 12 }, (_, index) =>
-  format(new Date(2020, index, 1), 'LLLL', { locale: es }),
+  format(new Date(2020, index, 1), 'LLLL', { locale: enUS }),
 );
 
 type ViewMode = 'calendar' | 'year' | 'month';
@@ -35,7 +35,7 @@ function capitalize(value: string) {
 export function DatePickerField({
   value,
   onChange,
-  placeholder = 'Selecciona una fecha',
+  placeholder = 'Select a date',
   disabled = false,
   minDate,
   maxDate,
@@ -49,7 +49,7 @@ export function DatePickerField({
   const minDateValue = useMemo(() => parseDateValue(minDate ?? ''), [minDate]);
   const maxDateValue = useMemo(() => parseDateValue(maxDate ?? ''), [maxDate]);
   const buttonLabel = selectedDate
-    ? format(selectedDate, "dd 'de' MMM yyyy", { locale: es })
+    ? format(selectedDate, 'MMM dd, yyyy', { locale: enUS })
     : placeholder;
 
   const isDateDisabled = (date: Date) => {
@@ -60,7 +60,7 @@ export function DatePickerField({
 
   const yearRangeStart = CURRENT_YEAR - YEAR_RANGE_HALF + yearPage * 20;
   const years = Array.from({ length: 20 }, (_, i) => yearRangeStart + i);
-  const monthYearLabel = capitalize(format(calendarMonth, 'MMMM yyyy', { locale: es }));
+  const monthYearLabel = capitalize(format(calendarMonth, 'MMMM yyyy', { locale: enUS }));
 
   const openYearView = () => {
     setYearPage(Math.floor((calendarMonth.getFullYear() - CURRENT_YEAR + YEAR_RANGE_HALF) / 20));
@@ -102,7 +102,7 @@ export function DatePickerField({
               <button
                 type="button"
                 onClick={() => setYearPage((p) => p - 1)}
-                aria-label="Años anteriores"
+                aria-label="Previous years"
                 className="p-1 rounded hover:bg-accent/60"
               >
                 <ChevronLeft className="w-4 h-4" />
@@ -111,7 +111,7 @@ export function DatePickerField({
               <button
                 type="button"
                 onClick={() => setYearPage((p) => p + 1)}
-                aria-label="Años siguientes"
+                aria-label="Next years"
                 className="p-1 rounded hover:bg-accent/60"
               >
                 <ChevronRight className="w-4 h-4" />
@@ -138,7 +138,7 @@ export function DatePickerField({
               onClick={() => setViewMode('month')}
               className="mt-2 w-full h-7 text-[11px] text-muted-foreground hover:text-foreground border border-border rounded-[3px] hover:bg-accent/30 transition-colors"
             >
-              Volver a meses
+              Back to months
             </button>
           </div>
         ) : viewMode === 'month' ? (
@@ -152,7 +152,7 @@ export function DatePickerField({
                   nextMonth.setFullYear(currentMonth.getFullYear() - 1);
                   return nextMonth;
                 })}
-                aria-label="Año anterior"
+                aria-label="Previous year"
                 className="p-1 rounded hover:bg-accent/60"
               >
                 <ChevronLeft className="w-4 h-4" />
@@ -172,7 +172,7 @@ export function DatePickerField({
                   nextMonth.setFullYear(currentMonth.getFullYear() + 1);
                   return nextMonth;
                 })}
-                aria-label="Año siguiente"
+                aria-label="Next year"
                 className="p-1 rounded hover:bg-accent/60"
               >
                 <ChevronRight className="w-4 h-4" />
@@ -199,7 +199,7 @@ export function DatePickerField({
               onClick={() => setViewMode('calendar')}
               className="mt-2 w-full h-7 text-[11px] text-muted-foreground hover:text-foreground border border-border rounded-[3px] hover:bg-accent/30 transition-colors"
             >
-              Volver al calendario
+              Back to calendar
             </button>
           </div>
         ) : (
@@ -213,7 +213,7 @@ export function DatePickerField({
                   nextMonth.setMonth(currentMonth.getMonth() - 1);
                   return nextMonth;
                 })}
-                aria-label="Mes anterior"
+                aria-label="Previous month"
                 className="p-1 rounded hover:bg-accent/60"
               >
                 <ChevronLeft className="w-4 h-4" />
@@ -233,7 +233,7 @@ export function DatePickerField({
                   nextMonth.setMonth(currentMonth.getMonth() + 1);
                   return nextMonth;
                 })}
-                aria-label="Mes siguiente"
+                aria-label="Next month"
                 className="p-1 rounded hover:bg-accent/60"
               >
                 <ChevronRight className="w-4 h-4" />

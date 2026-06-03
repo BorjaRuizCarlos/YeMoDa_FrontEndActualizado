@@ -179,28 +179,28 @@ export function TagColorPicker({ value, onChange }: TagColorPickerProps) {
               {value.toUpperCase()}
             </button>
           )}
-          <p className="text-[10px] text-muted-foreground mt-0.5">Clic para editar hex</p>
+          <p className="text-[10px] text-muted-foreground mt-0.5">Click to edit hex</p>
         </div>
       </div>
 
       {/* Gradient sliders */}
       <div className="space-y-3">
         <GradientSlider
-          label="Tono"
+          label="Hue"
           value={hsv.h}
           max={360}
           gradient={hueGradient}
           onChange={(h) => { const n = hsvToRgb(h, hsv.s, hsv.v); onChange(rgbToHex(n.r, n.g, n.b)); }}
         />
         <GradientSlider
-          label="Saturación"
+          label="Saturation"
           value={hsv.s}
           max={100}
           gradient={satGradient}
           onChange={(s) => { const n = hsvToRgb(hsv.h, s, hsv.v); onChange(rgbToHex(n.r, n.g, n.b)); }}
         />
         <GradientSlider
-          label="Brillo"
+          label="Brightness"
           value={hsv.v}
           max={100}
           gradient={valGradient}

@@ -27,7 +27,7 @@ export function AssignResponsibleModal({
   currentResponsibleId,
   onAssign,
   loading = false,
-  title = 'Asignar Responsable',
+  title = 'Assign Responsible',
 }: AssignResponsibleModalProps) {
   const [query, setQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
@@ -96,7 +96,7 @@ export function AssignResponsibleModal({
                 setActiveIndex(0);
               }}
               onKeyDown={handleKeyDown}
-              placeholder="Buscar por nombre, email o rol…"
+              placeholder="Search by name, email, or role…"
               className="w-full h-8 pl-8 pr-3 text-[13px] bg-surface-secondary border border-border rounded-[3px] outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-colors placeholder:text-muted-foreground/60"
             />
           </div>
@@ -107,12 +107,12 @@ export function AssignResponsibleModal({
           {loading ? (
             <div className="flex items-center justify-center py-8 text-muted-foreground">
               <Loader2 className="w-4 h-4 animate-spin mr-2" />
-              <span className="text-[12px]">Cargando…</span>
+              <span className="text-[12px]">Loading…</span>
             </div>
           ) : filtered.length === 0 ? (
             <div className="flex flex-col items-center py-8 text-muted-foreground">
               <User className="w-5 h-5 mb-1 opacity-40" />
-              <span className="text-[12px]">Sin resultados</span>
+              <span className="text-[12px]">No results</span>
             </div>
           ) : (
             filtered.map((c, i) => {
@@ -146,7 +146,7 @@ export function AssignResponsibleModal({
                       </span>
                       {isCurrent && (
                         <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-medium shrink-0">
-                          Actual
+                          Current
                         </span>
                       )}
                     </div>

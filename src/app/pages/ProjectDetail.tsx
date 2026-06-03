@@ -329,11 +329,11 @@ export default function ProjectDetail() {
       return;
     }
     if (!canEditMemberProjectRole(memberUser, member, projectRoleIds)) {
-      toast.error('Ese rol no se puede cambiar desde el proyecto.');
+      toast.error('That role cannot be changed from the project.');
       return;
     }
     if (!allowedRoleIds.includes(nextRoleId)) {
-      toast.error('Ese cambio de rol no está permitido.');
+      toast.error('That role change is not allowed.');
       return;
     }
     if (member.role === nextRoleId) {
@@ -344,9 +344,9 @@ export default function ProjectDetail() {
     try {
       await usersService.updateMember(memberId, { role: nextRoleId });
       await refetchMembers();
-      toast.success('Rol del miembro actualizado.');
+      toast.success('Member role updated.');
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'No se pudo actualizar el rol del miembro.';
+      const msg = err instanceof Error ? err.message : 'Failed to update member role.';
       toast.error(msg);
     } finally {
       setUpdatingMemberRoleId(null);
@@ -361,7 +361,7 @@ export default function ProjectDetail() {
 
     const member = (members ?? []).find((m) => m.id === memberId);
     if (!member) {
-      toast.error('No se encontró el miembro seleccionado.');
+      toast.error('Selected member not found.');
       return;
     }
 

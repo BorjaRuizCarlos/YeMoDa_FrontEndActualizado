@@ -45,16 +45,16 @@ export default function PaymentSuccess() {
 
   return (
     <div className="px-4 pb-6 pt-3 max-w-[980px]">
-      <h1 className="text-[13px] font-semibold text-foreground mb-0.5">Resultado del pago</h1>
-      <p className="text-[11px] text-muted-foreground mb-4">Validando el estado de tu suscripcion premium</p>
+      <h1 className="text-[13px] font-semibold text-foreground mb-0.5">Payment result</h1>
+      <p className="text-[11px] text-muted-foreground mb-4">Validating your premium subscription status</p>
 
       <div className="bg-card border border-border rounded-[6px] p-5">
         {status === 'loading' && (
           <div className="flex items-start gap-3">
             <Loader2 className="w-5 h-5 mt-0.5 text-primary animate-spin" />
             <div>
-              <p className="text-[13px] font-medium text-foreground">Confirmando tu acceso premium...</p>
-              <p className="text-[11px] text-muted-foreground mt-1">Esto puede tomar unos segundos mientras se procesa el webhook.</p>
+              <p className="text-[13px] font-medium text-foreground">Confirming your premium access...</p>
+              <p className="text-[11px] text-muted-foreground mt-1">This may take a few seconds while the webhook is processed.</p>
             </div>
           </div>
         )}
@@ -63,21 +63,21 @@ export default function PaymentSuccess() {
           <div className="flex items-start gap-3">
             <CheckCircle2 className="w-5 h-5 mt-0.5 text-success" />
             <div className="w-full">
-              <p className="text-[13px] font-medium text-foreground">Pago confirmado. Premium activo.</p>
-              <p className="text-[11px] text-muted-foreground mt-1">Tu cuenta ya tiene habilitadas las funcionalidades premium.</p>
+              <p className="text-[13px] font-medium text-foreground">Payment confirmed. Premium active.</p>
+              <p className="text-[11px] text-muted-foreground mt-1">Your account now has premium features enabled.</p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <Link
                   to="/profile"
                   className="h-8 px-3 bg-primary hover:bg-primary-hover text-primary-foreground rounded-[4px] text-[11px] font-medium transition-colors inline-flex items-center gap-1.5"
                 >
                   <Crown className="w-3.5 h-3.5" />
-                  Ir a mi perfil
+                  Go to my profile
                 </Link>
                 <Link
                   to="/dashboard"
                   className="h-8 px-3 border border-border hover:bg-accent rounded-[4px] text-[11px] font-medium transition-colors inline-flex items-center"
                 >
-                  Ir al dashboard
+                  Go to dashboard
                 </Link>
               </div>
             </div>
@@ -88,20 +88,20 @@ export default function PaymentSuccess() {
           <div className="flex items-start gap-3">
             <RefreshCcw className="w-5 h-5 mt-0.5 text-warning" />
             <div className="w-full">
-              <p className="text-[13px] font-medium text-foreground">Pago recibido, esperando confirmacion final.</p>
-              <p className="text-[11px] text-muted-foreground mt-1">Aun no vemos `is_premium=true`. Recarga esta pagina en unos segundos o revisa tu perfil.</p>
+              <p className="text-[13px] font-medium text-foreground">Payment received, awaiting final confirmation.</p>
+              <p className="text-[11px] text-muted-foreground mt-1">We don't see `is_premium=true` yet. Reload this page in a few seconds or check your profile.</p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <Link
                   to="/profile"
                   className="h-8 px-3 bg-primary hover:bg-primary-hover text-primary-foreground rounded-[4px] text-[11px] font-medium transition-colors"
                 >
-                  Revisar perfil
+                  Check profile
                 </Link>
                 <Link
                   to="/dashboard"
                   className="h-8 px-3 border border-border hover:bg-accent rounded-[4px] text-[11px] font-medium transition-colors inline-flex items-center"
                 >
-                  Continuar
+                  Continue
                 </Link>
               </div>
             </div>
@@ -112,20 +112,20 @@ export default function PaymentSuccess() {
           <div className="flex items-start gap-3">
             <AlertCircle className="w-5 h-5 mt-0.5 text-destructive" />
             <div className="w-full">
-              <p className="text-[13px] font-medium text-foreground">No pudimos validar tu estado premium.</p>
-              <p className="text-[11px] text-muted-foreground mt-1">Intenta nuevamente desde tu perfil o recarga esta pagina.</p>
+              <p className="text-[13px] font-medium text-foreground">We couldn't validate your premium status.</p>
+              <p className="text-[11px] text-muted-foreground mt-1">Try again from your profile or reload this page.</p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <Link
                   to="/profile"
                   className="h-8 px-3 bg-primary hover:bg-primary-hover text-primary-foreground rounded-[4px] text-[11px] font-medium transition-colors"
                 >
-                  Ir a perfil
+                  Go to profile
                 </Link>
                 <Link
                   to="/dashboard"
                   className="h-8 px-3 border border-border hover:bg-accent rounded-[4px] text-[11px] font-medium transition-colors inline-flex items-center"
                 >
-                  Volver al dashboard
+                  Back to dashboard
                 </Link>
               </div>
             </div>

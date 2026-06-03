@@ -25,15 +25,15 @@ export default function AzureRet() {
     setLoading(true);
     try {
       const response = await azureService.completeOAuth({ code, state });
-      toast.success(`Conexión exitosa. ${response.subscriptions_registered} suscripción(es) registrada(s).`);
-      
-      // Limpiar los parámetros de URL
+      toast.success(`Connection successful. ${response.subscriptions_registered} subscription(s) registered.`);
+
+      // Clear the URL parameters
       window.history.replaceState({}, document.title, window.location.pathname);
-      
-      // Cargar las stories
+
+      // Load the stories
       await fetchStories();
     } catch (error) {
-      toast.error('Error al completar la conexión con Azure DevOps');
+      toast.error('Error completing the connection to Azure DevOps');
       console.error(error);
     } finally {
       setLoading(false);
@@ -46,7 +46,7 @@ export default function AzureRet() {
       const data = await azureService.startOAuth();
       window.location.href = data.authorize_url;
     } catch (error) {
-      toast.error('Error al iniciar la conexión con Azure DevOps');
+      toast.error('Error starting the connection to Azure DevOps');
       console.error(error);
       setConnecting(false);
     }
@@ -58,7 +58,7 @@ export default function AzureRet() {
       const data = await azureService.getStories();
       setStories(data);
     } catch (error) {
-      toast.error('Error al cargar las historias de Azure DevOps');
+      toast.error('Error loading Azure DevOps stories');
       console.error(error);
     } finally {
       setStoriesLoading(false);
@@ -67,8 +67,8 @@ export default function AzureRet() {
 
   return (
     <div className="px-4 pb-6 pt-3 max-w-[1600px]">
-      <h1 className="text-[13px] font-semibold text-foreground mb-0.5">Azure Retorno</h1>
-      <p className="text-[11px] text-muted-foreground mb-4">Información de Microsoft Azure DevOps</p>
+      <h1 className="text-[13px] font-semibold text-foreground mb-0.5">Azure Return</h1>
+      <p className="text-[11px] text-muted-foreground mb-4">Microsoft Azure DevOps information</p>
 
       <div className="grid lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2 space-y-4">
@@ -88,7 +88,7 @@ export default function AzureRet() {
             ) : stories.length === 0 ? (
               <div className="py-12 text-center p-4">
                 <p className="text-[11px] text-muted-foreground">
-                  No hay historias disponibles o aún no te has conectado.
+                  No stories available, or you haven't connected yet.
                 </p>
               </div>
             ) : (
@@ -106,12 +106,12 @@ export default function AzureRet() {
 
         <div className="space-y-4">
           <div className="bg-card border border-border rounded-[4px] p-4">
-            <h2 className="text-[12px] font-semibold text-foreground mb-2">Conexión</h2>
+            <h2 className="text-[12px] font-semibold text-foreground mb-2">Connection</h2>
             <div className="rounded-[4px] border border-border p-3 bg-surface-secondary/30">
               <div className="space-y-3">
                 <div>
                   <p className="text-[11px] text-muted-foreground mb-2">
-                    Conecta tu cuenta de Microsoft Azure DevOps para ver tus user stories.
+                    Connect your Microsoft Azure DevOps account to view your user stories.
                   </p>
                 </div>
                 <button
@@ -122,12 +122,12 @@ export default function AzureRet() {
                   {connecting ? (
                     <>
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      Conectando...
+                      Connecting...
                     </>
                   ) : (
                     <>
                       <Cloud className="w-3.5 h-3.5" />
-                      Conectar Azure DevOps
+                      Connect Azure DevOps
                     </>
                   )}
                 </button>

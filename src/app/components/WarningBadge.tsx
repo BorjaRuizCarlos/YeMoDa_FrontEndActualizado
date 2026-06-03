@@ -49,8 +49,8 @@ export function WarningBadge({
       </TooltipTrigger>
       <TooltipContent side="top" className="text-xs">
         {count > 0
-          ? `${count} warning${count !== 1 ? 's' : ''} activo${count !== 1 ? 's' : ''}`
-          : 'Sin warnings activos'}
+          ? `${count} active warning${count !== 1 ? 's' : ''}`
+          : 'No active warnings'}
       </TooltipContent>
     </Tooltip>
   );

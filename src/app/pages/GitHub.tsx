@@ -42,13 +42,13 @@ export default function GitHubCallback() {
       .then((res) => {
         setGithubLogin(res.github_login);
         setCbState("success");
-        toast.success("Cuenta de GitHub conectada", {
-          description: `Conectado como ${res.github_login}`,
+        toast.success("GitHub account connected", {
+          description: `Connected as ${res.github_login}`,
         });
         setTimeout(() => navigate("/dashboard", { replace: true }), 2000);
       })
       .catch((err) => {
-        const detail = err instanceof Error ? err.message : "Error desconocido";
+        const detail = err instanceof Error ? err.message : "Unknown error";
         setErrorMessage(detail);
         setCbState("error");
       });
@@ -65,10 +65,10 @@ export default function GitHubCallback() {
           <>
             <Loader2 className="w-6 h-6 animate-spin text-primary mx-auto mb-3" />
             <h1 className="text-[14px] font-semibold text-foreground mb-1">
-              Conectando con GitHub...
+              Connecting to GitHub...
             </h1>
             <p className="text-[12px] text-muted-foreground">
-              Completando la autorizacion, por favor espera.
+              Completing authorization, please wait.
             </p>
           </>
         )}
@@ -77,13 +77,13 @@ export default function GitHubCallback() {
           <>
             <CheckCircle2 className="w-6 h-6 text-success mx-auto mb-3" />
             <h1 className="text-[14px] font-semibold text-foreground mb-1">
-              Cuenta conectada!
+              Account connected!
             </h1>
             <p className="text-[12px] text-muted-foreground mb-1">
-              Conectado como{" "}
+              Connected as{" "}
               <span className="font-medium text-foreground">{githubLogin}</span>.
             </p>
-            <p className="text-[11px] text-muted-foreground">Redirigiendo al dashboard...</p>
+            <p className="text-[11px] text-muted-foreground">Redirecting to the dashboard...</p>
           </>
         )}
 
@@ -91,7 +91,7 @@ export default function GitHubCallback() {
           <>
             <XCircle className="w-6 h-6 text-destructive mx-auto mb-3" />
             <h1 className="text-[14px] font-semibold text-foreground mb-1">
-              Error al conectar
+              Connection error
             </h1>
             {errorMessage && (
               <p className="text-[12px] text-muted-foreground mb-4">{errorMessage}</p>
@@ -101,7 +101,7 @@ export default function GitHubCallback() {
               onClick={() => navigate("/dashboard", { replace: true })}
               className="h-7 px-4 bg-primary hover:bg-primary-hover text-primary-foreground rounded-[3px] text-[11px] font-medium transition-colors"
             >
-              Volver al dashboard
+              Back to dashboard
             </button>
           </>
         )}
@@ -110,17 +110,17 @@ export default function GitHubCallback() {
           <>
             <XCircle className="w-6 h-6 text-destructive mx-auto mb-3" />
             <h1 className="text-[14px] font-semibold text-foreground mb-1">
-              Callback invalido
+              Invalid callback
             </h1>
             <p className="text-[12px] text-muted-foreground mb-4">
-              No se encontraron los parametros de autorizacion esperados.
+              The expected authorization parameters were not found.
             </p>
             <button
               type="button"
               onClick={() => navigate("/dashboard", { replace: true })}
               className="h-7 px-4 bg-primary hover:bg-primary-hover text-primary-foreground rounded-[3px] text-[11px] font-medium transition-colors"
             >
-              Volver al dashboard
+              Back to dashboard
             </button>
           </>
         )}

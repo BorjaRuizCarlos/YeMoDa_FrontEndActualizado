@@ -3,7 +3,6 @@ import type {
   ChatModelsResponse,
   ChatRequestPayload,
   ChatResponsePayload,
-  CopilotStatusResponse,
 } from './types';
 
 function resolveChatText(payload: ChatResponsePayload): string {
@@ -14,13 +13,6 @@ export const chatService = {
   /** GET /api/chat/models */
   async getModels(): Promise<ChatModelsResponse> {
     return api.get<ChatModelsResponse>('/chat/models');
-  },
-
-  /** POST /api/chat/copilot/status/ */
-  async getCopilotStatus(githubToken: string): Promise<CopilotStatusResponse> {
-    return api.post<CopilotStatusResponse>('/chat/copilot/status/', {
-      github_token: githubToken,
-    });
   },
 
   /** POST /api/chat/ */

@@ -123,7 +123,7 @@ export function CodeDiffViewer({ patch, filename }: CodeDiffViewerProps) {
       </div>
 
       {parsedLines.length === 0 ? (
-        <p className="px-3 py-2 text-[10px] text-muted-foreground/60 italic">Sin diff de texto disponible (archivo binario o diff omitido)</p>
+        <p className="px-3 py-2 text-[10px] text-muted-foreground/60 italic">No text diff available (binary file or diff omitted)</p>
       ) : (
       <div className="overflow-x-auto">
         <table className="w-full font-mono">

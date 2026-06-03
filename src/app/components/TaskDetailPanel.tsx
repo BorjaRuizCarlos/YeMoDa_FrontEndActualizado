@@ -19,9 +19,9 @@ import 'prismjs/components/prism-sql';
 import 'prismjs/components/prism-tsx';
 import 'prismjs/components/prism-typescript';
 import 'prismjs/components/prism-yaml';
-import { chatService, tasksService, githubService, usersService } from '../../services';
+import { chatService, tasksService, githubService } from '../../services';
 import { ApiRequestError } from '../../services/api';
-import type { AIProvider, ApiTask, ApiTaskStatus, ApiTaskPriority, ApiTaskComment, ApiTaskWarning, ApiTaskAssignment, ApiTag, ChatModelsResponse, GitHubRepo, CreateBranchResponse, ApiBoardColumn, ApiSprint, ApiTaskAIReviewResult } from '../../services';
+import type { ApiTask, ApiTaskStatus, ApiTaskPriority, ApiTaskComment, ApiTaskWarning, ApiTaskAssignment, ApiTag, ChatModelsResponse, GitHubRepo, CreateBranchResponse, ApiBoardColumn, ApiSprint, ApiTaskAIReviewResult } from '../../services';
 import { WarningBadge } from './WarningBadge';
 import { TaskAssigneePicker } from './TaskAssigneePicker';
 import { DatePickerField } from './DatePickerField';
@@ -57,10 +57,10 @@ const LANGUAGE_BY_EXTENSION: Record<string, string> = {
   cs: 'csharp',
 };
 const AI_FIX_DIFF_INSTRUCTION = [
-  'RESPONDE SOLO EN FORMATO UNIFIED DIFF (git patch).',
-  'Incluye encabezados diff --git, rutas a/ y b/, y bloques @@ por cada archivo modificado.',
-  'No agregues explicación fuera del diff.',
-  'Si no hay cambios, responde exactamente: NO_CHANGES.',
+  'RESPOND ONLY IN UNIFIED DIFF FORMAT (git patch).',
+  'Include diff --git headers, a/ and b/ paths, and @@ blocks for each modified file.',
+  'Do not add any explanation outside the diff.',
+  'If there are no changes, respond exactly: NO_CHANGES.',
 ].join('\n');
 export const TASK_REOPEN_ID_STORAGE_KEY = 'pip_reopen_task_id';
 export const TASK_REOPEN_PATH_STORAGE_KEY = 'pip_reopen_task_path';
@@ -218,7 +218,7 @@ function applyUnifiedPatchToContent(originalContent: string, patch: string): str
 
     const hunkMatch = line.match(/^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/);
     if (!hunkMatch) {
-      throw new Error('Formato de hunk inválido en el diff.');
+      throw new Error('Invalid hunk format in the diff.');
     }
 
     sawHunk = true;
@@ -338,7 +338,7 @@ function applyUnifiedPatchToContent(originalContent: string, patch: string): str
   }
 
   if (!sawHunk) {
-    throw new Error('La respuesta de IA no contiene hunks de diff aplicables.');
+    throw new Error('The AI response does not contain applicable diff hunks.');
   }
 
   while (cursor < sourceLines.length) {
@@ -439,11 +439,9 @@ export function TaskDetailPanel({
   const [deletingSelectedWarnings, setDeletingSelectedWarnings] = useState(false);
   const [aiReviewResults, setAiReviewResults] = useState<ApiTaskAIReviewResult[]>([]);
   const [loadingAiReviewResults, setLoadingAiReviewResults] = useState(false);
-  const [aiProvider, setAiProvider] = useState<AIProvider>('copilot');
-  const [aiModels, setAiModels] = useState<ChatModelsResponse>({ copilot: [], yemoda: [] });
+  const [aiModels, setAiModels] = useState<ChatModelsResponse>({ yemoda: [] });
   const [loadingAiModels, setLoadingAiModels] = useState(false);
   const [aiModel, setAiModel] = useState('');
-  const [githubToken, setGithubToken] = useState<string | null>(null);
   const [sendingToAi, setSendingToAi] = useState(false);
   const [showAiCodeModal, setShowAiCodeModal] = useState(false);
   const [aiSourceLoading, setAiSourceLoading] = useState(false);
@@ -511,12 +509,12 @@ export function TaskDetailPanel({
         ...(branchSelectedRepo ? { repo_full_name: branchSelectedRepo } : {}),
       });
       setBranchResult(result);
-      toast.success(`Branch "${result.branch_name}" creada`);
+      toast.success(`Branch "${result.branch_name}" created`);
     } catch (err) {
       const detail = err instanceof ApiRequestError
-        ? (err.body?.detail ?? 'Error desconocido')
-        : err instanceof Error ? err.message : 'Error desconocido';
-      toast.error('No se pudo crear la branch', { description: detail });
+        ? (err.body?.detail ?? 'Unknown error')
+        : err instanceof Error ? err.message : 'Unknown error';
+      toast.error('Could not create the branch', { description: detail });
     } finally {
       setBranchCreating(false);
     }
@@ -529,7 +527,7 @@ export function TaskDetailPanel({
       setBranchCopied(true);
       setTimeout(() => setBranchCopied(false), 2000);
     } catch {
-      toast.error('No se pudo copiar al portapapeles');
+      toast.error('Could not copy to clipboard');
     }
   };
 
@@ -539,18 +537,18 @@ export function TaskDetailPanel({
     try {
       const payload = await tasksService.getAiFixPrompt(task.id_task);
       if (!payload.copy_prompt?.trim()) {
-        toast.error('El backend no devolvió un prompt para copiar.');
+        toast.error('The backend did not return a prompt to copy.');
         return;
       }
       await navigator.clipboard.writeText(payload.copy_prompt);
-      toast.success('Prompt IA copiado al portapapeles.', {
-        description: `${payload.warnings_count} warning(s) incluidos para la tarea #${payload.task_id}.`,
+      toast.success('AI prompt copied to clipboard.', {
+        description: `${payload.warnings_count} warning(s) included for task #${payload.task_id}.`,
       });
     } catch (err) {
       const detail = err instanceof ApiRequestError
-        ? (err.body?.detail ?? 'Error desconocido')
-        : err instanceof Error ? err.message : 'Error desconocido';
-      toast.error('No se pudo generar el prompt IA.', { description: detail });
+        ? (err.body?.detail ?? 'Unknown error')
+        : err instanceof Error ? err.message : 'Unknown error';
+      toast.error('Could not generate the AI prompt.', { description: detail });
     } finally {
       setGeneratingAiPrompt(false);
     }
@@ -560,21 +558,17 @@ export function TaskDetailPanel({
     setLoadingAiModels(true);
     chatService.getModels()
       .then((models) => setAiModels(models))
-      .catch(() => setAiModels({ copilot: [], yemoda: [] }))
+      .catch(() => setAiModels({ yemoda: [] }))
       .finally(() => setLoadingAiModels(false));
-
-    usersService.me()
-      .then((me) => setGithubToken(me.github_token ?? null))
-      .catch(() => setGithubToken(null));
   }, []);
 
   useEffect(() => {
-    const options = aiProvider === 'copilot' ? (aiModels.copilot ?? []) : (aiModels.yemoda ?? []);
+    const options = aiModels.yemoda ?? [];
     setAiModel((current) => {
       if (current && options.some((model) => model.id === current)) return current;
       return options[0]?.id ?? '';
     });
-  }, [aiProvider, aiModels]);
+  }, [aiModels]);
 
   useEffect(() => {
     setAiSuggestedPatches(parseAiDiff(aiSuggestedContent));
@@ -601,7 +595,7 @@ export function TaskDetailPanel({
     ref: string,
   ): Promise<{ result: Awaited<ReturnType<typeof githubService.getContents>>; resolvedRef: string }> => {
     if (!repoFullName) {
-      throw new Error('No hay repositorio vinculado.');
+      throw new Error('No repository linked.');
     }
 
     let lastError: unknown = null;
@@ -613,7 +607,7 @@ export function TaskDetailPanel({
         lastError = err;
       }
     }
-    throw lastError ?? new Error('No se pudo consultar contenidos del repositorio.');
+    throw lastError ?? new Error('Could not fetch repository contents.');
   };
 
   const extractDirectoryEntries = (content: Awaited<ReturnType<typeof githubService.getContents>>) => {
@@ -688,7 +682,7 @@ export function TaskDetailPanel({
       return { files, resolvedBranch: effectiveBranch || branch };
     } catch {
       setAiRepoFiles([]);
-      toast.error('No se pudo cargar el listado de archivos del repositorio.');
+      toast.error('Could not load the repository file list.');
       return { files: [], resolvedBranch: branch };
     } finally {
       setAiRepoFilesLoading(false);
@@ -706,7 +700,7 @@ export function TaskDetailPanel({
     const fileData = Array.isArray(result) ? result.find((item) => item.type === 'file') : result;
 
     if (!fileData || fileData.type !== 'file') {
-      throw new Error('La ruta seleccionada no corresponde a un archivo.');
+      throw new Error('The selected path does not correspond to a file.');
     }
 
     const decoded = decodeGitHubContent(fileData.content);
@@ -714,7 +708,7 @@ export function TaskDetailPanel({
     if (resolvedRef && resolvedRef !== branch) {
       setAiSourceBranch(resolvedRef);
     }
-    if (showSuccessToast) toast.success('Código actual cargado.');
+    if (showSuccessToast) toast.success('Current code loaded.');
     return decoded;
   };
 
@@ -725,7 +719,7 @@ export function TaskDetailPanel({
     try {
       await loadSourceFileContent(filePath, aiSourceBranch || 'main', false);
     } catch {
-      toast.error('No se pudo cargar el archivo seleccionado.');
+      toast.error('Could not load the selected file.');
     } finally {
       setAiSourceLoading(false);
     }
@@ -741,36 +735,12 @@ export function TaskDetailPanel({
     }));
 
     if (activeWarningsPayload.length === 0) {
-      toast.error('No hay warnings activos para enviar.');
+      toast.error('No active warnings to send.');
       return;
     }
 
     setSendingToAi(true);
     setAiSuggestedContent('');
-    let effectiveProvider: AIProvider = aiProvider;
-    let copilotStatusDetail = '';
-
-    if (aiProvider === 'copilot') {
-      if (!githubToken) {
-        effectiveProvider = 'yemoda';
-        toast.info('Copilot no está disponible en tu cuenta. Se usará Yemoda AI para esta solicitud.');
-      } else {
-        try {
-          const statusInfo = await chatService.getCopilotStatus(githubToken);
-          copilotStatusDetail = statusInfo.detail || '';
-          if (!statusInfo.copilot_access) {
-            effectiveProvider = 'yemoda';
-            toast.info(
-              'Tu cuenta de GitHub no tiene acceso activo a Copilot. Se usará Yemoda AI para esta solicitud.',
-              { description: copilotStatusDetail || undefined },
-            );
-          }
-        } catch {
-          effectiveProvider = 'yemoda';
-          toast.info('No se pudo validar el acceso a Copilot. Se usará Yemoda AI para esta solicitud.');
-        }
-      }
-    }
     try {
       let latestDiff: string | null = null;
       try {
@@ -780,14 +750,11 @@ export function TaskDetailPanel({
         latestDiff = null;
       }
 
-      const basePrompt = aiModalPrompt.trim() || `Analiza y propone correcciones para la tarea ${task.title}`;
+      const basePrompt = aiModalPrompt.trim() || `Analyze and propose fixes for the task ${task.title}`;
       const promptToSend = `${basePrompt}\n\n${AI_FIX_DIFF_INSTRUCTION}`;
       const payload = {
-        provider: effectiveProvider,
         model: aiModel || undefined,
         messages: [{ role: 'user' as const, content: promptToSend }],
-        stream: effectiveProvider === 'copilot',
-        ...(effectiveProvider === 'copilot' && githubToken ? { github_token: githubToken } : {}),
         context_type: 'ai_fix',
         context_data: {
           task_id: task.id_task,
@@ -802,66 +769,35 @@ export function TaskDetailPanel({
         },
       };
 
-      if (effectiveProvider === 'copilot') {
-        let aggregated = '';
-        await chatService.stream(payload, (chunk) => {
-          aggregated += chunk;
-          setAiSuggestedContent(aggregated); // show raw text as it streams
-        });
-        const finalCode = extractBestCodeCandidate(aggregated);
-        if (finalCode) setAiSuggestedContent(finalCode); // switch to extracted code at end
-        const finalResult = finalCode || aggregated.trim();
-        if (!finalResult.trim()) {
-          toast.error('La IA no devolvió código aplicable. Reintenta o cambia proveedor/modelo.');
-        } else {
-          try {
-            await tasksService.createAiReviewResult({
-              task: task.id_task,
-              provider: effectiveProvider,
-              model_name: aiModel || null,
-              result_text: finalResult,
-            });
-          } catch {
-            // Non-blocking: AI response is already available to the user.
-          }
-        }
+      const response = await chatService.send(payload);
+      const raw = response || '';
+      const extracted = extractBestCodeCandidate(raw);
+      setAiSuggestedContent(extracted || raw); // show extracted code or full response
+      const finalResult = extracted || raw.trim();
+      if (!finalResult.trim()) {
+        toast.error('The AI did not return applicable code. Retry or change the model.');
       } else {
-        const response = await chatService.send(payload);
-        const raw = response || '';
-        const extracted = extractBestCodeCandidate(raw);
-        setAiSuggestedContent(extracted || raw); // show extracted code or full response
-        const finalResult = extracted || raw.trim();
-        if (!finalResult.trim()) {
-          toast.error('La IA no devolvió código aplicable. Reintenta o cambia proveedor/modelo.');
-        } else {
-          try {
-            await tasksService.createAiReviewResult({
-              task: task.id_task,
-              provider: effectiveProvider,
-              model_name: aiModel || null,
-              result_text: finalResult,
-            });
-          } catch {
-            // Non-blocking: AI response is already available to the user.
-          }
+        try {
+          await tasksService.createAiReviewResult({
+            task: task.id_task,
+            provider: 'yemoda',
+            model_name: aiModel || null,
+            result_text: finalResult,
+          });
+        } catch {
+          // Non-blocking: AI response is already available to the user.
         }
       }
 
-      toast.success('Respuesta recibida desde IA.');
+      toast.success('Response received from AI.');
     } catch (err) {
-      if (err instanceof ApiRequestError && effectiveProvider === 'copilot' && (err.status === 401 || err.status === 403)) {
-        toast.error('Tu cuenta no tiene acceso activo a GitHub Copilot. Cambia a Yemoda AI o activa Copilot.', {
-          description: copilotStatusDetail || undefined,
-        });
+      const detail = err instanceof ApiRequestError
+        ? String(err.body?.detail ?? '')
+        : err instanceof Error ? err.message : '';
+      if (/unavailable|temporarily|down|service/i.test(detail)) {
+        toast.error('AI service temporarily unavailable.');
       } else {
-        const detail = err instanceof ApiRequestError
-          ? String(err.body?.detail ?? '')
-          : err instanceof Error ? err.message : '';
-        if (aiProvider === 'yemoda' && /unavailable|temporarily|down|service/i.test(detail)) {
-          toast.error('Servicio de IA temporalmente no disponible.');
-        } else {
-          toast.error('No se pudo enviar el prompt a IA.');
-        }
+        toast.error('Could not send the prompt to the AI.');
       }
     } finally {
       setSendingToAi(false);
@@ -872,7 +808,7 @@ export function TaskDetailPanel({
     if (!task) return;
     const activeWarningsPayload = warnings.filter((w) => w.status === 'active');
     if (activeWarningsPayload.length === 0) {
-      toast.error('No hay warnings activos para enviar.');
+      toast.error('No active warnings to send.');
       return;
     }
 
@@ -925,7 +861,7 @@ export function TaskDetailPanel({
         ? String(err.body?.detail ?? '')
         : err instanceof Error ? err.message : '';
       if (detail) {
-        toast.error('No se pudo cargar el código inicial.', { description: detail });
+        toast.error('Could not load the initial code.', { description: detail });
       }
       // Keep defaults if source retrieval fails; user can still request AI using warnings context.
     } finally {
@@ -934,22 +870,22 @@ export function TaskDetailPanel({
       setAiSourceContent(nextContent);
       setAiSourceLoading(false);
       if (!nextPath) {
-        toast.error('No se detectó el archivo automáticamente. Indica la ruta manualmente en el modal.');
+        toast.error('The file was not detected automatically. Enter the path manually in the modal.');
       }
     }
   };
 
   const handleCommitAiFix = async () => {
     if (!task || !repoFullName) {
-      toast.error('No hay repositorio vinculado para hacer commit.');
+      toast.error('No repository linked to commit to.');
       return;
     }
     if (!aiSuggestedContent.trim()) {
-      toast.error('No hay propuesta de código para confirmar.');
+      toast.error('No code proposal to confirm.');
       return;
     }
     if (aiSuggestedContent.trim().toUpperCase() === 'NO_CHANGES') {
-      toast.info('La IA indicó que no hay cambios para aplicar.');
+      toast.info('The AI indicated there are no changes to apply.');
       return;
     }
 
@@ -966,7 +902,7 @@ export function TaskDetailPanel({
           const { result, resolvedRef } = await getContentsWithRefFallback(targetPath, resolvedBranch);
           const fileData = Array.isArray(result) ? result.find((item) => item.type === 'file') : result;
           if (!fileData || fileData.type !== 'file') {
-            throw new Error(`No se pudo obtener el archivo base para aplicar diff: ${targetPath}`);
+            throw new Error(`Could not fetch the base file to apply the diff: ${targetPath}`);
           }
 
           const currentContent = decodeGitHubContent(fileData.content);
@@ -974,41 +910,41 @@ export function TaskDetailPanel({
           try {
             updatedContent = applyUnifiedPatchToContent(currentContent, patchItem.patch);
           } catch (error) {
-            const detail = error instanceof Error ? error.message : 'Error al aplicar patch';
-            throw new Error(`No se pudo aplicar el diff en '${targetPath}': ${detail}`);
+            const detail = error instanceof Error ? error.message : 'Error applying patch';
+            throw new Error(`Could not apply the diff to '${targetPath}': ${detail}`);
           }
           filesToCommit.push({ path: targetPath, content: updatedContent });
           if (resolvedRef) resolvedBranch = resolvedRef;
         }
 
         if (filesToCommit.length === 0) {
-          throw new Error('La respuesta de IA no contiene cambios aplicables por archivo.');
+          throw new Error('The AI response does not contain applicable per-file changes.');
         }
 
         await githubService.commitChanges({
           repo: repoFullName,
           branch: resolvedBranch,
-          message: `feat: ai fix tarea #${task.id_task} (${filesToCommit.length} archivos)`,
+          message: `feat: ai fix task #${task.id_task} (${filesToCommit.length} files)`,
           files: filesToCommit,
         });
       } else {
         if (!aiSourcePath) {
-          throw new Error('No hay archivo activo para aplicar el cambio.');
+          throw new Error('No active file to apply the change.');
         }
         await githubService.commitChanges({
           repo: repoFullName,
           branch: aiSourceBranch || 'main',
-          message: `feat: ai fix tarea #${task.id_task}`,
+          message: `feat: ai fix task #${task.id_task}`,
           files: [{ path: aiSourcePath, content: aiSuggestedContent }],
         });
       }
-      toast.success('Commit / push realizado con los cambios de IA.');
+      toast.success('Commit / push completed with the AI changes.');
       setShowAiCodeModal(false);
     } catch (err) {
       const detail = err instanceof ApiRequestError
-        ? String(err.body?.detail ?? 'Error desconocido')
-        : err instanceof Error ? err.message : 'Error desconocido';
-      toast.error('No se pudo confirmar el commit / push.', { description: detail });
+        ? String(err.body?.detail ?? 'Unknown error')
+        : err instanceof Error ? err.message : 'Unknown error';
+      toast.error('Could not confirm the commit / push.', { description: detail });
     } finally {
       setCommittingAiFix(false);
     }
@@ -1095,9 +1031,9 @@ export function TaskDetailPanel({
         : created;
       setComments((prev) => [...prev, createdWithUser]);
       setNewComment('');
-      toast.success('Comentario agregado');
+      toast.success('Comment added');
     } catch {
-      toast.error('Error al agregar comentario');
+      toast.error('Error adding comment');
     } finally {
       setSendingComment(false);
     }
@@ -1115,27 +1051,27 @@ export function TaskDetailPanel({
       setComments((prev) => prev.map((c) => (c.id_comment === commentId ? updated : c)));
       setEditingCommentId(null);
       setEditingCommentContent('');
-      toast.success('Comentario actualizado');
+      toast.success('Comment updated');
     } catch {
-      toast.error('No se pudo actualizar el comentario (revisa si el backend lo soporta).');
+      toast.error('Could not update the comment (check whether the backend supports it).');
     }
   };
 
   const handleDeleteComment = async (commentId: number) => {
-    if (!window.confirm('¿Eliminar comentario?')) return;
+    if (!window.confirm('Delete comment?')) return;
     try {
       await tasksService.deleteComment(commentId);
       setComments((prev) => prev.filter((c) => c.id_comment !== commentId));
-      toast.success('Comentario eliminado');
+      toast.success('Comment deleted');
     } catch {
-      toast.error('No se pudo eliminar el comentario (revisa si el backend lo soporta).');
+      toast.error('Could not delete the comment (check whether the backend supports it).');
     }
   };
 
   const handleSaveTask = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canEditTask) {
-      toast.error('Tu rol no puede editar historias.');
+      toast.error('Your role cannot edit stories.');
       return;
     }
     if (!task || !taskForm.title.trim()) return;
@@ -1167,9 +1103,9 @@ export function TaskDetailPanel({
 
       onTaskUpdated?.(updated);
       setIsEditingTask(false);
-      toast.success('Historia actualizada');
+      toast.success('Story updated');
     } catch {
-      toast.error('Error al actualizar la historia');
+      toast.error('Error updating the story');
     } finally {
       setSavingTask(false);
     }
@@ -1178,11 +1114,11 @@ export function TaskDetailPanel({
   const handleDeleteTask = async () => {
     if (!task || !onDeleteTask) return;
     if (!canDeleteTask) {
-      toast.error('Solo Product Owner o Project Manager pueden eliminar historias.');
+      toast.error('Only a Product Owner or Project Manager can delete stories.');
       return;
     }
 
-    if (!window.confirm('¿Eliminar esta historia? Esta acción no se puede deshacer.')) {
+    if (!window.confirm('Delete this story? This action cannot be undone.')) {
       return;
     }
 
@@ -1196,18 +1132,18 @@ export function TaskDetailPanel({
 
   const handleDeleteWarning = async (warningId: number) => {
     if (!canEditTask) {
-      toast.error('Tu rol no puede eliminar warnings.');
+      toast.error('Your role cannot delete warnings.');
       return;
     }
-    if (!window.confirm('¿Eliminar este warning?')) return;
+    if (!window.confirm('Delete this warning?')) return;
 
     setDeletingWarningId(warningId);
     try {
       await tasksService.deleteWarning(warningId);
       setWarnings((prev) => prev.filter((w) => w.id_warning !== warningId));
-      toast.success('Warning eliminado.');
+      toast.success('Warning deleted.');
     } catch {
-      toast.error('No se pudo eliminar el warning.');
+      toast.error('Could not delete the warning.');
     } finally {
       setDeletingWarningId(null);
     }
@@ -1219,10 +1155,10 @@ export function TaskDetailPanel({
     try {
       const updated = await tasksService.update(task.id_task, { board_column: columnId });
       onTaskUpdated?.(updated);
-      toast.success('Columna actualizada.');
+      toast.success('Column updated.');
     } catch (err) {
       // Surfaces the backend's close-block message (e.g. parent with open subtasks → 400).
-      toast.error(err instanceof ApiRequestError ? err.message : 'No se pudo cambiar la columna.');
+      toast.error(err instanceof ApiRequestError ? err.message : 'Could not change the column.');
     } finally {
       setSavingBoardColumn(false);
     }
@@ -1234,9 +1170,9 @@ export function TaskDetailPanel({
     try {
       const updated = await tasksService.update(task.id_task, { sprint: sprintId });
       onTaskUpdated?.(updated);
-      toast.success('Sprint actualizado.');
+      toast.success('Sprint updated.');
     } catch {
-      toast.error('No se pudo actualizar el sprint.');
+      toast.error('Could not update the sprint.');
     } finally {
       setSavingSprint(false);
     }
@@ -1253,8 +1189,8 @@ export function TaskDetailPanel({
       setSelectedWarningIds(new Set());
     }
     const failed = ids.length - succeeded.length;
-    if (failed > 0) toast.error(`No se pudieron eliminar ${failed} warning(s).`);
-    else toast.success(`${succeeded.length} warning(s) eliminado(s).`);
+    if (failed > 0) toast.error(`Could not delete ${failed} warning(s).`);
+    else toast.success(`${succeeded.length} warning(s) deleted.`);
     setDeletingSelectedWarnings(false);
   };
 
@@ -1267,9 +1203,9 @@ export function TaskDetailPanel({
       setNewTagName('');
       setNewTagColor('#56697f');
       setShowNewTagForm(false);
-      toast.success('Tag creado y asignado.');
+      toast.success('Tag created and assigned.');
     } catch {
-      toast.error('No se pudo crear el tag.');
+      toast.error('Could not create the tag.');
     } finally {
       setCreatingTag(false);
     }
@@ -1285,9 +1221,9 @@ export function TaskDetailPanel({
       });
       onTaskUpdated?.(updated);
       setTagSearch('');
-      toast.success('Tag agregado.');
+      toast.success('Tag added.');
     } catch {
-      toast.error('No se pudo agregar el tag.');
+      toast.error('Could not add the tag.');
     } finally {
       setSavingTagId(null);
     }
@@ -1301,9 +1237,9 @@ export function TaskDetailPanel({
         tags: task.tags.filter((id) => id !== tagId),
       });
       onTaskUpdated?.(updated);
-      toast.success('Tag removido.');
+      toast.success('Tag removed.');
     } catch {
-      toast.error('No se pudo remover el tag.');
+      toast.error('Could not remove the tag.');
     } finally {
       setSavingTagId(null);
     }
@@ -1370,7 +1306,7 @@ export function TaskDetailPanel({
                     onClick={() => setIsEditingTask(true)}
                     className="inline-flex items-center gap-1 h-6 px-2 border border-border rounded-[3px] text-[10px] text-muted-foreground hover:text-foreground"
                   >
-                    <Pencil className="w-3 h-3" /> Editar
+                    <Pencil className="w-3 h-3" /> Edit
                   </button>
                 )}
                 {projectId != null && (
@@ -1385,19 +1321,19 @@ export function TaskDetailPanel({
                   onClick={() => void handleGenerateAiPrompt()}
                   disabled={generatingAiPrompt}
                   className="inline-flex items-center gap-1 h-6 px-2 border border-border rounded-[3px] text-[10px] text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors disabled:opacity-50"
-                  title="Genera el prompt con warnings activos y lo copia al portapapeles"
+                  title="Generates the prompt with active warnings and copies it to the clipboard"
                 >
                   {generatingAiPrompt ? <Loader2 className="w-3 h-3 animate-spin" /> : <Copy className="w-3 h-3" />}
-                  {generatingAiPrompt ? 'Generando...' : 'Copiar prompt'}
+                  {generatingAiPrompt ? 'Generating...' : 'Copy prompt'}
                 </button>
                 <button
                   onClick={() => void openAiCodeModal()}
                   disabled={sendingToAi || loadingWarnings}
                   className="inline-flex items-center gap-1 h-6 px-2 border border-border rounded-[3px] text-[10px] text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors disabled:opacity-50"
-                  title="Abre la revisión de código con IA"
+                  title="Open the AI code review"
                 >
                   <Send className="w-3 h-3" />
-                  Enviar a IA
+                  Send to AI
                 </button>
                 <button onClick={onClose} className="p-1 rounded-[3px] hover:bg-surface-secondary transition-colors">
                   <X className="w-3.5 h-3.5 text-muted-foreground" />
@@ -1411,7 +1347,7 @@ export function TaskDetailPanel({
               {isEditingTask ? (
                 <form onSubmit={handleSaveTask} className="space-y-3">
                   <div>
-                    <label className="block text-[11px] font-medium text-foreground mb-1">Titulo</label>
+                    <label className="block text-[11px] font-medium text-foreground mb-1">Title</label>
                     <input
                       type="text"
                       required
@@ -1422,7 +1358,7 @@ export function TaskDetailPanel({
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-medium text-foreground mb-1">Descripcion</label>
+                    <label className="block text-[11px] font-medium text-foreground mb-1">Description</label>
                     <textarea
                       rows={3}
                       value={taskForm.description}
@@ -1432,13 +1368,13 @@ export function TaskDetailPanel({
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-medium text-foreground mb-1">Prioridad</label>
+                    <label className="block text-[11px] font-medium text-foreground mb-1">Priority</label>
                     <select
                       value={taskForm.priority}
                       onChange={(e) => setTaskForm((prev) => ({ ...prev, priority: e.target.value }))}
                       className="w-full h-7 bg-surface-secondary border border-border rounded-[3px] px-2.5 text-[11px]"
                     >
-                      <option value="">Sin prioridad</option>
+                      <option value="">No priority</option>
                       {priorities.map((p) => (
                         <option key={p.id_priority} value={p.id_priority}>{p.name}</option>
                       ))}
@@ -1446,18 +1382,18 @@ export function TaskDetailPanel({
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-medium text-foreground mb-1">Fecha limite</label>
+                    <label className="block text-[11px] font-medium text-foreground mb-1">Due date</label>
                     <DatePickerField
                       value={taskForm.dueDate}
                       onChange={(value) => setTaskForm((prev) => ({ ...prev, dueDate: value }))}
                       minDate={minDueDate}
                       maxDate={maxDueDate}
-                      placeholder="Selecciona una fecha"
+                      placeholder="Select a date"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-medium text-foreground mb-1">Asignado</label>
+                    <label className="block text-[11px] font-medium text-foreground mb-1">Assigned</label>
                     <TaskAssigneePicker
                       users={assignableUsers}
                       selectedIds={taskForm.assignedTo.map((value) => Number(value))}
@@ -1466,26 +1402,26 @@ export function TaskDetailPanel({
                         assignedTo: selectedIds.map((id) => String(id)),
                       }))}
                       disabled={!canEditAssignment}
-                      emptyText="Sin personas asignadas"
+                      emptyText="No assignees"
                     />
                     {!canEditAssignment && (
-                      <p className="text-[10px] text-muted-foreground mt-1">Tu rol no puede reasignar tareas.</p>
+                      <p className="text-[10px] text-muted-foreground mt-1">Your role cannot reassign tasks.</p>
                     )}
                     {canEditAssignment && (
-                      <p className="text-[10px] text-muted-foreground mt-1">La primera persona seleccionada se mantiene como responsable principal para compatibilidad.</p>
+                      <p className="text-[10px] text-muted-foreground mt-1">The first person selected remains the primary owner for compatibility.</p>
                     )}
                   </div>
 
                   <div>
                     <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-[0.06em] mb-2 flex items-center gap-1.5">
-                      <ShieldAlert className="w-3 h-3" /> Resultados IA ({aiReviewResults.length})
+                      <ShieldAlert className="w-3 h-3" /> AI results ({aiReviewResults.length})
                     </p>
                     {loadingAiReviewResults ? (
                       <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                        <Loader2 className="w-3 h-3 animate-spin" /> Cargando resultados…
+                        <Loader2 className="w-3 h-3 animate-spin" /> Loading results…
                       </div>
                     ) : aiReviewResults.length === 0 ? (
-                      <p className="text-[11px] text-muted-foreground">Aún no hay resultados de IA guardados.</p>
+                      <p className="text-[11px] text-muted-foreground">No saved AI results yet.</p>
                     ) : (
                       <div className="space-y-2">
                         {aiReviewResults.map((result) => (
@@ -1493,7 +1429,7 @@ export function TaskDetailPanel({
                             <div className="flex items-center justify-between gap-2">
                               <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground uppercase tracking-[0.06em]">
                                 <span className="rounded-full border border-border px-1.5 py-0.5 text-foreground">{result.provider}</span>
-                                <span>{result.model_name ?? 'sin modelo'}</span>
+                                <span>{result.model_name ?? 'no model'}</span>
                               </div>
                               <span className="text-[10px] text-muted-foreground">{formatCommentTimestamp(result.created_at)}</span>
                             </div>
@@ -1513,21 +1449,21 @@ export function TaskDetailPanel({
                         disabled={deletingTask}
                         className="h-7 px-3 border border-destructive/30 rounded-[3px] text-[11px] text-destructive hover:bg-destructive/10 disabled:opacity-50"
                       >
-                        {deletingTask ? 'Eliminando…' : 'Eliminar'}
+                        {deletingTask ? 'Deleting…' : 'Delete'}
                       </button>
                     )}                    <button
                       type="button"
                       onClick={() => setIsEditingTask(false)}
                       className="h-7 px-3 border border-border rounded-[3px] text-[11px]"
                     >
-                      Cancelar
+                      Cancel
                     </button>
                     <button
                       type="submit"
                       disabled={savingTask}
                       className="h-7 px-3 bg-primary text-primary-foreground rounded-[3px] text-[11px] disabled:opacity-50"
                     >
-                      {savingTask ? 'Guardando...' : 'Guardar cambios'}
+                      {savingTask ? 'Saving...' : 'Save changes'}
                     </button>
                   </div>
                 </form>
@@ -1546,7 +1482,7 @@ export function TaskDetailPanel({
               <div className="bg-surface-secondary/50 rounded-[4px] p-3 space-y-2">
                 {assignedNames.length > 0 && (
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-muted-foreground uppercase tracking-[0.06em]">Asignado</span>
+                    <span className="text-[10px] text-muted-foreground uppercase tracking-[0.06em]">Assigned</span>
                     <div className="text-[11px] text-foreground flex items-center gap-1 flex-wrap justify-end max-w-[220px]">
                       <User className="w-3 h-3 shrink-0" />
                       <span className="text-right">{assignedNames.join(', ')}</span>
@@ -1555,14 +1491,14 @@ export function TaskDetailPanel({
                 )}
                 {task.due_date && (
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-muted-foreground uppercase tracking-[0.06em]">Fecha límite</span>
+                    <span className="text-[10px] text-muted-foreground uppercase tracking-[0.06em]">Due date</span>
                     <span className={`text-[11px] flex items-center gap-1 ${isOverdue ? 'text-destructive font-semibold' : 'text-foreground'}`}>
                       <Calendar className="w-3 h-3" />{task.due_date}
                     </span>
                   </div>
                 )}
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-muted-foreground uppercase tracking-[0.06em]">Creada</span>
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-[0.06em]">Created</span>
                   <span className="text-[11px] text-muted-foreground">{task.created_at.slice(0, 10)}</span>
                 </div>
                 <div className="flex items-center justify-between">
@@ -1573,7 +1509,7 @@ export function TaskDetailPanel({
                     onChange={(e) => void handleChangeSprint(e.target.value ? Number(e.target.value) : null)}
                     className="h-6 rounded-[3px] border border-border bg-surface-secondary px-1.5 text-[10px] disabled:opacity-60"
                   >
-                    <option value="">Sin sprint</option>
+                    <option value="">No sprint</option>
                     {sprints.map((sprint) => (
                       <option key={sprint.id_sprint} value={sprint.id_sprint}>{sprint.name}</option>
                     ))}
@@ -1598,7 +1534,7 @@ export function TaskDetailPanel({
                           }}
                           className="h-6 rounded-[3px] border border-border bg-surface-secondary px-1.5 text-[10px] disabled:opacity-60"
                         >
-                          <option value="">Sin board</option>
+                          <option value="">No board</option>
                           {allBoards.map(([bid]) => (
                             <option key={bid} value={bid}>{boardNames?.get(bid) ?? `Board ${bid}`}</option>
                           ))}
@@ -1606,14 +1542,14 @@ export function TaskDetailPanel({
                       </div>
                       {boardId != null && (
                         <div className="flex items-center justify-between">
-                          <span className="text-[10px] text-muted-foreground uppercase tracking-[0.06em]">Columna</span>
+                          <span className="text-[10px] text-muted-foreground uppercase tracking-[0.06em]">Column</span>
                           <select
                             value={task.board_column ?? ''}
                             disabled={!canEditTask || savingBoardColumn}
                             onChange={(e) => void handleChangeBoardColumn(e.target.value ? Number(e.target.value) : null)}
                             className="h-6 rounded-[3px] border border-border bg-surface-secondary px-1.5 text-[10px] disabled:opacity-60"
                           >
-                            <option value="">Sin columna</option>
+                            <option value="">No column</option>
                             {boardCols.map((col) => (
                               <option key={col.id_column} value={col.id_column}>{col.name}</option>
                             ))}
@@ -1635,7 +1571,7 @@ export function TaskDetailPanel({
                     type="text"
                     value={tagSearch}
                     onChange={(e) => setTagSearch(e.target.value)}
-                    placeholder="Buscar tags..."
+                    placeholder="Search tags..."
                     className="w-full h-7 bg-surface-secondary border border-border rounded-[3px] px-2.5 text-[11px]"
                     disabled={!canEditTask}
                   />
@@ -1658,7 +1594,7 @@ export function TaskDetailPanel({
                           </button>
                         )}
                       </span>
-                    )) : <span className="text-[11px] text-muted-foreground">Sin tags.</span>}
+                    )) : <span className="text-[11px] text-muted-foreground">No tags.</span>}
                   </div>
                   {canEditTask && (
                     <div className="flex flex-wrap gap-1.5">
@@ -1673,7 +1609,7 @@ export function TaskDetailPanel({
                           {savingTagId === tag.id_tag ? <Loader2 className="w-3 h-3 animate-spin" /> : <span className="h-2 w-2 rounded-full" style={{ backgroundColor: tag.color || '#56697f' }} />}
                           {tag.name}
                         </button>
-                      )) : <span className="text-[10px] text-muted-foreground">No hay tags para agregar.</span>}
+                      )) : <span className="text-[10px] text-muted-foreground">No tags to add.</span>}
                     </div>
                   )}
                   {canEditTask && onCreateTag && (
@@ -1682,7 +1618,7 @@ export function TaskDetailPanel({
                       onClick={() => setShowNewTagForm(true)}
                       className="inline-flex items-center gap-1 rounded-[3px] border border-dashed border-border px-2 py-1 text-[10px] text-muted-foreground hover:text-foreground hover:border-border/80 transition-colors mt-0.5"
                     >
-                      <Plus className="w-3 h-3" /> Nuevo tag
+                      <Plus className="w-3 h-3" /> New tag
                     </button>
                   )}
                 </div>
@@ -1700,21 +1636,21 @@ export function TaskDetailPanel({
               {/* Comments */}
               <div>
                   <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-[0.06em] mb-2 flex items-center gap-1.5">
-                    <MessageSquare className="w-3 h-3" /> Comentarios ({comments.length})
+                    <MessageSquare className="w-3 h-3" /> Comments ({comments.length})
                   </p>
                   {loadingComments ? (
                     <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                      <Loader2 className="w-3 h-3 animate-spin" /> Cargando…
+                      <Loader2 className="w-3 h-3 animate-spin" /> Loading…
                     </div>
                   ) : comments.length === 0 ? (
-                    <p className="text-[11px] text-muted-foreground">Sin comentarios aún.</p>
+                    <p className="text-[11px] text-muted-foreground">No comments yet.</p>
                   ) : (
                     <div className="space-y-2">
                       {comments.map((c) => (
                         <div key={c.id_comment} className="p-2.5 bg-surface-secondary/50 rounded-[4px]">
                           <div className="flex items-center justify-between mb-1">
                             <span className="text-[10px] font-medium text-foreground">
-                              {c.user ? (userMap.get(c.user) ?? `User #${c.user}`) : 'Sistema'}
+                              {c.user ? (userMap.get(c.user) ?? `User #${c.user}`) : 'System'}
                             </span>
                             <div className="flex items-center gap-2">
                               <span className="text-[10px] text-muted-foreground">{formatCommentTimestamp(c.created_at)}</span>
@@ -1723,14 +1659,14 @@ export function TaskDetailPanel({
                                   <button
                                     onClick={() => handleStartEditComment(c)}
                                     className="text-muted-foreground hover:text-foreground"
-                                    title="Editar comentario"
+                                    title="Edit comment"
                                   >
                                     <Pencil className="w-3 h-3" />
                                   </button>
                                   <button
                                     onClick={() => handleDeleteComment(c.id_comment)}
                                     className="text-muted-foreground hover:text-destructive"
-                                    title="Eliminar comentario"
+                                    title="Delete comment"
                                   >
                                     <Trash2 className="w-3 h-3" />
                                   </button>
@@ -1752,7 +1688,7 @@ export function TaskDetailPanel({
                                   onClick={() => handleUpdateComment(c.id_comment)}
                                   className="h-6 px-2 bg-primary text-primary-foreground rounded-[3px] text-[10px]"
                                 >
-                                  Guardar
+                                  Save
                                 </button>
                                 <button
                                   onClick={() => {
@@ -1761,7 +1697,7 @@ export function TaskDetailPanel({
                                   }}
                                   className="h-6 px-2 border border-border rounded-[3px] text-[10px]"
                                 >
-                                  Cancelar
+                                  Cancel
                                 </button>
                               </div>
                             </div>
@@ -1779,7 +1715,7 @@ export function TaskDetailPanel({
                       type="text"
                       value={newComment}
                       onChange={(e) => setNewComment(e.target.value)}
-                      placeholder="Agregar comentario…"
+                      placeholder="Add a comment…"
                       className="flex-1 h-7 bg-surface-secondary border border-border rounded-[3px] px-2.5 text-[11px] text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-primary/20"
                     />
                     <button
@@ -1803,7 +1739,7 @@ export function TaskDetailPanel({
                     onClick={onClose}
                     className="px-3 py-1 bg-surface-secondary hover:bg-accent text-foreground text-[11px] font-medium rounded-[3px] transition-colors"
                   >
-                    Cerrar
+                    Close
                   </button>
                 </div>
               </div>
@@ -1814,7 +1750,7 @@ export function TaskDetailPanel({
                   <div className="px-4 py-3 border-b border-border bg-surface-secondary shrink-0">
                     <div className="flex items-center justify-between">
                       <p className="text-[11px] font-medium text-foreground flex items-center gap-1.5">
-                        <AlertTriangle className="w-3.5 h-3.5 text-warning" /> Warnings y Conexiones
+                        <AlertTriangle className="w-3.5 h-3.5 text-warning" /> Warnings and Connections
                       </p>
                       {canEditTask && activeWarnings.length > 0 && (
                         <div className="flex items-center gap-1.5">
@@ -1829,7 +1765,7 @@ export function TaskDetailPanel({
                             }}
                             className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
                           >
-                            {selectedWarningIds.size === activeWarnings.length ? 'Deselect.' : 'Sel. todo'}
+                            {selectedWarningIds.size === activeWarnings.length ? 'Deselect.' : 'Select all'}
                           </button>
                           {selectedWarningIds.size > 0 && (
                             <button
@@ -1839,7 +1775,7 @@ export function TaskDetailPanel({
                               className="inline-flex items-center gap-1 rounded-[3px] border border-destructive/30 bg-destructive/10 px-2 py-0.5 text-[10px] text-destructive hover:bg-destructive/20 disabled:opacity-50"
                             >
                               {deletingSelectedWarnings ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
-                              Eliminar ({selectedWarningIds.size})
+                              Delete ({selectedWarningIds.size})
                             </button>
                           )}
                         </div>
@@ -1849,37 +1785,20 @@ export function TaskDetailPanel({
                   <div className="flex-1 overflow-y-auto p-4 space-y-4">
                     <div className="rounded-[4px] border border-border bg-surface-secondary/30 p-2.5 space-y-2">
                       <div className="flex items-center justify-between gap-2">
-                        <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-[0.06em]">Proveedor IA</p>
+                        <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-[0.06em]">AI Model</p>
                         {loadingAiModels && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />}
                       </div>
-                      <div className="grid grid-cols-2 gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => setAiProvider('copilot')}
-                          className={`h-7 rounded-[3px] border text-[10px] ${aiProvider === 'copilot' ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:text-foreground'}`}
-                        >
-                          Usar mi GitHub Copilot
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setAiProvider('yemoda')}
-                          className={`h-7 rounded-[3px] border text-[10px] ${aiProvider === 'yemoda' ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:text-foreground'}`}
-                        >
-                          Usar Yemoda AI
-                        </button>
-                      </div>
                       <div>
-                        <label className="block text-[10px] text-muted-foreground mb-1">Modelo</label>
                         <select
                           value={aiModel}
                           onChange={(e) => setAiModel(e.target.value)}
                           className="w-full h-7 rounded-[3px] border border-border bg-card px-2 text-[10px]"
                         >
-                            {(aiProvider === 'copilot' ? (aiModels.copilot ?? []) : (aiModels.yemoda ?? [])).map((model) => (
-                              <option key={model.id} value={model.id}>{model.id}</option>
+                          {(aiModels.yemoda ?? []).map((model) => (
+                            <option key={model.id} value={model.id}>{model.id}</option>
                           ))}
-                          {((aiProvider === 'copilot' ? (aiModels.copilot ?? []) : (aiModels.yemoda ?? [])).length === 0) && (
-                            <option value="">Sin modelos disponibles</option>
+                          {(aiModels.yemoda ?? []).length === 0 && (
+                            <option value="">No models available</option>
                           )}
                         </select>
                       </div>
@@ -1887,7 +1806,7 @@ export function TaskDetailPanel({
 
                     {loadingWarnings ? (
                       <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                        <Loader2 className="w-3 h-3 animate-spin" /> Cargando warnings…
+                        <Loader2 className="w-3 h-3 animate-spin" /> Loading warnings…
                       </div>
                     ) : activeWarnings.length > 0 ? (
                       <div className="space-y-2">
@@ -1934,7 +1853,7 @@ export function TaskDetailPanel({
                                   className="inline-flex items-center gap-1 rounded-[3px] border border-destructive/30 bg-destructive/10 px-2 py-0.5 text-[10px] text-destructive hover:bg-destructive/20 disabled:opacity-50 shrink-0"
                                 >
                                   {deletingWarningId === w.id_warning ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
-                                  Eliminar
+                                  Delete
                                 </button>
                               </div>
                             </div>
@@ -1944,7 +1863,7 @@ export function TaskDetailPanel({
                         })}
                       </div>
                     ) : (
-                      <p className="text-[11px] text-muted-foreground">Sin warnings activos.</p>
+                      <p className="text-[11px] text-muted-foreground">No active warnings.</p>
                     )}
 
                   </div>
@@ -1959,31 +1878,35 @@ export function TaskDetailPanel({
           <div className="w-full max-w-6xl h-[82vh] rounded-[8px] border border-border bg-card shadow-xl flex flex-col overflow-hidden">
             <div className="px-4 py-3 border-b border-border flex items-center justify-between">
               <div>
-                <h2 className="text-[13px] font-semibold text-foreground">Revisión de cambios IA</h2>
+                <h2 className="text-[13px] font-semibold text-foreground">AI change review</h2>
                 {task && <p className="text-[11px] font-medium text-primary mt-0.5 truncate max-w-[500px]">{task.title}</p>}
-                <p className="text-[10px] text-muted-foreground mt-0.5">Código actual a la izquierda y respuesta IA en escucha a la derecha.</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Current code on the left and the AI response on the right.</p>
               </div>
               <button
                 type="button"
                 onClick={() => setShowAiCodeModal(false)}
                 className="h-8 px-3 border border-border rounded-[4px] text-[11px] hover:bg-accent"
               >
-                Cerrar
+                Close
               </button>
             </div>
 
             <div className="px-4 py-3 border-b border-border bg-surface-secondary/20 space-y-2">
               <div className="grid grid-cols-1 lg:grid-cols-[1fr_160px_auto] gap-2 items-center">
                 <div className="h-8 rounded-[4px] border border-border bg-card px-2.5 text-[11px] text-muted-foreground flex items-center truncate">
-                  {aiModalPrompt || 'Cargando prompt de corrección para esta tarea...'}
+                  {aiModalPrompt || 'Loading the fix prompt for this task...'}
                 </div>
                 <select
-                  value={aiProvider}
-                  onChange={(e) => setAiProvider(e.target.value as AIProvider)}
+                  value={aiModel}
+                  onChange={(e) => setAiModel(e.target.value)}
                   className="h-8 rounded-[4px] border border-border bg-card px-2 text-[11px]"
                 >
-                  <option value="copilot">Usar mi GitHub Copilot</option>
-                  <option value="yemoda">Usar Yemoda AI</option>
+                  {(aiModels.yemoda ?? []).map((model) => (
+                    <option key={model.id} value={model.id}>{model.id}</option>
+                  ))}
+                  {(aiModels.yemoda ?? []).length === 0 && (
+                    <option value="">No models available</option>
+                  )}
                 </select>
                 <button
                   type="button"
@@ -1992,7 +1915,7 @@ export function TaskDetailPanel({
                   className="h-8 px-3 bg-primary text-primary-foreground rounded-[4px] text-[11px] inline-flex items-center gap-1.5 disabled:opacity-50"
                 >
                   {sendingToAi ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
-                  {sendingToAi ? 'En escucha...' : 'Mandar a IA'}
+                  {sendingToAi ? 'Listening...' : 'Send to AI'}
                 </button>
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-[1fr_160px_auto] gap-2 items-center">
@@ -2012,16 +1935,16 @@ export function TaskDetailPanel({
                 >
                   <option value="">
                     {aiRepoFilesLoading
-                      ? 'Cargando archivos...'
+                      ? 'Loading files...'
                       : aiRepoFiles.length > 0
-                        ? 'Selecciona un archivo...'
-                        : 'Sin archivos disponibles'}
+                        ? 'Select a file...'
+                        : 'No files available'}
                   </option>
                   {aiRepoFiles.map((filePath) => {
                     const hasPatch = aiSuggestedPatches.some((patch) => patch.filename === filePath);
                     return (
                       <option key={filePath} value={filePath}>
-                        {hasPatch ? `[CAMBIO] ${filePath}` : filePath}
+                        {hasPatch ? `[CHANGED] ${filePath}` : filePath}
                       </option>
                     );
                   })}
@@ -2038,7 +1961,7 @@ export function TaskDetailPanel({
                   disabled={aiRepoFilesLoading || aiSourceLoading || !repoFullName}
                   className="h-8 px-3 border border-border rounded-[4px] text-[11px] hover:bg-accent disabled:opacity-50"
                 >
-                  {aiRepoFilesLoading ? 'Listando...' : 'Listar archivos'}
+                  {aiRepoFilesLoading ? 'Listing...' : 'List files'}
                 </button>
               </div>
             </div>
@@ -2046,11 +1969,11 @@ export function TaskDetailPanel({
             <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-2">
               <div className="border-r border-border min-h-0 flex flex-col">
                 <div className="px-3 py-2 border-b border-border bg-surface-secondary/30 text-[10px] text-muted-foreground">
-                  Código actual {aiSourcePath ? `(${aiSourcePath})` : ''}
+                  Current code {aiSourcePath ? `(${aiSourcePath})` : ''}
                 </div>
                 <div className="flex-1 min-h-0 bg-card p-3 text-[11px] font-mono text-muted-foreground overflow-auto">
                   {aiSourceLoading ? (
-                    'Cargando código actual...'
+                    'Loading current code...'
                   ) : aiSourceContent ? (
                     <table className="w-full border-collapse">
                       <tbody>
@@ -2067,20 +1990,20 @@ export function TaskDetailPanel({
                       </tbody>
                     </table>
                   ) : (
-                    'Selecciona un archivo para ver su contenido.'
+                    'Select a file to view its content.'
                   )}
                 </div>
               </div>
               <div className="min-h-0 flex flex-col">
                 <div className="px-3 py-2 border-b border-border bg-surface-secondary/30 text-[10px] text-muted-foreground flex items-center justify-between">
-                  <span>Respuesta IA (código propuesto)</span>
-                  {aiSuggestedPatches.length > 0 && <span className="text-[10px] text-warning">{aiSuggestedPatches.length} archivo(s) con cambios detectados</span>}
+                  <span>AI response (proposed code)</span>
+                  {aiSuggestedPatches.length > 0 && <span className="text-[10px] text-warning">{aiSuggestedPatches.length} file(s) with detected changes</span>}
                 </div>
                 <div className="flex-1 min-h-0 bg-card p-3 overflow-auto">
                   {aiSuggestedPatches.length > 0 ? (
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
-                        <label className="text-[10px] text-muted-foreground">Archivo modificado</label>
+                        <label className="text-[10px] text-muted-foreground">Modified file</label>
                         <select
                           value={aiSelectedPatchFile}
                           onChange={(e) => setAiSelectedPatchFile(e.target.value)}
@@ -2095,18 +2018,18 @@ export function TaskDetailPanel({
                         const selectedPatch = aiSuggestedPatches.find((patch) => patch.filename === aiSelectedPatchFile) ?? aiSuggestedPatches[0];
                         return selectedPatch
                           ? <CodeDiffViewer filename={selectedPatch.filename} patch={selectedPatch.patch} />
-                          : <p className="text-[11px] text-muted-foreground">No hay diff seleccionado.</p>;
+                          : <p className="text-[11px] text-muted-foreground">No diff selected.</p>;
                       })()}
                     </div>
                   ) : (
-                    <pre className="text-[11px] font-mono text-foreground whitespace-pre-wrap">{aiSuggestedContent || 'La respuesta de IA aparecerá aquí.'}</pre>
+                    <pre className="text-[11px] font-mono text-foreground whitespace-pre-wrap">{aiSuggestedContent || 'The AI response will appear here.'}</pre>
                   )}
                 </div>
               </div>
             </div>
 
             <div className="px-4 py-3 border-t border-border flex items-center justify-between gap-2">
-              <p className="text-[10px] text-muted-foreground">Si te gusta la propuesta, confirma commit/push. Solo se permite cuando la IA devuelve código aplicable.</p>
+              <p className="text-[10px] text-muted-foreground">If you like the proposal, confirm the commit/push. Only allowed when the AI returns applicable code.</p>
               <button
                 type="button"
                 onClick={() => void handleCommitAiFix()}
@@ -2114,7 +2037,7 @@ export function TaskDetailPanel({
                 className="h-8 px-3 bg-primary text-primary-foreground rounded-[4px] text-[11px] inline-flex items-center gap-1.5 disabled:opacity-50"
               >
                 {committingAiFix ? <Loader2 className="w-3 h-3 animate-spin" /> : <GitCommit className="w-3 h-3" />}
-                {committingAiFix ? 'Confirmando...' : 'Commit / Push'}
+                {committingAiFix ? 'Confirming...' : 'Commit / Push'}
               </button>
             </div>
           </div>
@@ -2128,9 +2051,9 @@ export function TaskDetailPanel({
             <div className="px-4 py-3 border-b border-border flex items-center justify-between">
               <div>
                 <h2 className="text-[13px] font-semibold text-foreground flex items-center gap-1.5">
-                  <GitBranch className="w-3.5 h-3.5 text-primary" /> Crear branch
+                  <GitBranch className="w-3.5 h-3.5 text-primary" /> Create branch
                 </h2>
-                <p className="text-[11px] text-muted-foreground mt-0.5">Se creará una branch vinculada a la tarea #{task?.id_task}</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">A branch linked to task #{task?.id_task} will be created</p>
               </div>
               <button
                 type="button"
@@ -2145,11 +2068,11 @@ export function TaskDetailPanel({
               /* Success state */
               <div className="px-4 py-4 space-y-3">
                 <div className="rounded-[4px] bg-success/5 border border-success/20 px-3 py-2.5 space-y-1">
-                  <p className="text-[10px] font-medium uppercase tracking-[0.06em] text-success/80">Branch creada</p>
+                  <p className="text-[10px] font-medium uppercase tracking-[0.06em] text-success/80">Branch created</p>
                   <p className="font-mono text-[12px] text-foreground font-medium">{branchResult.branch_name}</p>
                 </div>
                 <div className="space-y-1.5">
-                  <p className="text-[10px] font-medium text-muted-foreground">Comando de checkout</p>
+                  <p className="text-[10px] font-medium text-muted-foreground">Checkout command</p>
                   <div className="flex items-center gap-2">
                     <code className="flex-1 font-mono text-[11px] text-muted-foreground bg-surface-secondary/60 border border-border rounded-[3px] px-2.5 py-1.5 truncate">
                       {branchResult.checkout_command}
@@ -2158,7 +2081,7 @@ export function TaskDetailPanel({
                       type="button"
                       onClick={() => void handleCopyCheckout()}
                       className="h-8 w-8 shrink-0 flex items-center justify-center border border-border rounded-[4px] text-muted-foreground hover:text-foreground transition-colors"
-                      title="Copiar"
+                      title="Copy"
                     >
                       {branchCopied ? <Check className="w-3.5 h-3.5 text-success" /> : <Copy className="w-3.5 h-3.5" />}
                     </button>
@@ -2170,7 +2093,7 @@ export function TaskDetailPanel({
                     onClick={() => setShowBranchModal(false)}
                     className="h-8 px-4 bg-primary text-primary-foreground rounded-[4px] text-[11px] transition-opacity"
                   >
-                    Listo
+                    Done
                   </button>
                 </div>
               </div>
@@ -2180,25 +2103,25 @@ export function TaskDetailPanel({
                 {branchLoadingRepos ? (
                   <div className="flex items-center justify-center py-6 text-muted-foreground">
                     <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                    <span className="text-[12px]">Cargando repositorios…</span>
+                    <span className="text-[12px]">Loading repositories…</span>
                   </div>
                 ) : branchRepos.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-6 gap-2 text-center">
                     <GitBranch className="w-6 h-6 text-muted-foreground/40" />
                     <p className="text-[12px] text-muted-foreground">No repositories connected to this project.</p>
-                    <p className="text-[11px] text-muted-foreground/60">Vincula un repositorio en la pestaña Repositorios primero.</p>
+                    <p className="text-[11px] text-muted-foreground/60">Link a repository in the Repositories tab first.</p>
                   </div>
                 ) : (
                   <>
                     {branchRepos.length > 0 && (
                       <div className="space-y-1.5">
-                        <label className="text-[11px] font-medium text-foreground">Repositorio</label>
+                        <label className="text-[11px] font-medium text-foreground">Repository</label>
                         <select
                           value={branchSelectedRepo}
                           onChange={(e) => setBranchSelectedRepo(e.target.value)}
                           className="w-full h-9 rounded-[4px] border border-border bg-surface-secondary px-3 text-[12px] text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
                         >
-                          <option value="">Seleccionar repositorio…</option>
+                          <option value="">Select repository…</option>
                           {branchRepos.map((r) => (
                             <option key={r.id_repo} value={r.full_name}>{r.full_name}</option>
                           ))}
@@ -2206,7 +2129,7 @@ export function TaskDetailPanel({
                       </div>
                     )}
                     <div className="space-y-1.5">
-                      <label className="text-[11px] font-medium text-foreground">Branch base</label>
+                      <label className="text-[11px] font-medium text-foreground">Base branch</label>
                       <input
                         value={branchBase}
                         onChange={(e) => setBranchBase(e.target.value)}
@@ -2215,7 +2138,7 @@ export function TaskDetailPanel({
                       />
                     </div>
                     <div className="rounded-[4px] bg-surface-secondary/40 border border-border/50 px-3 py-2">
-                      <p className="text-[10px] text-muted-foreground">El nombre de la branch será generado automáticamente con el ID de la tarea como prefijo.</p>
+                      <p className="text-[10px] text-muted-foreground">The branch name will be generated automatically with the task ID as a prefix.</p>
                     </div>
                   </>
                 )}
@@ -2225,18 +2148,18 @@ export function TaskDetailPanel({
                     onClick={() => setShowBranchModal(false)}
                     className="h-8 px-3 border border-border rounded-[4px] text-[11px] hover:bg-accent transition-colors"
                   >
-                    Cancelar
+                    Cancel
                   </button>
                   {!branchLoadingRepos && branchRepos.length > 0 && (
                   <button
                     type="button"
                     disabled={branchCreating || branchLoadingRepos || (branchRepos.length > 1 && !branchSelectedRepo)}
-                    title={branchRepos.length > 1 && !branchSelectedRepo ? 'Selecciona un repositorio' : undefined}
+                    title={branchRepos.length > 1 && !branchSelectedRepo ? 'Select a repository' : undefined}
                     onClick={() => void handleCreateBranch()}
                     className="h-8 px-4 bg-primary text-primary-foreground rounded-[4px] text-[11px] disabled:opacity-40 transition-opacity inline-flex items-center gap-1.5"
                   >
                     {branchCreating ? <Loader2 className="w-3 h-3 animate-spin" /> : <GitBranch className="w-3 h-3" />}
-                    Crear branch
+                    Create branch
                   </button>
                   )}
                 </div>
@@ -2254,16 +2177,16 @@ export function TaskDetailPanel({
             className="w-full max-w-sm rounded-[8px] border border-border bg-card overflow-hidden shadow-lg"
           >
             <div className="px-4 py-3 border-b border-border">
-              <h2 className="text-[13px] font-semibold text-foreground">Nuevo tag</h2>
-              <p className="text-[11px] text-muted-foreground mt-0.5">Define un nombre y un color para el tag.</p>
+              <h2 className="text-[13px] font-semibold text-foreground">New tag</h2>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Set a name and a color for the tag.</p>
             </div>
             <div className="px-4 py-4 space-y-4">
               <div className="space-y-1.5">
-                <label className="text-[11px] font-medium text-foreground">Nombre</label>
+                <label className="text-[11px] font-medium text-foreground">Name</label>
                 <input
                   value={newTagName}
                   onChange={(e) => setNewTagName(e.target.value)}
-                  placeholder="ej. Bug, Feature, Urgente…"
+                  placeholder="e.g. Bug, Feature, Urgent…"
                   className="w-full h-9 rounded-[4px] border border-border bg-surface-secondary px-3 text-[12px] placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-primary/50"
                   autoFocus
                 />
@@ -2280,7 +2203,7 @@ export function TaskDetailPanel({
                 onClick={() => { setShowNewTagForm(false); setNewTagName(''); setNewTagColor('#56697f'); }}
                 className="h-8 px-3 border border-border rounded-[4px] text-[11px] hover:bg-accent transition-colors"
               >
-                Cancelar
+                Cancel
               </button>
               <button
                 type="submit"
@@ -2288,7 +2211,7 @@ export function TaskDetailPanel({
                 className="h-8 px-3 bg-primary text-primary-foreground rounded-[4px] text-[11px] disabled:opacity-40 transition-opacity inline-flex items-center gap-1"
               >
                 {creatingTag ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
-                Crear tag
+                Create tag
               </button>
             </div>
           </form>

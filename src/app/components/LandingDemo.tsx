@@ -10,11 +10,11 @@ import { LANDING_DEMO_DATA, type LandingDemoProject, type LandingDemoView } from
 
 const VIEW_LABELS: Record<LandingDemoView, string> = {
   dashboard: 'Dashboard',
-  projects: 'Proyectos',
-  reports: 'Reportes',
-  alerts: 'Alertas',
-  profile: 'Perfil',
-  settings: 'Configuración',
+  projects: 'Projects',
+  reports: 'Reports',
+  alerts: 'Alerts',
+  profile: 'Profile',
+  settings: 'Settings',
 };
 
 const DEMO_ROLE = 'project_manager' as const;
@@ -76,7 +76,7 @@ export function LandingDemo() {
   const columns = useMemo<DataTableColumn<LandingDemoProject>[]>(() => [
     {
       id: 'name',
-      header: 'Proyecto',
+      header: 'Project',
       accessor: (project) => (
         <div className="min-w-0">
           <div className="font-medium text-foreground truncate">{project.name}</div>
@@ -87,12 +87,12 @@ export function LandingDemo() {
     },
     {
       id: 'status',
-      header: 'Estado',
+      header: 'Status',
       accessor: (project) => <StatusBadge status={projectHealthStatus(project.health)} text={project.status.replace('_', ' ')} variant="pill" size="sm" />,
     },
     {
       id: 'progress',
-      header: 'Avance',
+      header: 'Progress',
       accessor: (project) => (
         <div className="min-w-[120px]">
           <div className="flex items-center justify-between text-[11px] text-muted-foreground mb-1">
@@ -112,7 +112,7 @@ export function LandingDemo() {
       accessor: (project) => (
         <div className="text-[12px] text-foreground">
           <div className="font-medium">{project.owner}</div>
-          <div className="text-muted-foreground">{project.teamSize} personas</div>
+          <div className="text-muted-foreground">{project.teamSize} people</div>
         </div>
       ),
       sortKey: 'owner',
@@ -139,13 +139,13 @@ export function LandingDemo() {
       <div className="max-w-3xl mx-auto text-center mb-8">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-[3px] border border-primary/20 bg-primary/10 text-primary text-[11px] font-medium mb-4">
           <Sparkles className="w-3 h-3" />
-          Demo interactivo embebido
+          Embedded interactive demo
         </div>
         <h2 className="text-2xl md:text-3xl font-semibold text-foreground mb-3">
-          Una vista simulada que se siente parte de la plataforma
+          A simulated view that feels like part of the platform
         </h2>
         <p className="text-sm md:text-base text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-          Navega entre vistas internas y revisa datos mock locales usando el mismo lenguaje visual, los mismos radios y la misma jerarquía que el resto del producto.
+          Move between internal views and explore local mock data using the same visual language, the same radii, and the same hierarchy as the rest of the product.
         </p>
       </div>
 
@@ -155,17 +155,17 @@ export function LandingDemo() {
             <div>
               <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.08em] text-muted-foreground mb-2">
                 <Shield className="w-3.5 h-3.5" />
-                Contexto de demo
+                Demo context
               </div>
               <div className={`inline-flex items-center gap-2 px-2.5 py-1 rounded-[3px] border text-[11px] font-medium ${roleToneMap[DEMO_ROLE]}`}>
                 <CircleUser className="w-3.5 h-3.5" />
-                {roleData.label} · Vista fija de demo
+                {roleData.label} · Fixed demo view
               </div>
               <p className="mt-3 text-[12px] leading-5 text-muted-foreground">{roleData.description}</p>
             </div>
 
             <div>
-              <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground mb-2">Navegación</div>
+              <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground mb-2">Navigation</div>
               <nav className="space-y-1">
                 {visibleViews.map((candidateView) => {
                   const active = candidateView === activeView;
@@ -185,9 +185,9 @@ export function LandingDemo() {
             </div>
 
             <div className="rounded-[3px] border border-border bg-card p-3">
-              <div className="text-[10px] uppercase tracking-[0.08em] text-muted-foreground mb-1">Acceso simulado</div>
-              <div className="text-[12px] font-medium text-foreground">{roleData.projects.length} proyectos visibles</div>
-              <div className="text-[11px] text-muted-foreground">{roleData.alerts.length} alertas activas en el contexto actual</div>
+              <div className="text-[10px] uppercase tracking-[0.08em] text-muted-foreground mb-1">Simulated access</div>
+              <div className="text-[12px] font-medium text-foreground">{roleData.projects.length} projects visible</div>
+              <div className="text-[11px] text-muted-foreground">{roleData.alerts.length} active alerts in the current context</div>
             </div>
           </aside>
 
@@ -202,11 +202,11 @@ export function LandingDemo() {
               <div className="flex items-center gap-2 shrink-0">
                 <div className="hidden md:flex items-center gap-2 rounded-[3px] border border-border bg-background px-3 py-1.5 text-[12px] text-muted-foreground min-w-[260px]">
                   <Activity className="w-3.5 h-3.5" />
-                  Búsqueda local de demo
+                  Local demo search
                 </div>
                 <div className="inline-flex items-center gap-2 rounded-[3px] border border-border bg-background px-3 py-1.5 text-[12px] text-muted-foreground">
                   <Briefcase className="w-3.5 h-3.5" />
-                  Mock data local
+                  Local mock data
                 </div>
               </div>
             </div>
@@ -220,10 +220,10 @@ export function LandingDemo() {
                     <div className="rounded-[4px] border border-border bg-card p-4">
                       <div className="flex items-center justify-between mb-4">
                         <div>
-                          <div className="text-[12px] font-semibold text-foreground">Avance consolidado</div>
-                          <div className="text-[11px] text-muted-foreground">Evolución simulada de las últimas 12 iteraciones</div>
+                          <div className="text-[12px] font-semibold text-foreground">Consolidated progress</div>
+                          <div className="text-[11px] text-muted-foreground">Simulated evolution over the last 12 iterations</div>
                         </div>
-                        <StatusBadge status="success" text="Estable" variant="pill" size="sm" />
+                        <StatusBadge status="success" text="Stable" variant="pill" size="sm" />
                       </div>
                       <div className="h-[190px] rounded-[3px] bg-surface-secondary/60 border border-border/60 p-3 flex items-end gap-2">
                         {[38, 44, 40, 52, 48, 61, 58, 66, 64, 72, 76, 82].map((height, index) => (
@@ -238,19 +238,19 @@ export function LandingDemo() {
 
                     <div className="rounded-[4px] border border-border bg-card p-4 space-y-4">
                       <div>
-                        <div className="text-[12px] font-semibold text-foreground">Panel rápido</div>
-                        <div className="text-[11px] text-muted-foreground">Acciones seguras y estado del contexto</div>
+                        <div className="text-[12px] font-semibold text-foreground">Quick panel</div>
+                        <div className="text-[11px] text-muted-foreground">Safe actions and context status</div>
                       </div>
                       <div className="space-y-2">
                         <div className="rounded-[3px] border border-border bg-background p-3">
-                          <div className="text-[10px] uppercase tracking-[0.08em] text-muted-foreground mb-1">Siguiente decisión</div>
-                          <div className="text-[12px] text-foreground font-medium">Alinear revisión de alcance antes del corte semanal.</div>
+                          <div className="text-[10px] uppercase tracking-[0.08em] text-muted-foreground mb-1">Next decision</div>
+                          <div className="text-[12px] text-foreground font-medium">Align the scope review before the weekly cutoff.</div>
                         </div>
                         <div className="rounded-[3px] border border-border bg-background p-3">
-                          <div className="text-[10px] uppercase tracking-[0.08em] text-muted-foreground mb-1">Estado de seguridad</div>
+                          <div className="text-[10px] uppercase tracking-[0.08em] text-muted-foreground mb-1">Security status</div>
                           <div className="flex items-center gap-2 text-[12px] text-foreground">
                             <Shield className="w-3.5 h-3.5 text-success" />
-                            Acceso solo de lectura para esta demo
+                            Read-only access for this demo
                           </div>
                         </div>
                       </div>
@@ -263,10 +263,10 @@ export function LandingDemo() {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <div className="text-[12px] font-semibold text-foreground">Lista de proyectos</div>
-                      <div className="text-[11px] text-muted-foreground">Tabla local con orden, estado y responsables simulados</div>
+                      <div className="text-[12px] font-semibold text-foreground">Project list</div>
+                      <div className="text-[11px] text-muted-foreground">Local table with simulated sorting, status, and owners</div>
                     </div>
-                    <StatusBadge status="info" text={`${roleData.projects.length} visibles`} variant="pill" size="sm" />
+                    <StatusBadge status="info" text={`${roleData.projects.length} visible`} variant="pill" size="sm" />
                   </div>
                   <div className="rounded-[4px] border border-border bg-card overflow-hidden">
                     <DataTable
@@ -286,7 +286,7 @@ export function LandingDemo() {
                   {selectedProject && (
                     <div className="rounded-[4px] border border-border bg-card overflow-hidden">
                       <div className="px-4 py-3 border-b border-border bg-surface-secondary/40">
-                        <div className="text-[10px] uppercase tracking-[0.08em] text-muted-foreground mb-1">Detalle del proyecto</div>
+                        <div className="text-[10px] uppercase tracking-[0.08em] text-muted-foreground mb-1">Project detail</div>
                         <div className="text-[18px] font-semibold text-foreground truncate">{selectedProject.name}</div>
                         <div className="mt-1 text-[12px] text-muted-foreground">{selectedProject.scope}</div>
                       </div>
@@ -301,9 +301,9 @@ export function LandingDemo() {
                             { id: 'boards', label: 'Boards', icon: <LayoutGrid className="w-3.5 h-3.5" /> },
                             { id: 'milestones', label: 'Milestones', icon: <Sparkles className="w-3.5 h-3.5" /> },
                             { id: 'code-review', label: 'Code Review', icon: <Shield className="w-3.5 h-3.5" /> },
-                            { id: 'repositorios', label: 'Repositorios', icon: <Briefcase className="w-3.5 h-3.5" /> },
-                            { id: 'equipo', label: 'Equipo', count: selectedProject.teamSize, icon: <Users className="w-3.5 h-3.5" /> },
-                            { id: 'configuracion', label: 'Configuración', icon: <Settings2 className="w-3.5 h-3.5" /> },
+                            { id: 'repositorios', label: 'Repositories', icon: <Briefcase className="w-3.5 h-3.5" /> },
+                            { id: 'equipo', label: 'Team', count: selectedProject.teamSize, icon: <Users className="w-3.5 h-3.5" /> },
+                            { id: 'configuracion', label: 'Settings', icon: <Settings2 className="w-3.5 h-3.5" /> },
                           ]}
                           activeTab={detailTab}
                           onTabChange={(id) => setDetailTab(id as typeof detailTab)}
@@ -315,7 +315,7 @@ export function LandingDemo() {
                           <div className="space-y-3">
                             <div className="grid sm:grid-cols-3 gap-2">
                               <div className="rounded-[3px] border border-border bg-background p-3">
-                                <div className="text-[10px] uppercase tracking-[0.08em] text-muted-foreground mb-1">Avance</div>
+                                <div className="text-[10px] uppercase tracking-[0.08em] text-muted-foreground mb-1">Progress</div>
                                 <div className="text-[18px] font-semibold text-foreground">{selectedProject.progress}%</div>
                               </div>
                               <div className="rounded-[3px] border border-border bg-background p-3">
@@ -323,7 +323,7 @@ export function LandingDemo() {
                                 <div className="text-[18px] font-semibold text-foreground">{selectedProject.budgetUsage}</div>
                               </div>
                               <div className="rounded-[3px] border border-border bg-background p-3">
-                                <div className="text-[10px] uppercase tracking-[0.08em] text-muted-foreground mb-1">Equipo</div>
+                                <div className="text-[10px] uppercase tracking-[0.08em] text-muted-foreground mb-1">Team</div>
                                 <div className="text-[18px] font-semibold text-foreground">{selectedProject.teamSize}</div>
                               </div>
                             </div>
@@ -332,13 +332,13 @@ export function LandingDemo() {
                               <div className="font-medium text-foreground">{selectedProject.owner}</div>
                             </div>
                             <div className="rounded-[3px] border border-border bg-background p-3">
-                              <div className="text-[10px] uppercase tracking-[0.08em] text-muted-foreground mb-1">Próximo hito</div>
+                              <div className="text-[10px] uppercase tracking-[0.08em] text-muted-foreground mb-1">Next milestone</div>
                               <div className="font-medium text-foreground">{selectedProject.nextMilestone}</div>
                             </div>
                             <div className="rounded-[3px] border border-border bg-background p-3">
                               <div className="flex items-center justify-between gap-2 mb-2">
-                                <div className="text-[12px] font-semibold text-foreground">Progreso global</div>
-                                <div className="text-[11px] text-muted-foreground">Última actualización {selectedProject.lastUpdate}</div>
+                                <div className="text-[12px] font-semibold text-foreground">Overall progress</div>
+                                <div className="text-[11px] text-muted-foreground">Last updated {selectedProject.lastUpdate}</div>
                               </div>
                               <div className="h-2 rounded-full bg-muted overflow-hidden">
                                 <div className="h-full rounded-full bg-primary" style={{ width: `${selectedProject.progress}%` }} />
@@ -350,12 +350,12 @@ export function LandingDemo() {
                         {detailTab === 'backlog' && (
                           <div className="space-y-2 text-[12px]">
                             <div className="rounded-[3px] border border-border bg-background p-3">
-                              <div className="font-medium text-foreground">Historias priorizadas</div>
-                              <div className="text-muted-foreground">3 tareas listas para sprint y 2 en refinamiento.</div>
+                              <div className="font-medium text-foreground">Prioritized stories</div>
+                              <div className="text-muted-foreground">3 tasks ready for the sprint and 2 in refinement.</div>
                             </div>
                             <div className="rounded-[3px] border border-border bg-background p-3">
-                              <div className="font-medium text-foreground">Bloqueos activos</div>
-                              <div className="text-muted-foreground">Una dependencia externa pendiente de confirmación.</div>
+                              <div className="font-medium text-foreground">Active blockers</div>
+                              <div className="text-muted-foreground">One external dependency awaiting confirmation.</div>
                             </div>
                           </div>
                         )}
@@ -363,11 +363,11 @@ export function LandingDemo() {
                         {detailTab === 'timeline' && (
                           <div className="space-y-2 text-[12px]">
                             <div className="rounded-[3px] border border-border bg-background p-3 flex items-center justify-between gap-2">
-                              <span className="text-muted-foreground">Inicio estimado</span>
-                              <span className="font-medium text-foreground">Hace 4 semanas</span>
+                              <span className="text-muted-foreground">Estimated start</span>
+                              <span className="font-medium text-foreground">4 weeks ago</span>
                             </div>
                             <div className="rounded-[3px] border border-border bg-background p-3 flex items-center justify-between gap-2">
-                              <span className="text-muted-foreground">Próxima entrega</span>
+                              <span className="text-muted-foreground">Next delivery</span>
                               <span className="font-medium text-foreground">{selectedProject.dueLabel}</span>
                             </div>
                           </div>
@@ -376,12 +376,12 @@ export function LandingDemo() {
                         {detailTab === 'sprints' && (
                           <div className="space-y-2 text-[12px]">
                             <div className="rounded-[3px] border border-border bg-background p-3">
-                              <div className="font-medium text-foreground">Sprint actual</div>
-                              <div className="text-muted-foreground">En progreso con seguimiento diario activo.</div>
+                              <div className="font-medium text-foreground">Current sprint</div>
+                              <div className="text-muted-foreground">In progress with active daily tracking.</div>
                             </div>
                             <div className="rounded-[3px] border border-border bg-background p-3">
-                              <div className="font-medium text-foreground">Siguiente sprint</div>
-                              <div className="text-muted-foreground">Planificado para continuar refinamiento y QA.</div>
+                              <div className="font-medium text-foreground">Next sprint</div>
+                              <div className="text-muted-foreground">Planned to continue refinement and QA.</div>
                             </div>
                           </div>
                         )}
@@ -389,8 +389,8 @@ export function LandingDemo() {
                         {detailTab === 'boards' && (
                           <div className="space-y-2 text-[12px]">
                             <div className="rounded-[3px] border border-border bg-background p-3">
-                              <div className="font-medium text-foreground">Board principal</div>
-                              <div className="text-muted-foreground">Flujo Kanban con columnas activas y finalizadas.</div>
+                              <div className="font-medium text-foreground">Main board</div>
+                              <div className="text-muted-foreground">Kanban flow with active and completed columns.</div>
                             </div>
                           </div>
                         )}
@@ -398,8 +398,8 @@ export function LandingDemo() {
                         {detailTab === 'milestones' && (
                           <div className="space-y-2 text-[12px]">
                             <div className="rounded-[3px] border border-border bg-background p-3">
-                              <div className="font-medium text-foreground">Milestone en curso</div>
-                              <div className="text-muted-foreground">Pendiente de cerrar validaciones de integración.</div>
+                              <div className="font-medium text-foreground">Milestone in progress</div>
+                              <div className="text-muted-foreground">Pending closure of integration validations.</div>
                             </div>
                           </div>
                         )}
@@ -407,8 +407,8 @@ export function LandingDemo() {
                         {detailTab === 'code-review' && (
                           <div className="space-y-2 text-[12px]">
                             <div className="rounded-[3px] border border-border bg-background p-3">
-                              <div className="font-medium text-foreground">Revisión activa</div>
-                              <div className="text-muted-foreground">Pull requests pendientes de aprobación y merge.</div>
+                              <div className="font-medium text-foreground">Active review</div>
+                              <div className="text-muted-foreground">Pull requests pending approval and merge.</div>
                             </div>
                           </div>
                         )}
@@ -416,8 +416,8 @@ export function LandingDemo() {
                         {detailTab === 'repositorios' && (
                           <div className="space-y-2 text-[12px]">
                             <div className="rounded-[3px] border border-border bg-background p-3">
-                              <div className="font-medium text-foreground">Repositorio enlazado</div>
-                              <div className="text-muted-foreground">Conexión al repositorio principal del proyecto.</div>
+                              <div className="font-medium text-foreground">Linked repository</div>
+                              <div className="text-muted-foreground">Connection to the project's main repository.</div>
                             </div>
                           </div>
                         )}
@@ -425,19 +425,19 @@ export function LandingDemo() {
                         {detailTab === 'equipo' && (
                           <div className="space-y-2 text-[12px]">
                             <div className="rounded-[3px] border border-border bg-background p-3 flex items-center justify-between gap-2">
-                              <span className="text-muted-foreground">Miembros</span>
+                              <span className="text-muted-foreground">Members</span>
                               <span className="font-medium text-foreground">{selectedProject.teamSize}</span>
                             </div>
                             <div className="rounded-[3px] border border-border bg-background p-3">
-                              <div className="font-medium text-foreground">Colaboradores activos</div>
-                              <div className="text-muted-foreground">Equipo asignado a la entrega y seguimiento diario.</div>
+                              <div className="font-medium text-foreground">Active contributors</div>
+                              <div className="text-muted-foreground">Team assigned to delivery and daily tracking.</div>
                             </div>
                           </div>
                         )}
 
                         {detailTab === 'configuracion' && (
                           <div className="rounded-[3px] border border-border bg-background p-3 text-[12px] text-muted-foreground">
-                            Configuración del proyecto disponible en la vista real después de iniciar sesión.
+                            Project settings are available in the real view after signing in.
                           </div>
                         )}
                       </div>
@@ -450,23 +450,23 @@ export function LandingDemo() {
                 <div className="grid xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] gap-3">
                   <div className="rounded-[4px] border border-border bg-card p-4 space-y-4">
                     <div>
-                      <div className="text-[12px] font-semibold text-foreground">Reporte ejecutivo</div>
-                      <div className="text-[11px] text-muted-foreground">Resumen comparable entre semanas con datos locales mockeados</div>
+                      <div className="text-[12px] font-semibold text-foreground">Executive report</div>
+                      <div className="text-[11px] text-muted-foreground">Week-over-week comparable summary using local mock data</div>
                     </div>
                     <div className="grid sm:grid-cols-2 gap-2">
                       <div className="rounded-[3px] border border-border bg-background p-3">
-                        <div className="text-[10px] uppercase tracking-[0.08em] text-muted-foreground mb-1">Desviación de plazo</div>
+                        <div className="text-[10px] uppercase tracking-[0.08em] text-muted-foreground mb-1">Schedule deviation</div>
                         <div className="text-[20px] font-semibold text-foreground">-6%</div>
-                        <div className="text-[11px] text-success">Mejoró respecto a la semana anterior</div>
+                        <div className="text-[11px] text-success">Improved over the previous week</div>
                       </div>
                       <div className="rounded-[3px] border border-border bg-background p-3">
-                        <div className="text-[10px] uppercase tracking-[0.08em] text-muted-foreground mb-1">Variación de alcance</div>
+                        <div className="text-[10px] uppercase tracking-[0.08em] text-muted-foreground mb-1">Scope variation</div>
                         <div className="text-[20px] font-semibold text-foreground">+2</div>
-                        <div className="text-[11px] text-warning">Cambios menores bajo control</div>
+                        <div className="text-[11px] text-warning">Minor changes under control</div>
                       </div>
                     </div>
                     <div className="rounded-[3px] border border-border bg-background p-3">
-                      <div className="text-[12px] font-medium text-foreground mb-2">Tendencia del último ciclo</div>
+                      <div className="text-[12px] font-medium text-foreground mb-2">Last cycle trend</div>
                       <div className="h-28 rounded-[3px] bg-surface-secondary/60 border border-border/60 p-2 flex items-end gap-2">
                         {[22, 38, 35, 49, 54, 60, 58, 72].map((height, index) => (
                           <div key={index} className="flex-1 flex items-end"><div className="w-full rounded-t-[2px] bg-info/20" style={{ height: `${height}%` }}><div className="h-[70%] w-full rounded-t-[2px] bg-info/75" /></div></div>
@@ -478,19 +478,19 @@ export function LandingDemo() {
                   <div className="rounded-[4px] border border-border bg-card p-4">
                     <div className="flex items-center justify-between gap-2 mb-3">
                       <div>
-                        <div className="text-[12px] font-semibold text-foreground">Lecturas ejecutivas</div>
-                        <div className="text-[11px] text-muted-foreground">Resúmenes y estados de control</div>
+                        <div className="text-[12px] font-semibold text-foreground">Executive readouts</div>
+                        <div className="text-[11px] text-muted-foreground">Summaries and control statuses</div>
                       </div>
-                      <StatusBadge status="info" variant="pill" size="sm" text="Semanal" />
+                      <StatusBadge status="info" variant="pill" size="sm" text="Weekly" />
                     </div>
                     <div className="space-y-2">
                       {isStakeholderView ? (
                         <EmptyState icon="inbox" title={roleData.emptyStates.reports.title} description={roleData.emptyStates.reports.description} />
                       ) : (
                         [
-                          { label: 'Proyectos en verde', value: '18', tone: 'success' },
-                          { label: 'Revisiones pendientes', value: '4', tone: 'warning' },
-                          { label: 'Tareas bloqueadas', value: '1', tone: 'danger' },
+                          { label: 'Projects on track', value: '18', tone: 'success' },
+                          { label: 'Pending reviews', value: '4', tone: 'warning' },
+                          { label: 'Blocked tasks', value: '1', tone: 'danger' },
                         ].map((item) => (
                           <div key={item.label} className="flex items-center justify-between rounded-[3px] border border-border bg-background px-3 py-2 text-[12px]">
                             <span className="text-muted-foreground">{item.label}</span>
@@ -508,10 +508,10 @@ export function LandingDemo() {
                   <div className="rounded-[4px] border border-border bg-card p-4 space-y-3">
                     <div className="flex items-center justify-between gap-2">
                       <div>
-                        <div className="text-[12px] font-semibold text-foreground">Alertas recientes</div>
-                        <div className="text-[11px] text-muted-foreground">Notificaciones simuladas del contexto actual</div>
+                        <div className="text-[12px] font-semibold text-foreground">Recent alerts</div>
+                        <div className="text-[11px] text-muted-foreground">Simulated notifications from the current context</div>
                       </div>
-                      <StatusBadge status="warning" variant="pill" size="sm" text={`${roleData.alerts.length} activas`} />
+                      <StatusBadge status="warning" variant="pill" size="sm" text={`${roleData.alerts.length} active`} />
                     </div>
                     {roleData.alerts.length === 0 ? (
                       <EmptyState icon="inbox" title={roleData.emptyStates.alerts.title} description={roleData.emptyStates.alerts.description} />
@@ -534,11 +534,11 @@ export function LandingDemo() {
                   </div>
 
                   <div className="rounded-[4px] border border-border bg-card p-4 space-y-3">
-                    <div className="text-[12px] font-semibold text-foreground">Criterios de priorización</div>
+                    <div className="text-[12px] font-semibold text-foreground">Prioritization criteria</div>
                     <div className="space-y-2 text-[12px] text-muted-foreground">
-                      <div className="rounded-[3px] border border-border bg-background p-3">Las alertas críticas elevan la franja roja en la cabecera del proyecto.</div>
-                      <div className="rounded-[3px] border border-border bg-background p-3">Las incidencias medias se agrupan por proyecto para no saturar la vista.</div>
-                      <div className="rounded-[3px] border border-border bg-background p-3">Los perfiles ejecutivos ven resúmenes y no la cola operativa completa.</div>
+                      <div className="rounded-[3px] border border-border bg-background p-3">Critical alerts raise the red banner in the project header.</div>
+                      <div className="rounded-[3px] border border-border bg-background p-3">Medium-severity issues are grouped by project to avoid cluttering the view.</div>
+                      <div className="rounded-[3px] border border-border bg-background p-3">Executive profiles see summaries rather than the full operational queue.</div>
                     </div>
                   </div>
                 </div>
@@ -555,34 +555,34 @@ export function LandingDemo() {
                       </div>
                     </div>
                     <div className="space-y-2 text-[12px]">
-                      <div><span className="text-muted-foreground">Correo:</span> <span className="text-foreground">{roleData.profile.email}</span></div>
-                      <div><span className="text-muted-foreground">Cobertura:</span> <span className="text-foreground">{roleData.profile.scope}</span></div>
-                      <div><span className="text-muted-foreground">Ubicación:</span> <span className="text-foreground">{roleData.profile.location}</span></div>
-                      <div><span className="text-muted-foreground">Equipo:</span> <span className="text-foreground">{roleData.profile.team}</span></div>
+                      <div><span className="text-muted-foreground">Email:</span> <span className="text-foreground">{roleData.profile.email}</span></div>
+                      <div><span className="text-muted-foreground">Coverage:</span> <span className="text-foreground">{roleData.profile.scope}</span></div>
+                      <div><span className="text-muted-foreground">Location:</span> <span className="text-foreground">{roleData.profile.location}</span></div>
+                      <div><span className="text-muted-foreground">Team:</span> <span className="text-foreground">{roleData.profile.team}</span></div>
                     </div>
                   </div>
 
                   <div className="rounded-[4px] border border-border bg-card p-4">
                     <div className="flex items-center justify-between gap-2 mb-3">
                       <div>
-                        <div className="text-[12px] font-semibold text-foreground">Configuración y alcance</div>
-                        <div className="text-[11px] text-muted-foreground">Preferencias, permisos y placeholders de demo</div>
+                        <div className="text-[12px] font-semibold text-foreground">Settings and scope</div>
+                        <div className="text-[11px] text-muted-foreground">Preferences, permissions, and demo placeholders</div>
                       </div>
-                      <StatusBadge status="neutral" variant="pill" size="sm" text="Solo lectura" />
+                      <StatusBadge status="neutral" variant="pill" size="sm" text="Read only" />
                     </div>
 
                     {canEditProfileSettings ? (
                       <div className="grid md:grid-cols-2 gap-2">
                         <div className="rounded-[3px] border border-border bg-background p-3">
-                          <div className="text-[10px] uppercase tracking-[0.08em] text-muted-foreground mb-1">Notificaciones</div>
-                          <div className="text-[12px] font-medium text-foreground">Resumen diario activado</div>
+                          <div className="text-[10px] uppercase tracking-[0.08em] text-muted-foreground mb-1">Notifications</div>
+                          <div className="text-[12px] font-medium text-foreground">Daily summary enabled</div>
                         </div>
                         <div className="rounded-[3px] border border-border bg-background p-3">
-                          <div className="text-[10px] uppercase tracking-[0.08em] text-muted-foreground mb-1">Privacidad</div>
-                          <div className="text-[12px] font-medium text-foreground">Datos visibles por rol</div>
+                          <div className="text-[10px] uppercase tracking-[0.08em] text-muted-foreground mb-1">Privacy</div>
+                          <div className="text-[12px] font-medium text-foreground">Data visible by role</div>
                         </div>
                         <div className="rounded-[3px] border border-border bg-background p-3 md:col-span-2">
-                          <div className="text-[10px] uppercase tracking-[0.08em] text-muted-foreground mb-1">Vista de prueba</div>
+                          <div className="text-[10px] uppercase tracking-[0.08em] text-muted-foreground mb-1">Test view</div>
                           <div className="text-[12px] text-foreground">{roleData.emptyStates.settings.description}</div>
                         </div>
                       </div>

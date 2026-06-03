@@ -4,9 +4,9 @@ import {
   Loader2, RefreshCw, Clock, User, AlertCircle, Send,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { chatService, tasksService, githubService, usersService } from '../../services';
+import { chatService, tasksService, githubService } from '../../services';
 import { ApiRequestError } from '../../services/api';
-import type { AIProvider, ApiTask, ApiTaskPushMatch, ChatModelsResponse } from '../../services';
+import type { ApiTask, ApiTaskPushMatch, ChatModelsResponse } from '../../services';
 import { CodeDiffViewer } from './CodeDiffViewer';
 
 interface CodeReviewPanelProps {
@@ -86,11 +86,9 @@ export function CodeReviewPanel({ projectId, repoFullName }: CodeReviewPanelProp
   const [taskHistories, setTaskHistories] = useState<Map<number, TaskHistoryState>>(new Map());
   const [expandedMatches, setExpandedMatches] = useState<Set<number>>(new Set());
   const [matchDiffs, setMatchDiffs] = useState<Map<number, MatchDiffState>>(new Map());
-  const [aiProvider, setAiProvider] = useState<AIProvider>('copilot');
-  const [aiModels, setAiModels] = useState<ChatModelsResponse>({ copilot: [], yemoda: [] });
+  const [aiModels, setAiModels] = useState<ChatModelsResponse>({ yemoda: [] });
   const [loadingAiModels, setLoadingAiModels] = useState(false);
   const [aiModel, setAiModel] = useState('');
-  const [githubToken, setGithubToken] = useState<string | null>(null);
   const [chatInputByTask, setChatInputByTask] = useState<Map<number, string>>(new Map());
   const [chatByTask, setChatByTask] = useState<Map<number, ChatMessage[]>>(new Map());
   const [sendingTaskId, setSendingTaskId] = useState<number | null>(null);
@@ -113,21 +111,17 @@ export function CodeReviewPanel({ projectId, repoFullName }: CodeReviewPanelProp
     setLoadingAiModels(true);
     chatService.getModels()
       .then((models) => setAiModels(models))
-      .catch(() => setAiModels({ copilot: [], yemoda: [] }))
+      .catch(() => setAiModels({ yemoda: [] }))
       .finally(() => setLoadingAiModels(false));
-
-    usersService.me()
-      .then((me) => setGithubToken(me.github_token ?? null))
-      .catch(() => setGithubToken(null));
   }, []);
 
   useEffect(() => {
-    const options = aiProvider === 'copilot' ? (aiModels.copilot ?? []) : (aiModels.yemoda ?? []);
+    const options = aiModels.yemoda ?? [];
     setAiModel((current) => {
       if (current && options.some((model) => model.id === current)) return current;
       return options[0]?.id ?? '';
     });
-  }, [aiProvider, aiModels]);
+  }, [aiModels]);
 
   const toggleTask = async (taskId: number) => {
     setExpandedTasks(prev => {
@@ -142,7 +136,7 @@ export function CodeReviewPanel({ projectId, repoFullName }: CodeReviewPanelProp
         const dedupedMatches = dedupeMatches(matches);
         setTaskHistories(prev => new Map(prev).set(taskId, { matches: dedupedMatches, loading: false, error: null }));
       } catch {
-        setTaskHistories(prev => new Map(prev).set(taskId, { matches: [], loading: false, error: 'No se pudo cargar el historial' }));
+        setTaskHistories(prev => new Map(prev).set(taskId, { matches: [], loading: false, error: 'Could not load history' }));
       }
     }
   };
@@ -167,7 +161,7 @@ export function CodeReviewPanel({ projectId, repoFullName }: CodeReviewPanelProp
         const files = (diff.files ?? []).map(f => ({ filename: f.filename, patch: f.patch ?? '' }));
         setMatchDiffs(prev => new Map(prev).set(matchId, { files, loading: false, error: null }));
       } catch {
-        setMatchDiffs(prev => new Map(prev).set(matchId, { files: null, loading: false, error: 'No se pudo cargar el diff' }));
+        setMatchDiffs(prev => new Map(prev).set(matchId, { files: null, loading: false, error: 'Could not load the diff' }));
       }
     } else {
       setMatchDiffs(prev => new Map(prev).set(matchId, { files: [], loading: false, error: null }));
@@ -177,29 +171,6 @@ export function CodeReviewPanel({ projectId, repoFullName }: CodeReviewPanelProp
   const sendCodeReviewMessage = async (task: ApiTask) => {
     const input = (chatInputByTask.get(task.id_task) ?? '').trim();
     if (!input) return;
-    let effectiveProvider: AIProvider = aiProvider;
-    let copilotStatusDetail = '';
-    if (aiProvider === 'copilot') {
-      if (!githubToken) {
-        effectiveProvider = 'yemoda';
-        toast.info('Copilot no está disponible en tu cuenta. Se usará Yemoda AI para esta solicitud.');
-      } else {
-        try {
-          const statusInfo = await chatService.getCopilotStatus(githubToken);
-          copilotStatusDetail = statusInfo.detail || '';
-          if (!statusInfo.copilot_access) {
-            effectiveProvider = 'yemoda';
-            toast.info(
-              'Tu cuenta de GitHub no tiene acceso activo a Copilot. Se usará Yemoda AI para esta solicitud.',
-              { description: copilotStatusDetail || undefined },
-            );
-          }
-        } catch {
-          effectiveProvider = 'yemoda';
-          toast.info('No se pudo validar el acceso a Copilot. Se usará Yemoda AI para esta solicitud.');
-        }
-      }
-    }
 
     const history = taskHistories.get(task.id_task)?.matches ?? [];
     const primaryMatch = history[0] ?? null;
@@ -227,11 +198,8 @@ export function CodeReviewPanel({ projectId, repoFullName }: CodeReviewPanelProp
 
     try {
       const payload = {
-        provider: effectiveProvider,
         model: aiModel || undefined,
         messages: requestMessages,
-        stream: effectiveProvider === 'copilot',
-        ...(effectiveProvider === 'copilot' && githubToken ? { github_token: githubToken } : {}),
         context_type: 'code_review' as const,
         context_data: {
           diff,
@@ -241,88 +209,39 @@ export function CodeReviewPanel({ projectId, repoFullName }: CodeReviewPanelProp
         },
       };
 
-      if (effectiveProvider === 'copilot') {
-        const streamed = await chatService.stream(payload, (chunk) => {
-          setChatByTask((prev) => {
-            const current = [...(prev.get(task.id_task) ?? [])];
-            if (current.length === 0) return prev;
-            const last = current[current.length - 1];
-            if (last.role !== 'assistant') return prev;
-            current[current.length - 1] = { ...last, content: `${last.content}${chunk}` };
-            return new Map(prev).set(task.id_task, current);
+      const response = await chatService.send(payload);
+      if (response.trim()) {
+        try {
+          await tasksService.createAiReviewResult({
+            task: task.id_task,
+            provider: 'yemoda',
+            model_name: aiModel || null,
+            result_text: response.trim(),
           });
-        });
-
-        const finalText = streamed.trim() || (chatByTask.get(task.id_task)?.at(-1)?.content ?? '').trim();
-        if (finalText) {
-          try {
-            await tasksService.createAiReviewResult({
-              task: task.id_task,
-              provider: effectiveProvider,
-              model_name: aiModel || null,
-              result_text: finalText,
-            });
-          } catch {
-            // Non-blocking persistence failure.
-          }
+        } catch {
+          // Non-blocking persistence failure.
         }
-
-        if (!streamed.trim()) {
-          setChatByTask((prev) => {
-            const current = [...(prev.get(task.id_task) ?? [])];
-            if (current.length === 0) return prev;
-            current[current.length - 1] = { role: 'assistant', content: 'No hubo respuesta del proveedor.' };
-            return new Map(prev).set(task.id_task, current);
-          });
-        }
-      } else {
-        const response = await chatService.send(payload);
-        if (response.trim()) {
-          try {
-            await tasksService.createAiReviewResult({
-              task: task.id_task,
-              provider: effectiveProvider,
-              model_name: aiModel || null,
-              result_text: response.trim(),
-            });
-          } catch {
-            // Non-blocking persistence failure.
-          }
-        }
-        setChatByTask((prev) => {
-          const current = [...(prev.get(task.id_task) ?? [])];
-          if (current.length === 0) return prev;
-          current[current.length - 1] = { role: 'assistant', content: response || 'No hubo respuesta del proveedor.' };
-          return new Map(prev).set(task.id_task, current);
-        });
       }
+      setChatByTask((prev) => {
+        const current = [...(prev.get(task.id_task) ?? [])];
+        if (current.length === 0) return prev;
+        current[current.length - 1] = { role: 'assistant', content: response || 'No response from the AI.' };
+        return new Map(prev).set(task.id_task, current);
+      });
     } catch (err) {
-      const streamStatus = err instanceof Error ? Number(err.message.split(':')[0]) : NaN;
-      const isCopilotAuthError = effectiveProvider === 'copilot' && (
-        (err instanceof ApiRequestError && (err.status === 401 || err.status === 403))
-        || streamStatus === 401
-        || streamStatus === 403
-      );
-
-      if (isCopilotAuthError) {
-        toast.error('Tu cuenta no tiene acceso activo a GitHub Copilot. Cambia a Yemoda AI o activa Copilot.', {
-          description: copilotStatusDetail || undefined,
-        });
+      const detail = err instanceof ApiRequestError
+        ? String(err.body?.detail ?? '')
+        : err instanceof Error ? err.message : '';
+      if (/unavailable|temporarily|down|service/i.test(detail)) {
+        toast.error('AI service temporarily unavailable.');
       } else {
-        const detail = err instanceof ApiRequestError
-          ? String(err.body?.detail ?? '')
-          : err instanceof Error ? err.message : '';
-        if (aiProvider === 'yemoda' && /unavailable|temporarily|down|service/i.test(detail)) {
-          toast.error('Servicio de IA temporalmente no disponible.');
-        } else {
-          toast.error('No se pudo enviar el mensaje de revisión.');
-        }
+        toast.error('Could not send the review message.');
       }
 
       setChatByTask((prev) => {
         const current = [...(prev.get(task.id_task) ?? [])];
         if (current.length === 0) return prev;
-        current[current.length - 1] = { role: 'assistant', content: 'No se pudo completar la solicitud.' };
+        current[current.length - 1] = { role: 'assistant', content: 'Could not complete the request.' };
         return new Map(prev).set(task.id_task, current);
       });
     } finally {
@@ -335,7 +254,7 @@ export function CodeReviewPanel({ projectId, repoFullName }: CodeReviewPanelProp
       <div className="text-center py-16">
         <FileCode2 className="w-8 h-8 text-muted-foreground/30 mx-auto mb-3" />
         <p className="text-[12px] text-muted-foreground">No repository linked to this project.</p>
-        <p className="text-[10px] text-muted-foreground/60 mt-1">Vincula un repositorio en la pestaÃ±a Repositorios.</p>
+        <p className="text-[10px] text-muted-foreground/60 mt-1">Link a repository in the Repositories tab.</p>
       </div>
     );
   }
@@ -344,7 +263,7 @@ export function CodeReviewPanel({ projectId, repoFullName }: CodeReviewPanelProp
     return (
       <div className="flex items-center justify-center py-16 text-muted-foreground gap-2">
         <Loader2 className="w-4 h-4 animate-spin" />
-        <span className="text-[12px]">Cargando tareasâ€¦</span>
+        <span className="text-[12px]">Loading tasks…</span>
       </div>
     );
   }
@@ -353,7 +272,7 @@ export function CodeReviewPanel({ projectId, repoFullName }: CodeReviewPanelProp
     return (
       <div className="text-center py-16">
         <GitCommit className="w-8 h-8 text-muted-foreground/30 mx-auto mb-3" />
-        <p className="text-[12px] text-muted-foreground">No hay tareas en este proyecto.</p>
+        <p className="text-[12px] text-muted-foreground">No tasks in this project.</p>
       </div>
     );
   }
@@ -362,37 +281,20 @@ export function CodeReviewPanel({ projectId, repoFullName }: CodeReviewPanelProp
     <div className="space-y-2">
       <div className="rounded-[4px] border border-border bg-card p-2.5 space-y-2">
         <div className="flex items-center justify-between gap-2">
-          <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-[0.06em]">Proveedor IA</p>
+          <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-[0.06em]">AI Model</p>
           {loadingAiModels && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />}
         </div>
-        <div className="grid grid-cols-2 gap-1.5">
-          <button
-            type="button"
-            onClick={() => setAiProvider('copilot')}
-            className={`h-7 rounded-[3px] border text-[10px] ${aiProvider === 'copilot' ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:text-foreground'}`}
-          >
-            Usar mi GitHub Copilot
-          </button>
-          <button
-            type="button"
-            onClick={() => setAiProvider('yemoda')}
-            className={`h-7 rounded-[3px] border text-[10px] ${aiProvider === 'yemoda' ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:text-foreground'}`}
-          >
-            Usar Yemoda AI
-          </button>
-        </div>
         <div>
-          <label className="block text-[10px] text-muted-foreground mb-1">Modelo</label>
           <select
             value={aiModel}
             onChange={(e) => setAiModel(e.target.value)}
             className="w-full h-7 rounded-[3px] border border-border bg-surface-secondary px-2 text-[10px]"
           >
-            {(aiProvider === 'copilot' ? (aiModels.copilot ?? []) : (aiModels.yemoda ?? [])).map((model) => (
+            {(aiModels.yemoda ?? []).map((model) => (
               <option key={model.id} value={model.id}>{model.id}</option>
             ))}
-            {((aiProvider === 'copilot' ? (aiModels.copilot ?? []) : (aiModels.yemoda ?? [])).length === 0) && (
-              <option value="">Sin modelos disponibles</option>
+            {(aiModels.yemoda ?? []).length === 0 && (
+              <option value="">No models available</option>
             )}
           </select>
         </div>
@@ -402,7 +304,7 @@ export function CodeReviewPanel({ projectId, repoFullName }: CodeReviewPanelProp
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <GitCommit className="w-3.5 h-3.5 text-muted-foreground" />
-          <span className="text-[12px] font-semibold text-foreground">{tasks.length} tareas</span>
+          <span className="text-[12px] font-semibold text-foreground">{tasks.length} tasks</span>
         </div>
         <button
           onClick={fetchTasks}
@@ -445,7 +347,7 @@ export function CodeReviewPanel({ projectId, repoFullName }: CodeReviewPanelProp
               <div className="divide-y divide-border/50">
                 {history?.loading && (
                   <div className="flex items-center gap-2 px-4 py-3 text-[11px] text-muted-foreground">
-                    <Loader2 className="w-3 h-3 animate-spin" /> Cargando historialâ€¦
+                    <Loader2 className="w-3 h-3 animate-spin" /> Loading history…
                   </div>
                 )}
                 {history?.error && (
@@ -453,7 +355,7 @@ export function CodeReviewPanel({ projectId, repoFullName }: CodeReviewPanelProp
                 )}
                 {history?.matches?.length === 0 && !history.loading && (
                   <p className="px-4 py-3 text-[11px] text-muted-foreground/60 italic">
-                    Sin pushes vinculados a esta tarea.
+                    No pushes linked to this task.
                   </p>
                 )}
 
@@ -484,7 +386,7 @@ export function CodeReviewPanel({ projectId, repoFullName }: CodeReviewPanelProp
                                 ? 'bg-emerald-500/8 text-emerald-300'
                                 : 'bg-amber-500/10 text-amber-500'
                             }`}>
-                              {match.coverage === 'full' ? 'Completa' : 'Parcial'}
+                              {match.coverage === 'full' ? 'Full' : 'Partial'}
                             </span>
                           </div>
                           <div className="flex items-center gap-3 mt-1 text-[10px] text-muted-foreground">
@@ -503,7 +405,7 @@ export function CodeReviewPanel({ projectId, repoFullName }: CodeReviewPanelProp
                               <span>{match.push_commits.length} commit{match.push_commits.length !== 1 ? 's' : ''}</span>
                             )}
                             {filesChanged.length > 0 && (
-                              <span>{filesChanged.length} archivo{filesChanged.length !== 1 ? 's' : ''}</span>
+                              <span>{filesChanged.length} file{filesChanged.length !== 1 ? 's' : ''}</span>
                             )}
                           </div>
                         </div>
@@ -520,7 +422,7 @@ export function CodeReviewPanel({ projectId, repoFullName }: CodeReviewPanelProp
                           )}
                           {diffState?.loading && (
                             <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                              <Loader2 className="w-3 h-3 animate-spin" /> Cargando diffâ€¦
+                              <Loader2 className="w-3 h-3 animate-spin" /> Loading diff…
                             </div>
                           )}
                           {diffState?.error && (
@@ -530,7 +432,7 @@ export function CodeReviewPanel({ projectId, repoFullName }: CodeReviewPanelProp
                             <CodeDiffViewer key={i} filename={file.filename} patch={file.patch} />
                           ))}
                           {diffState?.files?.length === 0 && !diffState.loading && (
-                            <p className="text-[11px] text-muted-foreground/60 italic">Sin diff disponible para este push.</p>
+                            <p className="text-[11px] text-muted-foreground/60 italic">No diff available for this push.</p>
                           )}
                         </div>
                       )}
@@ -539,14 +441,14 @@ export function CodeReviewPanel({ projectId, repoFullName }: CodeReviewPanelProp
                 })}
 
                 <div className="px-3 py-3 bg-card space-y-2">
-                  <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-[0.06em]">Chat de Code Review</p>
+                  <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-[0.06em]">Code Review Chat</p>
                   <div className="max-h-44 overflow-y-auto rounded-[4px] border border-border bg-surface-secondary/30 p-2 space-y-1.5">
                     {(chatByTask.get(task.id_task) ?? []).length === 0 ? (
-                      <p className="text-[11px] text-muted-foreground">Pregunta sobre el diff para iniciar la conversación.</p>
+                      <p className="text-[11px] text-muted-foreground">Ask about the diff to start the conversation.</p>
                     ) : (
                       (chatByTask.get(task.id_task) ?? []).map((message, index) => (
                         <div key={`${task.id_task}-${index}`} className={`rounded-[3px] px-2 py-1.5 text-[11px] ${message.role === 'user' ? 'bg-primary/10 text-foreground' : 'bg-card border border-border text-muted-foreground'}`}>
-                          {message.content || (sendingTaskId === task.id_task && message.role === 'assistant' ? 'Escribiendo…' : '')}
+                          {message.content || (sendingTaskId === task.id_task && message.role === 'assistant' ? 'Typing…' : '')}
                         </div>
                       ))
                     )}
@@ -556,7 +458,7 @@ export function CodeReviewPanel({ projectId, repoFullName }: CodeReviewPanelProp
                       type="text"
                       value={chatInputByTask.get(task.id_task) ?? ''}
                       onChange={(e) => setChatInputByTask((prev) => new Map(prev).set(task.id_task, e.target.value))}
-                      placeholder="Preguntar sobre cambios, riesgos o mejoras…"
+                      placeholder="Ask about changes, risks, or improvements…"
                       className="flex-1 h-7 rounded-[3px] border border-border bg-surface-secondary px-2 text-[11px]"
                     />
                     <button

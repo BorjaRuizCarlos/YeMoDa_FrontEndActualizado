@@ -31,12 +31,12 @@ export default function NotFound() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.2 }}
         >
-          <h2 className="text-lg font-semibold text-foreground mb-2">Página no encontrada</h2>
+          <h2 className="text-lg font-semibold text-foreground mb-2">Page not found</h2>
           <p className="text-sm text-muted-foreground mb-1">
-            La ruta <code className="px-1.5 py-0.5 bg-muted rounded text-xs font-mono">{location.pathname}</code> no existe.
+            The path <code className="px-1.5 py-0.5 bg-muted rounded text-xs font-mono">{location.pathname}</code> does not exist.
           </p>
           <p className="text-sm text-muted-foreground mb-8">
-            Verifica la URL o regresa a una sección disponible.
+            Check the URL or go back to an available section.
           </p>
         </motion.div>
 
@@ -51,14 +51,14 @@ export default function NotFound() {
             className="px-4 py-2 bg-primary hover:bg-primary-hover text-primary-foreground rounded-md text-sm font-medium flex items-center gap-1.5 transition-colors"
           >
             <Home className="w-4 h-4" />
-            Ir al Dashboard
+            Go to Dashboard
           </Link>
           <button
             onClick={() => window.history.back()}
             className="px-4 py-2 bg-secondary hover:bg-accent text-foreground rounded-md text-sm font-medium flex items-center gap-1.5 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            Volver atrás
+            Go back
           </button>
         </motion.div>
       </div>

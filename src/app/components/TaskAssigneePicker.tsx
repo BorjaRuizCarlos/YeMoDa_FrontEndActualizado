@@ -14,7 +14,7 @@ export function TaskAssigneePicker({
   selectedIds,
   onChange,
   disabled = false,
-  emptyText = 'Sin personas asignadas',
+  emptyText = 'No assignees',
 }: TaskAssigneePickerProps) {
   const [query, setQuery] = useState('');
 
@@ -52,7 +52,7 @@ export function TaskAssigneePicker({
       <div className="border-b border-border px-3 py-2">
         <div className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-[0.06em] text-muted-foreground">
           <Users className="w-3.5 h-3.5" />
-          Personas asignadas
+          Assignees
         </div>
         <div className="mt-2 flex flex-wrap gap-1.5 min-h-[28px]">
           {selectedUsers.length > 0 ? selectedUsers.map((user) => (
@@ -66,7 +66,7 @@ export function TaskAssigneePicker({
                   type="button"
                   onClick={() => clearUser(user.id)}
                   className="text-muted-foreground hover:text-foreground"
-                  aria-label={`Quitar a ${user.name}`}
+                  aria-label={`Remove ${user.name}`}
                 >
                   <X className="w-3 h-3" />
                 </button>
@@ -85,7 +85,7 @@ export function TaskAssigneePicker({
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Buscar personas..."
+            placeholder="Search people..."
             disabled={disabled}
             className="h-8 w-full rounded-[4px] border border-border bg-card pl-8 pr-3 text-[11px] text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-primary/20 disabled:cursor-not-allowed"
           />
@@ -114,7 +114,7 @@ export function TaskAssigneePicker({
             );
           }) : (
             <div className="rounded-[4px] border border-dashed border-border bg-card/50 px-3 py-4 text-center text-[11px] text-muted-foreground">
-              No hay coincidencias.
+              No matches found.
             </div>
           )}
         </div>

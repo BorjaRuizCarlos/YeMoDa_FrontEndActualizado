@@ -37,7 +37,7 @@ export function useApiProjects(): UseApiState<ApiProject[]> {
         if (err instanceof ApiRequestError) {
           setError(err.message);
         } else {
-          setError('No se pudo conectar al servidor.');
+          setError('Could not connect to the server.');
         }
       })
       .finally(() => { if (!cancelled) setLoading(false); });
@@ -81,7 +81,7 @@ export function useApiTasks(boardId?: number, projectId?: number): UseApiTasksSt
         setPriorities(prios);
       })
       .catch((err) => {
-        if (!cancelled) setError(err instanceof ApiRequestError ? err.message : 'Error cargando tareas.');
+        if (!cancelled) setError(err instanceof ApiRequestError ? err.message : 'Error loading tasks.');
       })
       .finally(() => { if (!cancelled) setLoading(false); });
 
@@ -108,7 +108,7 @@ export function useApiUsers(): UseApiUsersState {
     usersService.list()
       .then((users) => { if (!cancelled) setData(users); })
       .catch((err) => {
-        if (!cancelled) setError(err instanceof ApiRequestError ? err.message : 'Error cargando usuarios.');
+        if (!cancelled) setError(err instanceof ApiRequestError ? err.message : 'Error loading users.');
       })
       .finally(() => { if (!cancelled) setLoading(false); });
 
@@ -136,7 +136,7 @@ export function useApiBoards(projectId?: number): UseApiState<ApiBoard[]> {
     tasksService.listBoards(projectId)
       .then((boards) => { if (!cancelled) setData(boards); })
       .catch((err) => {
-        if (!cancelled) setError(err instanceof ApiRequestError ? err.message : 'Error cargando boards.');
+        if (!cancelled) setError(err instanceof ApiRequestError ? err.message : 'Error loading boards.');
       })
       .finally(() => { if (!cancelled) setLoading(false); });
 
@@ -162,7 +162,7 @@ export function useApiBoardColumns(boardId?: number): UseApiState<ApiBoardColumn
     tasksService.listBoardColumns(boardId)
       .then((columns) => { if (!cancelled) setData(columns); })
       .catch((err) => {
-        if (!cancelled) setError(err instanceof ApiRequestError ? err.message : 'Error cargando columnas.');
+        if (!cancelled) setError(err instanceof ApiRequestError ? err.message : 'Error loading columns.');
       })
       .finally(() => { if (!cancelled) setLoading(false); });
 
@@ -188,7 +188,7 @@ export function useApiSprints(projectId?: number): UseApiState<ApiSprint[]> {
     tasksService.listSprints(projectId)
       .then((sprints) => { if (!cancelled) setData(sprints); })
       .catch((err) => {
-        if (!cancelled) setError(err instanceof ApiRequestError ? err.message : 'Error cargando sprints.');
+        if (!cancelled) setError(err instanceof ApiRequestError ? err.message : 'Error loading sprints.');
       })
       .finally(() => { if (!cancelled) setLoading(false); });
 
@@ -214,7 +214,7 @@ export function useApiMilestones(projectId?: number): UseApiState<ApiMilestone[]
     tasksService.listMilestones(projectId)
       .then((milestones) => { if (!cancelled) setData(milestones); })
       .catch((err) => {
-        if (!cancelled) setError(err instanceof ApiRequestError ? err.message : 'Error cargando milestones.');
+        if (!cancelled) setError(err instanceof ApiRequestError ? err.message : 'Error loading milestones.');
       })
       .finally(() => { if (!cancelled) setLoading(false); });
 
@@ -240,7 +240,7 @@ export function useApiTags(projectId?: number): UseApiState<ApiTag[]> {
     tasksService.listTags(projectId)
       .then((tags) => { if (!cancelled) setData(tags); })
       .catch((err) => {
-        if (!cancelled) setError(err instanceof ApiRequestError ? err.message : 'Error cargando tags.');
+        if (!cancelled) setError(err instanceof ApiRequestError ? err.message : 'Error loading tags.');
       })
       .finally(() => { if (!cancelled) setLoading(false); });
 
@@ -280,7 +280,7 @@ export function useApiProjectMembers(projectId?: number, userId?: number): UseAp
           });
       })
       .catch((err) => {
-        if (!cancelled) setError(err instanceof ApiRequestError ? err.message : 'Error cargando miembros.');
+        if (!cancelled) setError(err instanceof ApiRequestError ? err.message : 'Error loading members.');
       })
       .finally(() => { if (!cancelled) setLoading(false); });
 
@@ -306,7 +306,7 @@ export function useApiActivityLogs(limit = 50): UseApiState<ApiActivityLog[]> {
     usersService.listActivity(limit)
       .then((logs) => { if (!cancelled) setData(logs); })
       .catch((err) => {
-        if (!cancelled) setError(err instanceof ApiRequestError ? err.message : 'Error cargando logs.');
+        if (!cancelled) setError(err instanceof ApiRequestError ? err.message : 'Error loading logs.');
       })
       .finally(() => { if (!cancelled) setLoading(false); });
 
@@ -332,7 +332,7 @@ export function useApiRoles(): UseApiState<ApiRole[]> {
     usersService.listRoles()
       .then((roles) => { if (!cancelled) setData(roles); })
       .catch((err) => {
-        if (!cancelled) setError(err instanceof ApiRequestError ? err.message : 'Error cargando roles.');
+        if (!cancelled) setError(err instanceof ApiRequestError ? err.message : 'Error loading roles.');
       })
       .finally(() => { if (!cancelled) setLoading(false); });
 
@@ -360,7 +360,7 @@ export function useApiTaskWarnings(filters?: { task_id?: number; project_id?: nu
     tasksService.listWarnings(filters)
       .then((warnings) => { if (!cancelled) setData(warnings); })
       .catch((err) => {
-        if (!cancelled) setError(err instanceof ApiRequestError ? err.message : 'Error cargando warnings.');
+        if (!cancelled) setError(err instanceof ApiRequestError ? err.message : 'Error loading warnings.');
       })
       .finally(() => { if (!cancelled) setLoading(false); });
 
@@ -395,7 +395,7 @@ export function useApiTaskAssignments(taskIds?: number[]): UseApiState<ApiTaskAs
         setData(nextData);
       })
       .catch((err) => {
-        if (!cancelled) setError(err instanceof ApiRequestError ? err.message : 'Error cargando asignaciones.');
+        if (!cancelled) setError(err instanceof ApiRequestError ? err.message : 'Error loading assignments.');
       })
       .finally(() => { if (!cancelled) setLoading(false); });
 
@@ -423,7 +423,7 @@ export function useApiGithubPushes(filters?: { project_id?: number; repo?: strin
     githubService.listPushes(filters)
       .then((pushes) => { if (!cancelled) setData(pushes); })
       .catch((err) => {
-        if (!cancelled) setError(err instanceof ApiRequestError ? err.message : 'Error cargando pushes.');
+        if (!cancelled) setError(err instanceof ApiRequestError ? err.message : 'Error loading pushes.');
       })
       .finally(() => { if (!cancelled) setLoading(false); });
 

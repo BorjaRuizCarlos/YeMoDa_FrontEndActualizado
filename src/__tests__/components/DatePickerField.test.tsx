@@ -9,17 +9,17 @@ describe('DatePickerField', () => {
 
     render(<DatePickerField value="2026-09-15" onChange={() => undefined} />);
 
-    await user.click(screen.getByRole('button', { name: /15 de/i }));
-    await user.click(screen.getByRole('button', { name: /septiembre 2026/i }));
+    await user.click(screen.getByRole('button', { name: /sep 15/i }));
+    await user.click(screen.getByRole('button', { name: /september 2026/i }));
 
-    expect(screen.getByRole('button', { name: /año anterior/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /año siguiente/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /previous year/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /next year/i })).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: /año siguiente/i }));
+    await user.click(screen.getByRole('button', { name: /next year/i }));
     expect(screen.getByRole('button', { name: /2027/ })).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: /^enero$/i }));
+    await user.click(screen.getByRole('button', { name: /^january$/i }));
 
-    expect(await screen.findByRole('button', { name: /enero 2027/i })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /january 2027/i })).toBeInTheDocument();
   });
 });

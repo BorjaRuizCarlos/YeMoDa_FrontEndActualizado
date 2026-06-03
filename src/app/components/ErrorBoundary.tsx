@@ -43,9 +43,9 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-4">
               <AlertTriangle className="w-5 h-5 text-destructive" />
             </div>
-            <h2 className="text-lg font-semibold text-foreground mb-1">Algo salió mal</h2>
+            <h2 className="text-lg font-semibold text-foreground mb-1">Something went wrong</h2>
             <p className="text-sm text-muted-foreground mb-6">
-              Ocurrió un error inesperado. Puedes intentar recargar el componente o volver al inicio.
+              An unexpected error occurred. You can try reloading the component or go back home.
             </p>
             {this.state.error && (
               <p className="text-xs text-muted-foreground bg-muted rounded-md px-3 py-2 mb-6 font-mono break-all">
@@ -58,14 +58,14 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                 className="px-4 py-2 bg-primary hover:bg-primary-hover text-primary-foreground rounded-md text-sm font-medium transition-colors inline-flex items-center gap-2"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
-                Reintentar
+                Retry
               </button>
               <button
                 onClick={this.handleGoHome}
                 className="px-4 py-2 bg-secondary hover:bg-accent text-foreground rounded-md text-sm font-medium transition-colors inline-flex items-center gap-2"
               >
                 <Home className="w-3.5 h-3.5" />
-                Ir al inicio
+                Go home
               </button>
             </div>
           </div>

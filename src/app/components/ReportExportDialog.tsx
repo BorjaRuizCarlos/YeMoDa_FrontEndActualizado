@@ -54,7 +54,7 @@ export function ReportExportDialog({
   const handleGenerate = async () => {
     setError(null);
     if (selectedCount === 0) {
-      setError('Selecciona al menos un proyecto.');
+      setError('Select at least one project.');
       return;
     }
     setGenerating(true);
@@ -74,7 +74,7 @@ export function ReportExportDialog({
       });
       onOpenChange(false);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'No se pudo generar el reporte.');
+      setError(e instanceof Error ? e.message : 'Could not generate the report.');
     } finally {
       setGenerating(false);
     }
@@ -89,16 +89,16 @@ export function ReportExportDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-xl">
         <DialogHeader>
-          <DialogTitle className="text-[14px]">Descargar reporte</DialogTitle>
+          <DialogTitle className="text-[14px]">Download report</DialogTitle>
           <DialogDescription className="text-[12px]">
-            Selecciona proyectos y formato. El reporte incluye KPIs y métricas agregadas.
+            Select projects and format. The report includes KPIs and aggregate metrics.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
           {/* Format selection */}
           <div>
-            <div className="text-[11px] font-medium text-foreground mb-2">Formato</div>
+            <div className="text-[11px] font-medium text-foreground mb-2">Format</div>
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
@@ -131,7 +131,7 @@ export function ReportExportDialog({
           <div>
             <div className="flex items-center justify-between mb-2">
               <div className="text-[11px] font-medium text-foreground">
-                Proyectos ({selectedCount}/{projects.length})
+                Projects ({selectedCount}/{projects.length})
               </div>
               <div className="flex items-center gap-2">
                 <button
@@ -139,7 +139,7 @@ export function ReportExportDialog({
                   onClick={selectAll}
                   className="text-[11px] text-primary hover:underline"
                 >
-                  Todos
+                  All
                 </button>
                 <span className="text-[11px] text-muted-foreground">·</span>
                 <button
@@ -147,14 +147,14 @@ export function ReportExportDialog({
                   onClick={selectNone}
                   className="text-[11px] text-muted-foreground hover:underline"
                 >
-                  Ninguno
+                  None
                 </button>
               </div>
             </div>
             <div className="max-h-[240px] overflow-y-auto border border-border rounded-[4px] divide-y divide-border">
               {sortedProjects.length === 0 ? (
                 <div className="px-3 py-4 text-[12px] text-muted-foreground text-center">
-                  No hay proyectos disponibles.
+                  No projects available.
                 </div>
               ) : (
                 sortedProjects.map((p) => {
@@ -185,14 +185,14 @@ export function ReportExportDialog({
 
           {/* Options */}
           <div>
-            <div className="text-[11px] font-medium text-foreground mb-2">Contenido</div>
+            <div className="text-[11px] font-medium text-foreground mb-2">Content</div>
             <label className="flex items-center gap-2 cursor-pointer">
               <Checkbox
                 checked={includeTaskList}
                 onCheckedChange={(v) => setIncludeTaskList(v === true)}
               />
               <span className="text-[12px] text-foreground">
-                Incluir listado detallado de tareas
+                Include detailed task list
               </span>
             </label>
           </div>
@@ -211,7 +211,7 @@ export function ReportExportDialog({
             disabled={generating}
             className="px-3 py-1.5 rounded-[4px] border border-border bg-card text-foreground hover:bg-accent text-[12px] disabled:opacity-50"
           >
-            Cancelar
+            Cancel
           </button>
           <button
             type="button"
@@ -222,12 +222,12 @@ export function ReportExportDialog({
             {generating ? (
               <>
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                Generando…
+                Generating…
               </>
             ) : (
               <>
                 <Download className="w-3.5 h-3.5" />
-                Generar reporte
+                Generate report
               </>
             )}
           </button>

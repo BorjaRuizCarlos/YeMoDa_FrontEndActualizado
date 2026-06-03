@@ -92,7 +92,7 @@ function TaskCard({
           {task.subtask_progress && task.subtask_progress.total > 0 && (
             <div className="mt-2">
               <span
-                title={`${task.subtask_progress.completed} de ${task.subtask_progress.total} subtareas completadas`}
+                title={`${task.subtask_progress.completed} of ${task.subtask_progress.total} subtasks completed`}
                 className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium ${
                   task.subtask_progress.completed === task.subtask_progress.total
                     ? 'border-success/30 bg-success/10 text-success'
@@ -251,7 +251,7 @@ function ColumnSortableList({
       refetchColumns();
     } catch {
       setLocalColumns(columns); // rollback
-      toast.error('No se pudo guardar el orden de las columnas.');
+      toast.error('Could not save the column order.');
     } finally {
       setSaving(false);
     }
@@ -261,7 +261,7 @@ function ColumnSortableList({
     <div className="space-y-2">
       {saving && (
         <p className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-          <Loader2 className="w-3 h-3 animate-spin" /> Guardando orden…
+          <Loader2 className="w-3 h-3 animate-spin" /> Saving order…
         </p>
       )}
       <DndContext collisionDetection={closestCenter} onDragEnd={(e) => void handleDragEnd(e)}>
@@ -548,12 +548,12 @@ export function ProjectTasksWorkspace({
     e.preventDefault();
     if (creatingTask) return;
     if (!canCreateTasks) {
-      toast.error('No tienes permisos para crear tareas.');
+      toast.error('You do not have permission to create tasks.');
       return;
     }
 
     if (!newTask.title.trim()) {
-      toast.error('El titulo es obligatorio.');
+      toast.error('Title is required.');
       return;
     }
 
@@ -561,7 +561,7 @@ export function ProjectTasksWorkspace({
     const boardColumn = taskCreationBoardColumnId ?? defaultBacklogColumnId ?? null;
 
     if (newTask.priority == null) {
-      toast.error('Selecciona una prioridad.');
+      toast.error('Select a priority.');
       return;
     }
 
@@ -596,9 +596,9 @@ export function ProjectTasksWorkspace({
       });
       refetchTasks();
       refetchTaskAssignments();
-      toast.success('Tarea creada.');
+      toast.success('Task created.');
     } catch {
-      toast.error('No se pudo crear la tarea.');
+      toast.error('Could not create the task.');
     } finally {
       setCreatingTask(false);
     }
@@ -614,9 +614,9 @@ export function ProjectTasksWorkspace({
       setNewBoard({ name: '', description: '' });
       setShowBoardModal(false);
       refetchBoards();
-      toast.success('Board creado.');
+      toast.success('Board created.');
     } catch {
-      toast.error('No se pudo crear el board.');
+      toast.error('Could not create the board.');
     } finally {
       setCreatingBoard(false);
     }
@@ -638,9 +638,9 @@ export function ProjectTasksWorkspace({
       setNewColumn({ name: '', is_final: false, is_review: false });
       setShowColumnModal(false);
       refetchColumns();
-      toast.success('Columna creada.');
+      toast.success('Column created.');
     } catch {
-      toast.error('No se pudo crear la columna.');
+      toast.error('Could not create the column.');
     } finally {
       setCreatingColumn(false);
     }
@@ -659,9 +659,9 @@ export function ProjectTasksWorkspace({
         custom_instructions: draftBoard.custom_instructions.trim() || null,
       });
       refetchBoards();
-      toast.success('Configuración del board guardada.');
+      toast.success('Board settings saved.');
     } catch {
-      toast.error('No se pudo guardar la configuración.');
+      toast.error('Could not save the settings.');
     } finally {
       setBoardSettingsSaving(false);
     }
@@ -671,11 +671,11 @@ export function ProjectTasksWorkspace({
     e.preventDefault();
     if (!editingSprint) return;
     if (editingSprint.start_date && editingSprint.end_date && editingSprint.start_date > editingSprint.end_date) {
-      toast.error('La fecha de inicio no puede ser posterior a la fecha de fin.');
+      toast.error('The start date cannot be later than the end date.');
       return;
     }
     if (projectEndDate && editingSprint.end_date && editingSprint.end_date > projectEndDate) {
-      toast.error(`El sprint no puede terminar después del fin del proyecto (${projectEndDate}).`);
+      toast.error(`The sprint cannot end after the project end date (${projectEndDate}).`);
       return;
     }
     setSavingSprintEdit(true);
@@ -687,23 +687,23 @@ export function ProjectTasksWorkspace({
       });
       refetchSprints();
       setEditingSprint(null);
-      toast.success('Sprint actualizado.');
+      toast.success('Sprint updated.');
     } catch {
-      toast.error('No se pudo actualizar el sprint.');
+      toast.error('Could not update the sprint.');
     } finally {
       setSavingSprintEdit(false);
     }
   };
 
   const handleDeleteSprint = async (sprintId: number) => {
-    if (!confirm('¿Eliminar este sprint? Las tareas asociadas quedarán sin sprint.')) return;
+    if (!confirm('Delete this sprint? The associated tasks will be left without a sprint.')) return;
     setDeletingSprintId(sprintId);
     try {
       await tasksService.deleteSprint(sprintId);
       refetchSprints();
-      toast.success('Sprint eliminado.');
+      toast.success('Sprint deleted.');
     } catch {
-      toast.error('No se pudo eliminar el sprint.');
+      toast.error('Could not delete the sprint.');
     } finally {
       setDeletingSprintId(null);
     }
@@ -722,9 +722,9 @@ export function ProjectTasksWorkspace({
       setPushSprintId(null);
       setPushBoardId(null);
       setPushColumnId(null);
-      toast.success('Tarea enviada al sprint.');
+      toast.success('Task moved to the sprint.');
     } catch {
-      toast.error('No se pudo enviar la tarea al sprint.');
+      toast.error('Could not move the task to the sprint.');
     } finally {
       setSavingPush(false);
     }
@@ -734,19 +734,19 @@ export function ProjectTasksWorkspace({
     e.preventDefault();
     if (creatingSprint) return;
     if (!newSprint.start_date || !newSprint.end_date) {
-      toast.error('Las fechas de inicio y fin son obligatorias.');
+      toast.error('Start and end dates are required.');
       return;
     }
     if (latestSprintEndDate && newSprint.start_date <= latestSprintEndDate) {
-      toast.error(`El sprint debe iniciar despues del ${latestSprintEndDate} (el dia siguiente o mas tarde).`);
+      toast.error(`The sprint must start after ${latestSprintEndDate} (the next day or later).`);
       return;
     }
     if (projectEndDate && newSprint.end_date > projectEndDate) {
-      toast.error(`El sprint no puede terminar despues del fin del proyecto (${projectEndDate}).`);
+      toast.error(`The sprint cannot end after the project end date (${projectEndDate}).`);
       return;
     }
     if (newSprint.start_date > newSprint.end_date) {
-      toast.error('La fecha de inicio no puede ser posterior a la fecha de fin.');
+      toast.error('The start date cannot be later than the end date.');
       return;
     }
     const autoName = `Sprint ${(sprints ?? []).length + 1}`;
@@ -763,9 +763,9 @@ export function ProjectTasksWorkspace({
       setNewSprint({ name: '', start_date: '', end_date: '', status: 'planned' });
       setShowSprintModal(false);
       refetchSprints();
-      toast.success('Sprint creado.');
+      toast.success('Sprint created.');
     } catch {
-      toast.error('No se pudo crear el sprint.');
+      toast.error('Could not create the sprint.');
     } finally {
       setCreatingSprint(false);
     }
@@ -794,7 +794,7 @@ export function ProjectTasksWorkspace({
   };
 
   const handleDeleteMilestone = async (milestoneId: number) => {
-    if (!confirm('¿Eliminar este milestone?')) return;
+    if (!confirm('Delete this milestone?')) return;
     setDeletingMilestoneId(milestoneId);
     try {
       await tasksService.deleteMilestone(milestoneId);
@@ -815,9 +815,9 @@ export function ProjectTasksWorkspace({
       setShowTagModal(false);
       setNewTag({ name: '', color: '#56697f' });
       refetchTags();
-      toast.success('Tag creado.');
+      toast.success('Tag created.');
     } catch {
-      toast.error('No se pudo crear el tag.');
+      toast.error('Could not create the tag.');
     }
   };
 
@@ -849,9 +849,9 @@ export function ProjectTasksWorkspace({
           : null,
       });
       refetchTasks();
-      toast.success(targetIsFinal ? 'Tarea completada.' : 'Tarea movida.');
+      toast.success(targetIsFinal ? 'Task completed.' : 'Task moved.');
     } catch {
-      toast.error('No se pudo mover la tarea.');
+      toast.error('Could not move the task.');
     }
   };
 
@@ -993,7 +993,7 @@ export function ProjectTasksWorkspace({
               setNewTask((prev) => ({ ...prev, sprint: null }));
               setShowTaskModal(true);
             }} className="h-8 px-3 rounded-[3px] bg-primary text-primary-foreground text-[11px] font-medium inline-flex items-center gap-1">
-              <Plus className="w-3.5 h-3.5" /> Nueva tarea
+              <Plus className="w-3.5 h-3.5" /> New task
             </button>
           )}
         </div>
@@ -1095,7 +1095,7 @@ export function ProjectTasksWorkspace({
                   onClick={() => { setNewSprint((prev) => ({ ...prev, start_date: sprintStartMinDate, end_date: '' })); setShowSprintModal(true); }}
                   disabled={noMoreSprintsAllowed}
                   className="h-6 w-6 rounded-[4px] bg-primary text-primary-foreground shadow-sm hover:opacity-90 transition-opacity inline-flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed"
-                  title={noMoreSprintsAllowed ? 'No hay espacio para mas sprints' : 'Nuevo sprint'}
+                  title={noMoreSprintsAllowed ? 'No room for more sprints' : 'New sprint'}
                 >
                   <Plus className="w-3.5 h-3.5" />
                 </button>
@@ -1103,7 +1103,7 @@ export function ProjectTasksWorkspace({
             </div>
             <div className="flex-1 overflow-y-auto">
               {(sprints ?? []).length === 0 ? (
-                <p className="px-3 py-4 text-[11px] text-muted-foreground">Sin sprints creados</p>
+                <p className="px-3 py-4 text-[11px] text-muted-foreground">No sprints created</p>
               ) : (
                 (sprints ?? []).map((sprint) => (
                   <button
@@ -1127,7 +1127,7 @@ export function ProjectTasksWorkspace({
                               setEditingSprint({ id: sprint.id_sprint, name: sprint.name, start_date: sprint.start_date ?? '', end_date: sprint.end_date ?? '', status: sprint.status });
                             }}
                             className="opacity-0 group-hover:opacity-100 h-5 w-5 rounded-[3px] border border-border bg-card text-muted-foreground hover:text-foreground inline-flex items-center justify-center shrink-0 transition-opacity"
-                            title="Editar sprint"
+                            title="Edit sprint"
                           >
                             <Pencil className="w-2.5 h-2.5" />
                           </button>
@@ -1220,12 +1220,12 @@ export function ProjectTasksWorkspace({
                       }}
                       className="h-7 px-2.5 rounded-[3px] bg-primary text-primary-foreground text-[10px] font-medium inline-flex items-center gap-1"
                     >
-                      <Plus className="w-3 h-3" /> Nueva tarea
+                      <Plus className="w-3 h-3" /> New task
                     </button>
                   )}
                 </div>
 
-                {/* Kanban when board selected, list when "Todas las tareas" */}
+                {/* Kanban when board selected, list when "All tasks" */}
                 <div className="flex-1 min-h-0 p-3 overflow-hidden flex flex-col">
                   {selectedBoardId != null && sprintViewMode === 'kanban' ? (
                     <DndContext
@@ -1264,7 +1264,7 @@ export function ProjectTasksWorkspace({
                       <DragOverlay>
                         {activeDragId ? (
                           <div className="rounded-[4px] border border-primary bg-card p-2 text-[11px] shadow-sm">
-                            {(tasks ?? []).find((task) => task.id_task === activeDragId)?.title ?? 'Tarea'}
+                            {(tasks ?? []).find((task) => task.id_task === activeDragId)?.title ?? 'Task'}
                           </div>
                         ) : null}
                       </DragOverlay>
@@ -1274,14 +1274,14 @@ export function ProjectTasksWorkspace({
                       <table className="w-full text-[11px]">
                         <thead>
                           <tr className="border-b border-border bg-surface-secondary/50">
-                            <th className="text-left px-3 py-2">Titulo</th>
+                            <th className="text-left px-3 py-2">Title</th>
                             <th className="text-left px-3 py-2">Tags</th>
                           </tr>
                         </thead>
                         <tbody>
                           {sprintTasks.length === 0 ? (
                             <tr>
-                              <td colSpan={2} className="px-3 py-6 text-center text-muted-foreground">Sin tareas en este sprint</td>
+                              <td colSpan={2} className="px-3 py-6 text-center text-muted-foreground">No tasks in this sprint</td>
                             </tr>
                           ) : (
                             sprintTasks.map((task) => {
@@ -1312,7 +1312,7 @@ export function ProjectTasksWorkspace({
                                         );
                                       })}
                                       {!colName && task.tags.length === 0 && (
-                                        <span className="text-[10px] text-muted-foreground">Sin tags</span>
+                                        <span className="text-[10px] text-muted-foreground">No tags</span>
                                       )}
                                     </div>
                                   </td>
@@ -1517,7 +1517,7 @@ export function ProjectTasksWorkspace({
               <tr className="border-b border-border bg-surface-secondary/50">
                 <th className="text-left px-3 py-2">Milestone</th>
                 <th className="text-left px-3 py-2">Due Date</th>
-                <th className="text-left px-3 py-2">Estado</th>
+                <th className="text-left px-3 py-2">Status</th>
                 {canCreateBoards && <th className="px-3 py-2 w-8" />}
               </tr>
             </thead>
@@ -1567,11 +1567,11 @@ export function ProjectTasksWorkspace({
           <form onSubmit={createTask} className="w-full max-w-2xl rounded-[6px] border border-border bg-card p-5 space-y-3">
             <h2 className="text-[13px] font-semibold text-foreground">
               {newTask.sprint != null
-                ? `Nueva tarea - ${(sprints ?? []).find((s) => s.id_sprint === newTask.sprint)?.name ?? 'Sprint'}`
-                : 'Nueva tarea (Product Backlog)'}
+                ? `New task - ${(sprints ?? []).find((s) => s.id_sprint === newTask.sprint)?.name ?? 'Sprint'}`
+                : 'New task (Product Backlog)'}
             </h2>
-            <input value={newTask.title} onChange={(e) => setNewTask((prev) => ({ ...prev, title: e.target.value }))} placeholder="Titulo" className="w-full h-8 rounded-[3px] border border-border bg-surface-secondary px-2 text-[11px]" />
-            <textarea value={newTask.description} onChange={(e) => setNewTask((prev) => ({ ...prev, description: e.target.value }))} placeholder="Descripcion" className="w-full rounded-[3px] border border-border bg-surface-secondary px-2 py-1 text-[11px]" rows={3} />
+            <input value={newTask.title} onChange={(e) => setNewTask((prev) => ({ ...prev, title: e.target.value }))} placeholder="Title" className="w-full h-8 rounded-[3px] border border-border bg-surface-secondary px-2 text-[11px]" />
+            <textarea value={newTask.description} onChange={(e) => setNewTask((prev) => ({ ...prev, description: e.target.value }))} placeholder="Description" className="w-full rounded-[3px] border border-border bg-surface-secondary px-2 py-1 text-[11px]" rows={3} />
 
             <div className="grid md:grid-cols-2 gap-2">
               <DatePickerField
@@ -1579,14 +1579,14 @@ export function ProjectTasksWorkspace({
                 onChange={(value) => setNewTask((prev) => ({ ...prev, due_date: value }))}
                 minDate={tomorrowDate}
                 maxDate={projectEndDate ?? undefined}
-                placeholder="Fecha limite"
+                placeholder="Due date"
               />
               <select
                 value={newTask.priority ?? ''}
                 onChange={(e) => setNewTask((prev) => ({ ...prev, priority: e.target.value ? Number(e.target.value) : null }))}
                 className="h-8 rounded-[3px] border border-border bg-surface-secondary px-2 text-[11px]"
               >
-                <option value="">Selecciona prioridad</option>
+                <option value="">Select priority</option>
                 {priorities.map((priority) => (
                   <option key={priority.id_priority} value={priority.id_priority}>{priority.name}</option>
                 ))}
@@ -1595,8 +1595,8 @@ export function ProjectTasksWorkspace({
 
             <p className="text-[10px] text-muted-foreground">
               {newTask.sprint != null
-                ? 'La tarea se creara y asignara al sprint seleccionado.'
-                : 'Las tareas nuevas se crean siempre en Product Backlog (sin sprint, sin milestone).'}
+                ? 'The task will be created and assigned to the selected sprint.'
+                : 'New tasks are always created in the Product Backlog (no sprint, no milestone).'}
             </p>
 
             {(boards ?? []).length > 0 && (
@@ -1615,21 +1615,21 @@ export function ProjectTasksWorkspace({
                     }}
                     className="w-full h-8 rounded-[3px] border border-border bg-surface-secondary px-2 text-[11px]"
                   >
-                    <option value="">Sin board</option>
+                    <option value="">No board</option>
                     {(boards ?? []).map((b) => (
                       <option key={b.id_board} value={b.id_board}>{b.name}</option>
                     ))}
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-[10px] text-muted-foreground">Columna</p>
+                  <p className="text-[10px] text-muted-foreground">Column</p>
                   <select
                     value={taskCreationBoardColumnId ?? ''}
                     onChange={(e) => setTaskCreationBoardColumnId(e.target.value ? Number(e.target.value) : null)}
                     disabled={!taskCreationModalBoardId}
                     className="w-full h-8 rounded-[3px] border border-border bg-surface-secondary px-2 text-[11px] disabled:opacity-50"
                   >
-                    <option value="">Sin columna</option>
+                    <option value="">No column</option>
                     {(taskCreationModalBoardId ? (boardColumnsByBoard.get(taskCreationModalBoardId) ?? []) : []).map((col) => (
                       <option key={col.id_column} value={col.id_column}>{col.name}</option>
                     ))}
@@ -1639,7 +1639,7 @@ export function ProjectTasksWorkspace({
             )}
 
             <div>
-              <p className="text-[11px] text-muted-foreground mb-1">Asignar personas</p>
+              <p className="text-[11px] text-muted-foreground mb-1">Assign people</p>
               <TaskAssigneePicker users={assignableUsers} selectedIds={newTask.assignedTo} onChange={(ids) => setNewTask((prev) => ({ ...prev, assignedTo: ids }))} />
             </div>
 
@@ -1668,9 +1668,9 @@ export function ProjectTasksWorkspace({
             )}
 
             <div className="flex justify-end gap-2 pt-2">
-              <button type="button" onClick={() => { setNewTask((prev) => ({ ...prev, sprint: null })); setTaskCreationModalBoardId(null); setTaskCreationBoardColumnId(null); setShowTaskModal(false); }} className="h-8 px-3 rounded-[3px] border border-border text-[11px]">Cancelar</button>
+              <button type="button" onClick={() => { setNewTask((prev) => ({ ...prev, sprint: null })); setTaskCreationModalBoardId(null); setTaskCreationBoardColumnId(null); setShowTaskModal(false); }} className="h-8 px-3 rounded-[3px] border border-border text-[11px]">Cancel</button>
               <button type="submit" disabled={creatingTask} className="h-8 px-3 rounded-[3px] bg-primary text-primary-foreground text-[11px] inline-flex items-center gap-1.5 disabled:opacity-50">
-                {creatingTask && <Loader2 className="w-3 h-3 animate-spin" />} Crear
+                {creatingTask && <Loader2 className="w-3 h-3 animate-spin" />} Create
               </button>
             </div>
           </form>
@@ -1682,15 +1682,15 @@ export function ProjectTasksWorkspace({
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-6">
           <div className="w-full max-w-sm rounded-[6px] border border-border bg-card p-5 space-y-3">
             <div>
-              <h2 className="text-[13px] font-semibold">Mover al sprint</h2>
-              <p className="text-[11px] text-muted-foreground mt-0.5">Selecciona sprint y board. La tarea se colocara en la primera columna del board.</p>
+              <h2 className="text-[13px] font-semibold">Move to sprint</h2>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Select a sprint and board. The task will be placed in the board's first column.</p>
             </div>
             <select
               value={pushSprintId ?? ''}
               onChange={(e) => { setPushSprintId(e.target.value ? Number(e.target.value) : null); setPushBoardId(null); setPushColumnId(null); }}
               className="w-full h-8 rounded-[3px] border border-border bg-surface-secondary px-2 text-[11px]"
             >
-              <option value="">Selecciona sprint</option>
+              <option value="">Select sprint</option>
               {(sprints ?? []).map((s) => (
                 <option key={s.id_sprint} value={s.id_sprint}>{s.name}</option>
               ))}
@@ -1705,14 +1705,14 @@ export function ProjectTasksWorkspace({
               }}
               className="w-full h-8 rounded-[3px] border border-border bg-surface-secondary px-2 text-[11px]"
             >
-              <option value="">Selecciona board</option>
+              <option value="">Select board</option>
               {(boards ?? []).map((b) => (
                 <option key={b.id_board} value={b.id_board}>{b.name}</option>
               ))}
             </select>
             {pushBoardId != null && pushColumnId != null && (
               <p className="text-[10px] text-muted-foreground bg-surface-secondary/60 rounded-[3px] px-2.5 py-1.5">
-                Columna asignada: <span className="font-medium text-foreground">{(boardColumnsByBoard.get(pushBoardId) ?? []).find((c) => c.id_column === pushColumnId)?.name ?? '-'}</span>
+                Assigned column: <span className="font-medium text-foreground">{(boardColumnsByBoard.get(pushBoardId) ?? []).find((c) => c.id_column === pushColumnId)?.name ?? '-'}</span>
               </p>
             )}
             <div className="flex justify-end gap-2 pt-1">
@@ -1736,7 +1736,7 @@ export function ProjectTasksWorkspace({
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-6">
           <form onSubmit={saveSprintEdit} className="w-full max-w-md rounded-[6px] border border-border bg-card p-5 space-y-3">
             <div>
-              <h2 className="text-[13px] font-semibold">Editar {editingSprint.name}</h2>
+              <h2 className="text-[13px] font-semibold">Edit {editingSprint.name}</h2>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <DatePickerField
@@ -1845,39 +1845,39 @@ export function ProjectTasksWorkspace({
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-6">
           <form onSubmit={createSprint} className="w-full max-w-md rounded-[6px] border border-border bg-card p-5 space-y-3">
             <div>
-              <h2 className="text-[13px] font-semibold">Nuevo sprint</h2>
-              <p className="text-[11px] text-muted-foreground mt-0.5">Se creara como <span className="font-medium text-foreground">Sprint {(sprints ?? []).length + 1}</span></p>
+              <h2 className="text-[13px] font-semibold">New sprint</h2>
+              <p className="text-[11px] text-muted-foreground mt-0.5">It will be created as <span className="font-medium text-foreground">Sprint {(sprints ?? []).length + 1}</span></p>
             </div>
             {latestSprintEndDate && (
               <p className="text-[10px] text-amber-600 dark:text-amber-400 bg-amber-500/10 rounded-[3px] px-2.5 py-1.5">
-                El sprint anterior termina el <strong>{latestSprintEndDate}</strong>. Este sprint debe iniciar el <strong>{sprintStartMinDate}</strong> o despues.
+                The previous sprint ends on <strong>{latestSprintEndDate}</strong>. This sprint must start on <strong>{sprintStartMinDate}</strong> or later.
               </p>
             )}
             <div className="grid grid-cols-2 gap-2">
               <DatePickerField
                 value={newSprint.start_date}
                 onChange={(value) => setNewSprint((prev) => ({ ...prev, start_date: value }))}
-                placeholder="Fecha inicio"
+                placeholder="Start date"
                 minDate={sprintStartMinDate}
                 maxDate={projectEndDate ?? undefined}
               />
               <DatePickerField
                 value={newSprint.end_date}
                 onChange={(value) => setNewSprint((prev) => ({ ...prev, end_date: value }))}
-                placeholder="Fecha fin"
+                placeholder="End date"
                 minDate={newSprint.start_date || sprintStartMinDate}
                 maxDate={projectEndDate ?? undefined}
               />
             </div>
             <select value={newSprint.status} onChange={(e) => setNewSprint((prev) => ({ ...prev, status: e.target.value as 'planned' | 'active' | 'closed' }))} className="w-full h-8 rounded-[3px] border border-border bg-surface-secondary px-2 text-[11px]">
-              <option value="planned">Planeado</option>
-              <option value="active">Activo</option>
-              <option value="closed">Cerrado</option>
+              <option value="planned">Planned</option>
+              <option value="active">Active</option>
+              <option value="closed">Closed</option>
             </select>
             <div className="flex justify-end gap-2">
-              <button type="button" onClick={() => setShowSprintModal(false)} className="h-8 px-3 border border-border rounded-[3px] text-[11px]">Cancelar</button>
+              <button type="button" onClick={() => setShowSprintModal(false)} className="h-8 px-3 border border-border rounded-[3px] text-[11px]">Cancel</button>
               <button type="submit" disabled={creatingSprint} className="h-8 px-3 bg-primary text-primary-foreground rounded-[3px] text-[11px] inline-flex items-center gap-1.5 disabled:opacity-50">
-                {creatingSprint && <Loader2 className="w-3 h-3 animate-spin" />} Crear
+                {creatingSprint && <Loader2 className="w-3 h-3 animate-spin" />} Create
               </button>
             </div>
           </form>
@@ -1906,19 +1906,19 @@ export function ProjectTasksWorkspace({
           <form onSubmit={createTag} className="w-full max-w-sm rounded-[8px] border border-border bg-card overflow-hidden shadow-lg">
             {/* Header */}
             <div className="px-4 py-3 border-b border-border">
-              <h2 className="text-[13px] font-semibold text-foreground">Nuevo tag</h2>
-              <p className="text-[11px] text-muted-foreground mt-0.5">Define un nombre y un color para el tag.</p>
+              <h2 className="text-[13px] font-semibold text-foreground">New tag</h2>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Set a name and a color for the tag.</p>
             </div>
 
             {/* Body */}
             <div className="px-4 py-4 space-y-4">
               {/* Name section */}
               <div className="space-y-1.5">
-                <label className="text-[11px] font-medium text-foreground">Nombre</label>
+                <label className="text-[11px] font-medium text-foreground">Name</label>
                 <input
                   value={newTag.name}
                   onChange={(e) => setNewTag((prev) => ({ ...prev, name: e.target.value }))}
-                  placeholder="ej. Bug, Feature, Urgente..."
+                  placeholder="e.g. Bug, Feature, Urgent..."
                   className="w-full h-9 rounded-[4px] border border-border bg-surface-secondary px-3 text-[12px] placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-primary/50"
                   autoFocus
                 />
@@ -1939,8 +1939,8 @@ export function ProjectTasksWorkspace({
 
             {/* Footer */}
             <div className="flex justify-end gap-2 px-4 py-3 border-t border-border bg-surface-secondary/30">
-              <button type="button" onClick={() => setShowTagModal(false)} className="h-8 px-3 border border-border rounded-[4px] text-[11px] hover:bg-accent transition-colors">Cancelar</button>
-              <button type="submit" disabled={!newTag.name.trim()} className="h-8 px-3 bg-primary text-primary-foreground rounded-[4px] text-[11px] disabled:opacity-40 transition-opacity">Crear tag</button>
+              <button type="button" onClick={() => setShowTagModal(false)} className="h-8 px-3 border border-border rounded-[4px] text-[11px] hover:bg-accent transition-colors">Cancel</button>
+              <button type="submit" disabled={!newTag.name.trim()} className="h-8 px-3 bg-primary text-primary-foreground rounded-[4px] text-[11px] disabled:opacity-40 transition-opacity">Create tag</button>
             </div>
           </form>
         </div>

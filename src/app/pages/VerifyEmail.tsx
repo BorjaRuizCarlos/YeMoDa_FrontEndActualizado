@@ -24,11 +24,11 @@ export default function VerifyEmail() {
     } catch (err: unknown) {
       const detail = (err as { detail?: string })?.detail ?? '';
       if (detail.toLowerCase().includes('expir') || detail.toLowerCase().includes('invalid')) {
-        setErrorMsg('El enlace ha expirado o no es válido. Solicita uno nuevo.');
+        setErrorMsg('The link has expired or is not valid. Request a new one.');
       } else if (detail.toLowerCase().includes('already')) {
-        setErrorMsg('Este correo ya fue verificado. Puedes iniciar sesión.');
+        setErrorMsg('This email has already been verified. You can sign in.');
       } else {
-        setErrorMsg(detail || 'No se pudo verificar el correo. Intenta de nuevo.');
+        setErrorMsg(detail || 'Could not verify the email. Please try again.');
       }
       setStatus('error');
     }
@@ -51,14 +51,14 @@ export default function VerifyEmail() {
   }, [status]);
 
   const handleResend = async () => {
-    const email = window.prompt('Ingresa el correo con el que te registraste:');
+    const email = window.prompt('Enter the email you registered with:');
     if (!email) return;
     setResendLoading(true);
     try {
       await authService.resendVerification(email);
-      toast.success('Correo de verificación enviado. Revisa tu bandeja.');
+      toast.success('Verification email sent. Check your inbox.');
     } catch {
-      toast.error('No se pudo reenviar el correo. Intenta más tarde.');
+      toast.error('Could not resend the email. Please try again later.');
     } finally {
       setResendLoading(false);
     }
@@ -85,40 +85,40 @@ export default function VerifyEmail() {
         {/* Title */}
         {status === 'loading' && (
           <>
-            <h1 className="text-[16px] font-semibold text-foreground">Verificando correo…</h1>
-            <p className="text-[13px] text-muted-foreground">Por favor espera un momento.</p>
+            <h1 className="text-[16px] font-semibold text-foreground">Verifying email…</h1>
+            <p className="text-[13px] text-muted-foreground">Please wait a moment.</p>
           </>
         )}
         {status === 'idle' && (
           <>
-            <h1 className="text-[16px] font-semibold text-foreground">Verificar correo electrónico</h1>
-            <p className="text-[13px] text-muted-foreground">Haz clic en el botón para confirmar tu dirección de correo.</p>
+            <h1 className="text-[16px] font-semibold text-foreground">Verify email address</h1>
+            <p className="text-[13px] text-muted-foreground">Click the button to confirm your email address.</p>
             <button
               type="button"
               onClick={() => void verify()}
               className="mt-2 h-10 w-full rounded-[5px] bg-primary text-primary-foreground text-[13px] font-medium inline-flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
             >
-              <MailCheck className="w-4 h-4" /> Verificar mi correo
+              <MailCheck className="w-4 h-4" /> Verify my email
             </button>
           </>
         )}
         {status === 'success' && (
           <>
-            <h1 className="text-[16px] font-semibold text-foreground">¡Correo verificado!</h1>
+            <h1 className="text-[16px] font-semibold text-foreground">Email verified!</h1>
             <p className="text-[13px] text-muted-foreground">
-              Tu cuenta está activa. Redirigiendo al inicio de sesión en <strong>{countdown}s</strong>…
+              Your account is active. Redirecting to sign in in <strong>{countdown}s</strong>…
             </p>
             <Link
               to="/login"
               className="mt-2 h-10 w-full rounded-[5px] bg-primary text-primary-foreground text-[13px] font-medium inline-flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
             >
-              Ir al inicio de sesión <ArrowRight className="w-4 h-4" />
+              Go to sign in <ArrowRight className="w-4 h-4" />
             </Link>
           </>
         )}
         {status === 'error' && (
           <>
-            <h1 className="text-[16px] font-semibold text-foreground">Error de verificación</h1>
+            <h1 className="text-[16px] font-semibold text-foreground">Verification error</h1>
             <p className="text-[13px] text-muted-foreground">{errorMsg}</p>
             <div className="w-full flex flex-col gap-2 mt-2">
               <button
@@ -126,7 +126,7 @@ export default function VerifyEmail() {
                 onClick={() => void verify()}
                 className="h-10 w-full rounded-[5px] bg-primary text-primary-foreground text-[13px] font-medium inline-flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
               >
-                <RefreshCw className="w-4 h-4" /> Reintentar
+                <RefreshCw className="w-4 h-4" /> Retry
               </button>
               <button
                 type="button"
@@ -135,19 +135,19 @@ export default function VerifyEmail() {
                 className="h-10 w-full rounded-[5px] border border-border text-[13px] font-medium inline-flex items-center justify-center gap-2 hover:bg-accent transition-colors disabled:opacity-50"
               >
                 {resendLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <MailCheck className="w-4 h-4" />}
-                Reenviar correo de verificación
+                Resend verification email
               </button>
               <Link to="/login" className="text-[12px] text-muted-foreground hover:text-foreground transition-colors">
-                Volver al inicio de sesión
+                Back to sign in
               </Link>
             </div>
           </>
         )}
         {status === 'no_token' && (
           <>
-            <h1 className="text-[16px] font-semibold text-foreground">Enlace inválido</h1>
+            <h1 className="text-[16px] font-semibold text-foreground">Invalid link</h1>
             <p className="text-[13px] text-muted-foreground">
-              No se encontró ningún token en este enlace. Usa el enlace exacto que recibiste en tu correo.
+              No token was found in this link. Use the exact link you received in your email.
             </p>
             <button
               type="button"
@@ -156,10 +156,10 @@ export default function VerifyEmail() {
               className="mt-2 h-10 w-full rounded-[5px] border border-border text-[13px] font-medium inline-flex items-center justify-center gap-2 hover:bg-accent transition-colors disabled:opacity-50"
             >
               {resendLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <MailCheck className="w-4 h-4" />}
-              Reenviar correo de verificación
+              Resend verification email
             </button>
             <Link to="/login" className="text-[12px] text-muted-foreground hover:text-foreground transition-colors">
-              Volver al inicio de sesión
+              Back to login
             </Link>
           </>
         )}

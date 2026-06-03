@@ -49,9 +49,9 @@ export function NotificationBell() {
     try {
       await tasksService.deleteWarning(id);
       setDeletedIds((prev) => new Set([...prev, id]));
-      toast.success('Alerta eliminada.');
+      toast.success('Alert deleted.');
     } catch {
-      toast.error('No se pudo eliminar la alerta.');
+      toast.error('Could not delete the alert.');
     } finally {
       setDeletingId(null);
     }

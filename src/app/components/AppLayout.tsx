@@ -26,7 +26,7 @@ export function AppLayout() {
     if (!user?.id) return;
     const trimmedNickname = nicknameInput.trim();
     if (!trimmedNickname) {
-      toast.error('El nickname es obligatorio.');
+      toast.error('Nickname is required.');
       return;
     }
 
@@ -35,12 +35,12 @@ export function AppLayout() {
       const updated = await usersService.update(Number(user.id), { username: trimmedNickname });
       syncUser(updated);
       localStorage.removeItem('pip_needs_nickname');
-      toast.success('Nickname actualizado correctamente.');
+      toast.success('Nickname updated successfully.');
     } catch (error) {
       if (error instanceof ApiRequestError) {
-        toast.error(String(error.body?.detail || 'No se pudo guardar el nickname.'));
+        toast.error(String(error.body?.detail || 'Could not save the nickname.'));
       } else {
-        toast.error('No se pudo guardar el nickname.');
+        toast.error('Could not save the nickname.');
       }
     } finally {
       setSavingNickname(false);
@@ -76,9 +76,9 @@ export function AppLayout() {
       {mustChooseNickname && (
         <div className="fixed inset-0 z-[130] flex items-center justify-center bg-background/90 px-6">
           <div className="w-full max-w-md rounded-[10px] border border-border bg-card p-6 shadow-xl">
-            <h2 className="text-[18px] font-semibold text-foreground">Elige tu nickname</h2>
+            <h2 className="text-[18px] font-semibold text-foreground">Choose your nickname</h2>
             <p className="mt-2 text-[13px] leading-6 text-muted-foreground">
-              Para continuar, define el nombre que verán en tu perfil. No se permiten nicknames repetidos.
+              To continue, set the name people will see on your profile. Duplicate nicknames are not allowed.
             </p>
 
             <div className="mt-4">
@@ -87,7 +87,7 @@ export function AppLayout() {
                 type="text"
                 value={nicknameInput}
                 onChange={(e) => setNicknameInput(e.target.value)}
-                placeholder="Ej. alex.dev"
+                placeholder="e.g. alex.dev"
                 className="w-full rounded-[4px] border border-input bg-input-background px-3 py-2 text-[13px] text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
                 disabled={savingNickname}
                 autoFocus
@@ -100,7 +100,7 @@ export function AppLayout() {
               disabled={savingNickname}
               className="mt-5 h-10 w-full rounded-[6px] bg-primary text-[12px] font-medium text-primary-foreground transition-colors hover:bg-primary-hover disabled:opacity-60"
             >
-              {savingNickname ? 'Guardando...' : 'Guardar nickname'}
+              {savingNickname ? 'Saving...' : 'Save nickname'}
             </button>
           </div>
         </div>

@@ -36,7 +36,7 @@ export function DataTable<T>({
   columns,
   data,
   keyField,
-  emptyMessage = 'Sin datos',
+  emptyMessage = 'No data',
   density = 'normal',
   onRowClick,
   rowClassName,

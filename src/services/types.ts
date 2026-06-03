@@ -376,7 +376,8 @@ export interface GitHubCommitResponse {
   message?: string;
 }
 
-export type AIProvider = 'copilot' | 'yemoda';
+// Only the server-side Yemoda (Claude) provider remains; GitHub Copilot was removed.
+export type AIProvider = 'yemoda';
 
 export interface ChatModelInfo {
   id: string;
@@ -389,11 +390,9 @@ export interface ChatMessage {
 }
 
 export interface ChatRequestPayload {
-  provider: AIProvider;
+  provider?: AIProvider;
   model?: string;
   messages: ChatMessage[];
-  stream?: boolean;
-  github_token?: string;
   context_type?: 'ai_fix' | 'code_review' | string;
   context_data?: Record<string, unknown>;
 }
@@ -405,16 +404,8 @@ export interface ChatResponsePayload {
 }
 
 export interface ChatModelsResponse {
-  copilot?: ChatModelInfo[];
   yemoda?: ChatModelInfo[];
   [provider: string]: ChatModelInfo[] | undefined;
-}
-
-export interface CopilotStatusResponse {
-  github_token_valid: boolean;
-  copilot_access: boolean;
-  github_login?: string | null;
-  detail: string;
 }
 
 export interface ApiTaskAIReviewResult {
