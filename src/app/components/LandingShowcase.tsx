@@ -1,29 +1,60 @@
-﻿import { useState, type ReactNode } from 'react';
+import { useState, type ReactNode, type ComponentType } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import {
-  Activity,
   AlertTriangle,
+  ArrowLeft,
   ArrowRight,
+  ArrowUpDown,
   BarChart3,
   Bell,
+  Bot,
   Briefcase,
   Calendar,
-  ChevronRight,
-  Code2,
-  FileCode2,
-  GitCommit,
-  GitMerge,
-  Home,
-  Sparkles,
-  User,
-  Users,
-  TrendingDown,
-  Github,
-  Cloud,
+  Check,
   CheckCircle2,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Circle,
+  CircleUser,
   Clock,
+  Cloud,
+  Code2,
+  Crown,
+  Download,
+  ExternalLink,
+  FileDown,
+  Filter,
+  GitCommit,
+  Github,
+  KeyRound,
+  LayoutGrid,
+  List,
+  ListChecks,
+  Lock,
+  Mail,
+  Moon,
+  Plus,
+  RefreshCw,
+  Search,
+  Send,
+  Settings2,
+  Shield,
+  Square,
+  Sun,
+  Timer,
+  Trash2,
+  TrendingDown,
+  TrendingUp,
+  Unlock,
+  User,
+  UserPlus,
+  Users,
+  Zap,
 } from 'lucide-react';
 import { Link } from 'react-router';
+
+type Icon = ComponentType<{ className?: string }>;
 
 // ── Browser chrome wrapper ───────────────────────────────────────────────────
 
@@ -55,289 +86,453 @@ function AppFrame({
   );
 }
 
-// ── Types & data ─────────────────────────────────────────────────────────────
+// ── Shared status helpers (mirror the real app) ──────────────────────────────
+
+// Project workflow status → dot color (StatusBadge dot variant: neutral pill + colored dot)
+const PROJECT_STATUS_DOT: Record<string, string> = {
+  'Planning': 'bg-slate-500',
+  'In Progress': 'bg-info',
+  'Review': 'bg-violet-500',
+  'Completed': 'bg-success',
+  'Retired': 'bg-orange-500',
+  'Cancelled': 'bg-rose-500',
+};
+
+// Per-task status name → pill color (taskStatusColor)
+const TASK_STATUS_COLOR: Record<string, string> = {
+  'Backlog': 'bg-slate-500/15 text-slate-400',
+  'To do': 'bg-sky-500/15 text-sky-400',
+  'In progress': 'bg-amber-500/15 text-amber-400',
+  'In review': 'bg-violet-500/15 text-violet-400',
+  'Done': 'bg-emerald-500/15 text-emerald-400',
+  'Blocked': 'bg-red-500/15 text-red-400',
+};
+
+// Health bucket → color
+const HEALTH_DOT: Record<'green' | 'yellow' | 'red', string> = {
+  green: 'bg-success',
+  yellow: 'bg-warning',
+  red: 'bg-destructive',
+};
+const HEALTH_LABEL: Record<'green' | 'yellow' | 'red', string> = {
+  green: 'Healthy',
+  yellow: 'At risk',
+  red: 'Critical',
+};
+
+function progressColor(pct: number): string {
+  return pct >= 75 ? 'bg-success' : pct >= 40 ? 'bg-warning' : 'bg-destructive';
+}
+
+// ── Demo data ────────────────────────────────────────────────────────────────
 
 type DemoView = 'dashboard' | 'proyectos' | 'reportes' | 'alertas' | 'perfil';
-
-const NAV_ITEMS: Array<{
-  view: DemoView;
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  section?: string;
-  count?: number;
-  danger?: boolean;
-}> = [
-  { view: 'dashboard',  icon: Home,      label: 'Dashboard' },
-  { view: 'proyectos',  icon: Briefcase, label: 'Projects' },
-  { view: 'reportes',   icon: BarChart3, label: 'Reports',   section: 'ANALYTICS' },
-  { view: 'alertas',    icon: Bell,      label: 'Alerts',    count: 3, danger: true },
-  { view: 'perfil',     icon: User,      label: 'Profile',   section: 'USER' },
-];
-
-const DEMO_PROYECTOS = [
-  { id: 1, nombre: 'E-Commerce Redesign',   estado: 'In Progress', progreso: 72, dias: '12d', tareas: '8 of 11', fecha: '7 Jun 2026'  },
-  { id: 2, nombre: 'Mobile App v2',          estado: 'In Progress', progreso: 45, dias: '8d',  tareas: '4 of 9',  fecha: '3 Jun 2026'  },
-  { id: 3, nombre: 'API Gateway Migration',  estado: 'Planning',     progreso: 20, dias: '21d', tareas: '2 of 10', fecha: '16 Jun 2026' },
-  { id: 4, nombre: 'Admin Dashboard',        estado: 'Planning',     progreso: 0,  dias: '30d', tareas: '0 of 6',  fecha: '25 Jun 2026' },
-  { id: 5, nombre: 'Analytics Platform',     estado: 'In Progress', progreso: 88, dias: '4d',  tareas: '7 of 8',  fecha: '30 May 2026' },
-];
-
-const DEMO_ALERTAS = [
-  {
-    id: 1, tipo: 'warning', activo: true,
-    titulo: 'Deprecated dependency detected in package.json',
-    tarea: 'Project scaffolding review',
-    tiempo: '1d ago',
-    etiqueta: 'Active',
-  },
-  {
-    id: 2, tipo: 'danger', activo: true,
-    titulo: 'Critical: API endpoint exposed without authentication',
-    tarea: 'API Gateway setup task',
-    tiempo: '5h ago',
-    etiqueta: 'Active',
-  },
-  {
-    id: 3, tipo: 'danger', activo: true,
-    titulo: 'Critical: Missing input validation on checkout form',
-    tarea: 'Build checkout flow',
-    tiempo: '2h ago',
-    etiqueta: 'Active',
-  },
-  {
-    id: 4, tipo: 'warning', activo: false,
-    titulo: 'Unused environment variable in production config',
-    tarea: 'Deploy staging environment',
-    tiempo: '3d ago',
-    etiqueta: 'Resolved',
-  },
-  {
-    id: 5, tipo: 'warning', activo: false,
-    titulo: 'High memory usage detected in background worker',
-    tarea: 'Performance optimization sprint',
-    tiempo: '5d ago',
-    etiqueta: 'Resolved',
-  },
-];
-
-const PROXIMAS_VENCER = [
-  { id: 1, titulo: 'Implement payment gateway',   proyecto: 'E-Commerce Redesign',  tag: 'tomorrow' },
-  { id: 2, titulo: 'Auth flow unit tests',         proyecto: 'Mobile App v2',         tag: 'in 4d'     },
-  { id: 3, titulo: 'Load balancer configuration',  proyecto: 'API Gateway Migration', tag: 'in 4d'     },
-  { id: 4, titulo: 'User role permissions UI',     proyecto: 'Admin Dashboard',       tag: 'in 6d'     },
-];
-
-const TAG_COLOR: Record<string, string> = {
-  'tomorrow': 'bg-warning/15 text-warning',
-  'in 4d': 'bg-primary/15 text-primary',
-  'in 6d': 'bg-info/15 text-info',
-};
-
-const ALERT_DOT: Record<string, string> = {
-  danger: 'bg-destructive',
-  warning: 'bg-warning',
-  success: 'bg-success',
-  info: 'bg-info',
-};
 
 const VIEW_LABEL: Record<DemoView, string> = {
   dashboard: 'Dashboard',
   proyectos: 'Projects',
-  reportes:  'Reports',
-  alertas:   'Alerts',
-  perfil:    'Profile',
+  reportes: 'Reports',
+  alertas: 'Alerts',
+  perfil: 'Profile',
 };
+
+// Interactive nav pills (above the frame) map to the 5 demo views.
+const NAV_VIEWS: { view: DemoView; label: string }[] = [
+  { view: 'dashboard', label: 'Dashboard' },
+  { view: 'proyectos', label: 'Projects' },
+  { view: 'reportes', label: 'Reports' },
+  { view: 'alertas', label: 'Alerts' },
+  { view: 'perfil', label: 'Profile' },
+];
+
+// Real sidebar grouping (Backlog is shown but non-interactive in this mock).
+const SIDEBAR_GROUPS: { heading: string | null; items: { view: DemoView | null; icon: Icon; label: string }[] }[] = [
+  {
+    heading: null,
+    items: [
+      { view: 'dashboard', icon: LayoutGrid, label: 'Dashboard' },
+      { view: null, icon: ListChecks, label: 'Backlog' },
+      { view: 'proyectos', icon: Briefcase, label: 'Projects' },
+    ],
+  },
+  {
+    heading: 'Analytics',
+    items: [
+      { view: 'reportes', icon: BarChart3, label: 'Reports' },
+      { view: 'alertas', icon: Bell, label: 'Alerts' },
+    ],
+  },
+  {
+    heading: 'User',
+    items: [{ view: 'perfil', icon: CircleUser, label: 'Profile' }],
+  },
+];
+
+type DemoProject = {
+  id: number;
+  name: string;
+  status: string;        // workflow status label
+  progress: number | null; // null = no tasks (shows "—")
+  health: 'green' | 'yellow' | 'red';
+  endDate: string;
+  timeLeft: string;
+  timeTone: 'destructive' | 'warning' | 'muted';
+  completed: number;
+  total: number;
+  overdue: number;
+};
+
+const DEMO_PROJECTS: DemoProject[] = [
+  { id: 1, name: 'Analytics Platform',    status: 'In Progress', progress: 88,   health: 'green',  endDate: '30 May 2026', timeLeft: '4d',  timeTone: 'warning', completed: 7, total: 8,  overdue: 0 },
+  { id: 2, name: 'E-Commerce Redesign',   status: 'In Progress', progress: 72,   health: 'green',  endDate: '7 Jun 2026',  timeLeft: '12d', timeTone: 'muted',   completed: 8, total: 11, overdue: 0 },
+  { id: 3, name: 'Mobile App v2',         status: 'In Progress', progress: 45,   health: 'yellow', endDate: '3 Jun 2026',  timeLeft: '6d',  timeTone: 'warning', completed: 4, total: 9,  overdue: 1 },
+  { id: 4, name: 'Design System',         status: 'Review',      progress: 64,   health: 'green',  endDate: '19 Jun 2026', timeLeft: '16d', timeTone: 'muted',   completed: 9, total: 14, overdue: 0 },
+  { id: 5, name: 'API Gateway Migration', status: 'Planning',    progress: 20,   health: 'red',    endDate: '16 Jun 2026', timeLeft: '21d', timeTone: 'muted',   completed: 2, total: 10, overdue: 2 },
+  { id: 6, name: 'Admin Dashboard',       status: 'Planning',    progress: null, health: 'yellow', endDate: '25 Jun 2026', timeLeft: '30d', timeTone: 'muted',   completed: 0, total: 6,  overdue: 0 },
+];
+
+const DUE_SOON: { id: number; title: string; project: string; label: string; tone: 'red' | 'amber' | 'sky' | 'green' }[] = [
+  { id: 1, title: 'Implement payment gateway', project: 'E-Commerce Redesign',  label: 'TODAY',          tone: 'amber' },
+  { id: 2, title: 'Auth flow unit tests',       project: 'Mobile App v2',        label: 'tomorrow',       tone: 'sky' },
+  { id: 3, title: 'Load balancer config',       project: 'API Gateway Migration', label: 'in 4d',         tone: 'green' },
+  { id: 4, title: 'Security audit',             project: 'Analytics Platform',   label: 'overdue 2d ago', tone: 'red' },
+];
+
+const DUE_TONE: Record<string, { dot: string; pill: string }> = {
+  red: { dot: 'bg-destructive', pill: 'bg-destructive/10 text-destructive' },
+  amber: { dot: 'bg-warning', pill: 'bg-warning/15 text-warning' },
+  sky: { dot: 'bg-sky-500', pill: 'bg-sky-500/15 text-sky-400' },
+  green: { dot: 'bg-emerald-500', pill: 'bg-emerald-500/15 text-emerald-400' },
+};
+
+const PENDING_TASKS: { id: number; title: string; project: string; status: string; due: string; overdue: boolean }[] = [
+  { id: 1, title: 'Implement payment gateway', project: 'E-Commerce Redesign', status: 'In progress', due: '6 Jun', overdue: false },
+  { id: 2, title: 'Auth flow unit tests',       project: 'Mobile App v2',       status: 'To do',       due: '9 Jun', overdue: false },
+  { id: 3, title: 'Security audit',             project: 'Analytics Platform',  status: 'In review',   due: '2 Jun', overdue: true },
+];
+
+const GIT_ACTIVITY: { id: number; av: string; pusher: string; branch: string; commits: string; date: string }[] = [
+  { id: 1, av: 'A', pusher: 'alexdev',  branch: 'feat/payment',    commits: '3 commits', date: '2 Jun' },
+  { id: 2, av: 'C', pusher: 'carlosr',  branch: 'fix/cart-state',  commits: '1 commit',  date: '1 Jun' },
+  { id: 3, av: 'M', pusher: 'mariasf',  branch: 'chore/deps',      commits: '2 commits', date: '31 May' },
+];
+
+// Alerts — no severity tier; only status active/resolved, grouped by DATE.
+type DemoAlert = {
+  id: number;
+  message: string;
+  task: string;
+  time: string;
+  status: 'active' | 'resolved';
+  resolvedAgo?: string;
+  group: 'Today' | 'Yesterday' | 'This week';
+};
+
+const DEMO_ALERTS: DemoAlert[] = [
+  { id: 1, message: 'Deprecated dependency detected in package.json',  task: 'Project scaffolding review', time: '2h ago', status: 'active',   group: 'Today' },
+  { id: 2, message: 'Missing test coverage on checkout module',         task: 'Build checkout flow',        time: '5h ago', status: 'active',   group: 'Today' },
+  { id: 3, message: 'Unused environment variable in production config',  task: 'Deploy staging environment', time: '1d ago', status: 'active',   group: 'Yesterday' },
+  { id: 4, message: 'High memory usage in background worker',            task: 'Performance sprint',         time: '1d ago', status: 'resolved', resolvedAgo: '3h ago', group: 'Yesterday' },
+  { id: 5, message: 'Endpoint missing rate limiting',                    task: 'API gateway setup',          time: '3d ago', status: 'resolved', resolvedAgo: '2d ago', group: 'This week' },
+];
 
 // ── Dashboard view ───────────────────────────────────────────────────────────
 
 function DashboardView({ onNavigate }: { onNavigate: (v: DemoView) => void }) {
-  const kpis = [
-    { label: 'PROJECTS',    value: '5',  sub: 'active',            tone: 'primary' },
-    { label: 'TASKS',       value: '34', sub: 'in your projects',  tone: 'info'    },
-    { label: 'COMPLETED',   value: '21', sub: 'tasks finished',    tone: 'success' },
-    { label: 'PENDING',     value: '13', sub: 'open tasks',        tone: 'warning' },
-    { label: 'OVERDUE',     value: '3',  sub: 'need attention',    tone: 'muted'   },
-    { label: 'WARNINGS',    value: '2',  sub: 'active alerts',     tone: 'danger'  },
+  const kpis: { label: string; value: string; sub: string; icon: Icon; bar: string; chip: string }[] = [
+    { label: 'Projects',  value: '5',  sub: 'active',          icon: Briefcase,     bar: 'bg-primary',      chip: 'bg-primary/10 text-primary' },
+    { label: 'Tasks',     value: '34', sub: 'in your projects', icon: ListChecks,    bar: 'bg-sky-500',      chip: 'bg-sky-500/10 text-sky-400' },
+    { label: 'Completed', value: '21', sub: 'finished tasks',  icon: CheckCircle2,  bar: 'bg-emerald-500',  chip: 'bg-emerald-500/10 text-emerald-400' },
+    { label: 'Open',      value: '13', sub: 'open tasks',      icon: Timer,         bar: 'bg-amber-500',    chip: 'bg-amber-500/10 text-amber-400' },
+    { label: 'Overdue',   value: '3',  sub: 'need attention',  icon: AlertTriangle, bar: 'bg-red-500',      chip: 'bg-red-500/10 text-red-400' },
+    { label: 'Warnings',  value: '2',  sub: 'active alerts',   icon: TrendingUp,    bar: 'bg-violet-500',   chip: 'bg-violet-500/10 text-violet-400' },
   ];
-  const toneClass: Record<string, string> = {
-    primary: 'text-primary',
-    info:    'text-info',
-    success: 'text-success',
-    warning: 'text-warning',
-    danger:  'text-destructive',
-    muted:   'text-muted-foreground',
-  };
+
+  const myProjects = DEMO_PROJECTS.slice(0, 4);
 
   return (
     <div className="p-2.5 space-y-2 overflow-y-auto h-full">
-      {/* Greeting */}
+      {/* Command bar: greeting + refresh */}
       <div className="flex items-center justify-between">
-        <span className="text-[9px] text-muted-foreground">Hi, <span className="font-semibold text-foreground">Alex</span></span>
         <button className="text-[8px] flex items-center gap-1 px-2 py-0.5 rounded-[3px] border border-border text-muted-foreground">
-          ↻ Refresh
+          <RefreshCw className="w-2 h-2" /> Refresh
         </button>
+        <span className="text-[9px] text-muted-foreground">Hi, <span className="font-semibold text-foreground">Alex</span></span>
       </div>
 
-      {/* KPIs */}
+      {/* KPI row */}
       <div className="grid grid-cols-3 gap-1.5">
         {kpis.map((k) => (
-          <div key={k.label} className="rounded-[3px] border border-border bg-background p-2">
-            <div className="text-[7px] text-muted-foreground uppercase tracking-[0.07em] mb-0.5">{k.label}</div>
-            <div className={`text-[16px] font-bold leading-none ${toneClass[k.tone]}`}>{k.value}</div>
-            <div className="text-[7px] text-muted-foreground mt-0.5">{k.sub}</div>
+          <div key={k.label} className="relative rounded-[3px] border border-border bg-background p-2 overflow-hidden">
+            <div className={`absolute top-0 left-0 right-0 h-[2px] ${k.bar}`} />
+            <div className="flex items-start justify-between">
+              <div className="min-w-0">
+                <div className="text-[7px] text-muted-foreground uppercase tracking-[0.07em] mb-0.5 font-semibold">{k.label}</div>
+                <div className="text-[16px] font-bold leading-none text-foreground tabular-nums">{k.value}</div>
+                <div className="text-[7px] text-muted-foreground mt-0.5">{k.sub}</div>
+              </div>
+              <span className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${k.chip}`}>
+                <k.icon className="w-2.5 h-2.5" />
+              </span>
+            </div>
           </div>
         ))}
       </div>
 
-      {/* Health + Upcoming */}
+      {/* Portfolio Health + Due Soon */}
       <div className="grid grid-cols-2 gap-1.5">
         {/* Portfolio Health */}
         <div className="rounded-[3px] border border-border bg-background p-2">
-          <div className="text-[8px] font-semibold text-foreground mb-1.5">Portfolio Health</div>
-          <div className="flex items-center justify-center py-1">
-            <div className="relative w-16 h-16">
-              <svg viewBox="0 0 36 36" className="w-16 h-16 -rotate-90">
-                {/* track */}
-                <circle cx="18" cy="18" r="14" fill="none" strokeWidth="3.5" style={{ stroke: 'rgba(255,255,255,0.1)' }} />
-                {/* on track 40% — green */}
-                <circle cx="18" cy="18" r="14" fill="none" strokeWidth="3.5" strokeLinecap="butt"
-                  strokeDasharray="35.2 52.8" strokeDashoffset="0"
-                  style={{ stroke: '#22c55e' }} />
-                {/* warning 20% — amber */}
-                <circle cx="18" cy="18" r="14" fill="none" strokeWidth="3.5" strokeLinecap="butt"
-                  strokeDasharray="17.6 70.4" strokeDashoffset="52.8"
-                  style={{ stroke: '#f59e0b' }} />
-                {/* at risk 40% — red */}
-                <circle cx="18" cy="18" r="14" fill="none" strokeWidth="3.5" strokeLinecap="butt"
-                  strokeDasharray="35.2 52.8" strokeDashoffset="35.2"
-                  style={{ stroke: '#ef4444' }} />
+          <div className="flex items-center justify-between mb-1.5">
+            <div className="text-[8px] font-semibold text-foreground">Portfolio Health</div>
+            <span className="text-[7px] text-muted-foreground">5 total</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="relative w-14 h-14 shrink-0">
+              <svg viewBox="0 0 36 36" className="w-14 h-14 -rotate-90">
+                <circle cx="18" cy="18" r="14" fill="none" strokeWidth="4" pathLength={100} style={{ stroke: 'rgba(255,255,255,0.08)' }} />
+                <circle cx="18" cy="18" r="14" fill="none" strokeWidth="4" pathLength={100} strokeDasharray="60 40" strokeDashoffset="0" style={{ stroke: '#10b981' }} />
+                <circle cx="18" cy="18" r="14" fill="none" strokeWidth="4" pathLength={100} strokeDasharray="20 80" strokeDashoffset="-60" style={{ stroke: '#f59e0b' }} />
+                <circle cx="18" cy="18" r="14" fill="none" strokeWidth="4" pathLength={100} strokeDasharray="20 80" strokeDashoffset="-80" style={{ stroke: '#ef4444' }} />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-[11px] font-bold text-foreground">5</span>
-                <span className="text-[7px] text-muted-foreground">projects</span>
+                <span className="text-[11px] font-bold text-foreground leading-none">5</span>
+                <span className="text-[6px] text-muted-foreground uppercase tracking-wide">projects</span>
               </div>
             </div>
-          </div>
-          <div className="space-y-0.5 mt-1">
-            {([
-              { label: 'On track · 2', dot: 'bg-success',     col: 'text-success'     },
-              { label: 'Warning · 1',  dot: 'bg-warning',     col: 'text-warning'     },
-              { label: 'At risk · 2',  dot: 'bg-destructive', col: 'text-destructive' },
-            ] as const).map((item) => (
-              <div key={item.label} className="flex items-center gap-1">
-                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${item.dot}`} />
-                <span className={`text-[7px] ${item.col}`}>{item.label}</span>
-              </div>
-            ))}
+            <div className="space-y-0.5 flex-1 min-w-0">
+              {([
+                { label: 'Healthy', n: 3, pct: 60, dot: 'bg-emerald-500', bar: '#10b981' },
+                { label: 'At risk', n: 1, pct: 20, dot: 'bg-amber-500',   bar: '#f59e0b' },
+                { label: 'Critical', n: 1, pct: 20, dot: 'bg-red-500',    bar: '#ef4444' },
+              ]).map((b) => (
+                <div key={b.label}>
+                  <div className="flex items-center gap-1">
+                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${b.dot}`} />
+                    <span className="text-[7px] text-foreground">{b.label}</span>
+                    <span className="text-[7px] text-muted-foreground ml-auto">{b.n} · {b.pct}%</span>
+                  </div>
+                  <div className="h-[2px] rounded-full mt-0.5 ml-2.5 overflow-hidden bg-border">
+                    <div className="h-full rounded-full" style={{ width: `${b.pct}%`, background: b.bar }} />
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* Upcoming due */}
+        {/* Due Soon */}
         <div className="rounded-[3px] border border-border bg-background p-2 flex flex-col">
           <div className="flex items-center justify-between mb-1">
-            <div className="text-[8px] font-semibold text-foreground">Upcoming Due</div>
-            <span className="text-[7px] text-muted-foreground">7 in 7 days</span>
+            <div className="flex items-center gap-1 text-[8px] font-semibold text-foreground">
+              <Calendar className="w-2.5 h-2.5" /> Due Soon
+            </div>
+            <span className="text-[7px] text-muted-foreground">4 in 7 days</span>
           </div>
           <div className="space-y-1 flex-1 overflow-hidden">
-            {PROXIMAS_VENCER.map((t) => (
+            {DUE_SOON.map((t) => (
               <div key={t.id} className="flex items-start gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-warning mt-1 shrink-0" />
+                <span className={`w-1.5 h-1.5 rounded-full mt-1 shrink-0 ${DUE_TONE[t.tone].dot}`} />
                 <div className="min-w-0 flex-1">
-                  <p className="text-[8px] text-foreground truncate leading-tight">{t.titulo}</p>
-                  <p className="text-[7px] text-muted-foreground truncate">{t.proyecto}</p>
+                  <p className="text-[8px] text-foreground truncate leading-tight">{t.title}</p>
+                  <p className="text-[7px] text-muted-foreground truncate">{t.project}</p>
                 </div>
-                <span className={`text-[7px] px-1 py-0.5 rounded-[2px] shrink-0 ${TAG_COLOR[t.tag] ?? 'bg-muted text-muted-foreground'}`}>{t.tag}</span>
+                <span className={`text-[7px] px-1 py-0.5 rounded-[2px] shrink-0 ${DUE_TONE[t.tone].pill}`}>{t.label}</span>
               </div>
             ))}
           </div>
+          <button onClick={() => onNavigate('proyectos')} className="text-[7px] text-primary hover:underline flex items-center gap-0.5 mt-1 self-start">
+            View all <ArrowRight className="w-2 h-2" />
+          </button>
         </div>
       </div>
 
-      {/* My projects */}
+      {/* My Projects */}
       <div className="rounded-[3px] border border-border bg-background p-2">
         <div className="flex items-center justify-between mb-1.5">
           <div className="text-[8px] font-semibold text-foreground">My Projects</div>
           <button onClick={() => onNavigate('proyectos')} className="text-[7px] text-primary hover:underline flex items-center gap-0.5">
-            View all <ChevronRight className="w-2 h-2" />
+            View all <ArrowRight className="w-2 h-2" />
           </button>
         </div>
         <div className="grid grid-cols-2 gap-1">
-          {DEMO_PROYECTOS.slice(0, 4).map((p) => {
-            const days = parseInt(p.dias);
-            const atRisk = days <= 10 && p.progreso < 60;
-            const onTrack = !atRisk;
+          {myProjects.map((p) => {
+            const border = p.health === 'green' ? 'border-l-success' : p.health === 'yellow' ? 'border-l-warning' : 'border-l-destructive';
+            const pct = p.progress ?? 0;
             return (
-              <div key={p.id} className="rounded-[3px] border border-border bg-card/50 px-2 py-1.5">
-                <p className="text-[8px] font-medium text-foreground truncate">{p.nombre}</p>
+              <div key={p.id} className={`rounded-[3px] border border-border border-l-2 ${border} bg-card/50 px-2 py-1.5`}>
+                <div className="flex items-center justify-between gap-1">
+                  <p className="text-[8px] font-semibold text-foreground truncate">{p.name}</p>
+                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${HEALTH_DOT[p.health]}`} title={HEALTH_LABEL[p.health]} />
+                </div>
+                <div className="flex items-center gap-1 mt-1">
+                  <div className="flex-1 h-1 rounded-full bg-border overflow-hidden">
+                    <div className={`h-full rounded-full ${HEALTH_DOT[p.health]}`} style={{ width: `${pct}%` }} />
+                  </div>
+                  <span className="text-[7px] text-muted-foreground w-5 text-right">{p.progress == null ? '—' : `${p.progress}%`}</span>
+                </div>
                 <div className="flex items-center justify-between mt-0.5">
-                  <span className="text-[7px] text-muted-foreground">{p.tareas} tasks</span>
-                  <span className={`text-[7px] font-medium ${onTrack ? 'text-success' : 'text-warning'}`}>
-                    {onTrack ? 'On track' : 'At risk'}
-                  </span>
+                  <span className="text-[7px] text-muted-foreground">{p.completed} of {p.total} tasks</span>
+                  {p.overdue > 0 ? (
+                    <span className="text-[7px] text-destructive flex items-center gap-0.5"><AlertTriangle className="w-2 h-2" />{p.overdue} overdue {p.overdue === 1 ? 'task' : 'tasks'}</span>
+                  ) : (
+                    <span className="text-[7px] text-success">Up to date</span>
+                  )}
                 </div>
               </div>
             );
           })}
         </div>
       </div>
+
+      {/* My Pending Tasks + Recent Activity (Git) */}
+      <div className="grid grid-cols-2 gap-1.5">
+        <div className="rounded-[3px] border border-border bg-background p-2 flex flex-col">
+          <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center gap-1 text-[8px] font-semibold text-foreground">
+              <Calendar className="w-2.5 h-2.5" /> My Pending Tasks
+              <span className="text-[6px] font-bold px-1 rounded-full bg-primary/10 text-primary">3</span>
+            </div>
+            <button onClick={() => onNavigate('proyectos')} className="text-[7px] text-primary hover:underline flex items-center gap-0.5">
+              View Backlog <ArrowRight className="w-2 h-2" />
+            </button>
+          </div>
+          <div className="space-y-1">
+            {PENDING_TASKS.map((t) => (
+              <div key={t.id} className="flex items-center gap-1">
+                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${(TASK_STATUS_COLOR[t.status] ?? '').split(' ')[0].replace('/15', '')}`} />
+                <div className="min-w-0 flex-1">
+                  <p className="text-[8px] text-foreground truncate leading-tight">{t.title}</p>
+                  <p className="text-[7px] text-muted-foreground truncate">{t.project}</p>
+                </div>
+                <span className={`text-[6px] px-1 py-0.5 rounded-[2px] shrink-0 ${TASK_STATUS_COLOR[t.status]}`}>{t.status}</span>
+                <span className={`text-[7px] shrink-0 w-7 text-right ${t.overdue ? 'text-destructive font-semibold' : 'text-muted-foreground'}`}>{t.due}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-[3px] border border-border bg-background p-2 flex flex-col">
+          <div className="flex items-center gap-1 text-[8px] font-semibold text-foreground mb-1">
+            <GitCommit className="w-2.5 h-2.5" /> Recent Activity (Git)
+          </div>
+          <div className="space-y-1">
+            {GIT_ACTIVITY.map((g) => (
+              <div key={g.id} className="flex items-center gap-1.5">
+                <div className="w-4 h-4 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                  <span className="text-[6px] font-bold text-primary">{g.av}</span>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1">
+                    <span className="text-[8px] text-foreground truncate">{g.pusher}</span>
+                    <span className="text-[6px] font-mono px-1 rounded-[2px] bg-primary/10 text-primary truncate">{g.branch}</span>
+                  </div>
+                  <p className="text-[7px] text-muted-foreground">{g.commits} · {g.date}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
 
-// ── Proyectos view ───────────────────────────────────────────────────────────
+// ── Projects view ────────────────────────────────────────────────────────────
 
 function ProyectosView() {
+  const counts = {
+    all: DEMO_PROJECTS.length,
+    'In Progress': DEMO_PROJECTS.filter((p) => p.status === 'In Progress').length,
+    'Planning': DEMO_PROJECTS.filter((p) => p.status === 'Planning').length,
+    'Review': DEMO_PROJECTS.filter((p) => p.status === 'Review').length,
+  };
+  const timeClass: Record<string, string> = {
+    destructive: 'text-destructive font-semibold',
+    warning: 'text-warning font-semibold',
+    muted: 'text-muted-foreground',
+  };
+
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="px-3 py-2 border-b border-border bg-card/60 shrink-0 flex items-center justify-between">
-        <div>
-          <div className="text-[11px] font-semibold text-foreground">Projects</div>
-          <div className="text-[9px] text-muted-foreground">Search, filter and sort active projects by delivery date.</div>
+      {/* Header card */}
+      <div className="px-3 py-2 border-b border-border bg-card/60 shrink-0">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <div className="text-[11px] font-semibold text-foreground">Projects</div>
+            <div className="text-[9px] text-muted-foreground">Search, filter and sort active projects by end date.</div>
+          </div>
+          <div className="flex items-center gap-1 shrink-0">
+            <div className="hidden sm:flex items-center gap-1 text-[8px] text-muted-foreground bg-surface-secondary/60 border border-border/50 rounded-[3px] px-1.5 py-0.5">
+              <Search className="w-2.5 h-2.5" /> Search…
+            </div>
+            <div className="flex items-center gap-0.5 text-[8px] text-muted-foreground bg-surface-secondary/60 border border-border/50 rounded-[3px] px-1.5 py-0.5">
+              <ArrowUpDown className="w-2.5 h-2.5" /> Nearest due
+            </div>
+            <div className="flex items-center rounded-[3px] border border-border overflow-hidden">
+              <span className="px-1 py-0.5 bg-primary text-primary-foreground"><List className="w-2.5 h-2.5" /></span>
+              <span className="px-1 py-0.5 text-muted-foreground"><LayoutGrid className="w-2.5 h-2.5" /></span>
+            </div>
+            <button className="px-1 py-1 rounded-[3px] border border-border text-muted-foreground" title="Refresh"><RefreshCw className="w-2.5 h-2.5" /></button>
+            <button className="text-[9px] px-2 py-1 rounded-[3px] bg-primary text-primary-foreground font-medium flex items-center gap-0.5"><Plus className="w-2.5 h-2.5" /> New Project</button>
+          </div>
         </div>
-        <button className="text-[9px] px-2 py-1 rounded-[3px] bg-primary text-primary-foreground font-medium">+ New Project</button>
+        {/* Filter pills with count sub-badge */}
+        <div className="flex items-center gap-1.5 mt-2">
+          {[
+            { label: 'All', n: counts.all, active: true },
+            { label: 'Planning', n: counts['Planning'], active: false },
+            { label: 'In Progress', n: counts['In Progress'], active: false },
+            { label: 'Review', n: counts['Review'], active: false },
+          ].map((f) => (
+            <span key={f.label} className={`flex items-center gap-1 text-[8px] px-2 py-0.5 rounded-full ${f.active ? 'bg-primary text-primary-foreground' : 'bg-surface-secondary border border-border text-muted-foreground'}`}>
+              {f.label}
+              <span className={`text-[7px] px-1 rounded-full ${f.active ? 'bg-white/20 text-white' : 'bg-background text-muted-foreground'}`}>{f.n}</span>
+            </span>
+          ))}
+        </div>
       </div>
-      <div className="flex items-center gap-1.5 px-3 py-1.5 border-b border-border bg-card/30 shrink-0">
-        <span className="text-[8px] px-2 py-0.5 rounded-full bg-primary/15 text-primary font-medium">All 5</span>
-        <span className="text-[8px] px-2 py-0.5 rounded-full border border-border text-muted-foreground">In Progress 3</span>
-        <span className="text-[8px] px-2 py-0.5 rounded-full border border-border text-muted-foreground">Planning 2</span>
-      </div>
+
+      {/* Table */}
       <div className="overflow-y-auto flex-1">
         <table className="w-full text-[9px]">
           <thead>
-            <tr className="border-b border-border bg-surface-secondary/30">
-              <th className="text-left px-3 py-1.5 text-muted-foreground font-medium">PROJECT</th>
-              <th className="text-left px-2 py-1.5 text-muted-foreground font-medium">STATUS</th>
-              <th className="text-right px-2 py-1.5 text-muted-foreground font-medium">HEALTH</th>
-              <th className="text-right px-2 py-1.5 text-muted-foreground font-medium">END DATE</th>
-              <th className="text-right px-3 py-1.5 text-muted-foreground font-medium">TIME LEFT</th>
+            <tr className="border-b border-border bg-surface-secondary/40 text-left">
+              <th className="px-3 py-1.5 text-muted-foreground font-medium uppercase tracking-[0.06em]">Project</th>
+              <th className="px-2 py-1.5 text-muted-foreground font-medium uppercase tracking-[0.06em]">Status</th>
+              <th className="px-2 py-1.5 text-muted-foreground font-medium uppercase tracking-[0.06em]">Progress</th>
+              <th className="px-2 py-1.5 text-muted-foreground font-medium uppercase tracking-[0.06em]">Health</th>
+              <th className="px-2 py-1.5 text-muted-foreground font-medium uppercase tracking-[0.06em]">End Date</th>
+              <th className="px-3 py-1.5 text-muted-foreground font-medium uppercase tracking-[0.06em]">Time left</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border/50">
-            {DEMO_PROYECTOS.map((p) => (
+            {DEMO_PROJECTS.map((p) => (
               <tr key={p.id} className="hover:bg-surface-secondary/20 transition-colors">
-                <td className="px-3 py-2 text-foreground font-medium truncate max-w-[120px]">{p.nombre}</td>
+                <td className="px-3 py-2 text-foreground font-medium truncate max-w-[110px]">{p.name}</td>
                 <td className="px-2 py-2">
-                  <span className="px-1.5 py-0.5 rounded-[3px] border border-border/60 text-muted-foreground bg-surface-secondary/30">● {p.estado}</span>
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[3px] border border-border text-muted-foreground">
+                    <span className={`w-1.5 h-1.5 rounded-full ${PROJECT_STATUS_DOT[p.status] ?? 'bg-muted-foreground'}`} />
+                    {p.status}
+                  </span>
                 </td>
                 <td className="px-2 py-2">
-                  <div className="flex items-center justify-end gap-1.5">
-                    <div className="w-10 h-1 rounded-full bg-border overflow-hidden">
-                      <div
-                        className={`h-full rounded-full ${
-                          p.progreso >= 70 ? 'bg-success' : p.progreso >= 40 ? 'bg-warning' : 'bg-destructive'
-                        }`}
-                        style={{ width: `${p.progreso}%` }}
-                      />
+                  {p.progress == null ? (
+                    <span className="text-muted-foreground">—</span>
+                  ) : (
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-10 h-1 rounded-full bg-muted/50 overflow-hidden">
+                        <div className={`h-full rounded-full ${progressColor(p.progress)}`} style={{ width: `${p.progress}%` }} />
+                      </div>
+                      <span className="text-[9px] w-6 text-muted-foreground">{p.progress}%</span>
                     </div>
-                    <span className={`text-[9px] w-6 text-right ${
-                      p.progreso >= 70 ? 'text-success' : p.progreso >= 40 ? 'text-warning' : 'text-destructive'
-                    }`}>{p.progreso}%</span>
-                  </div>
+                  )}
                 </td>
-                <td className="px-2 py-2 text-right text-muted-foreground">{p.fecha}</td>
-                <td className={`px-3 py-2 text-right font-semibold ${
-                  p.dias === '4d' ? 'text-destructive' : p.dias === '8d' || p.dias === '12d' ? 'text-warning' : 'text-muted-foreground'
-                }`}>{p.dias}</td>
+                <td className="px-2 py-2">
+                  <span className={`w-2.5 h-2.5 rounded-full inline-block ${HEALTH_DOT[p.health]}`} title={HEALTH_LABEL[p.health]} />
+                </td>
+                <td className="px-2 py-2 text-muted-foreground">{p.endDate}</td>
+                <td className={`px-3 py-2 ${timeClass[p.timeTone]}`}>{p.timeLeft}</td>
               </tr>
             ))}
           </tbody>
@@ -347,217 +542,281 @@ function ProyectosView() {
   );
 }
 
-// ── Reportes view ────────────────────────────────────────────────────────────
+// ── Reports view ─────────────────────────────────────────────────────────────
 
 function ReportesView() {
-  const attProyectos = [
-    { nombre: 'API Gateway Migration',  salud: '20%', vencidas: '2 overdue' },
-    { nombre: 'Admin Dashboard',        salud: '0%',  vencidas: '0 overdue' },
-    { nombre: 'Mobile App v2',          salud: '45%', vencidas: '1 overdue'  },
-    { nombre: 'E-Commerce Redesign',    salud: '72%', vencidas: '1 overdue'  },
-    { nombre: 'Analytics Platform',     salud: '88%', vencidas: '0 overdue' },
+  const priority = [
+    { name: 'API Gateway Migration', pct: '20%', overdue: '2 overdue', dot: 'bg-red-500' },
+    { name: 'Admin Dashboard',       pct: '0%',  overdue: '0 overdue', dot: 'bg-amber-500' },
+    { name: 'Mobile App v2',         pct: '45%', overdue: '1 overdue', dot: 'bg-amber-500' },
+    { name: 'E-Commerce Redesign',   pct: '72%', overdue: '0 overdue', dot: 'bg-emerald-500' },
+    { name: 'Analytics Platform',    pct: '88%', overdue: '0 overdue', dot: 'bg-emerald-500' },
   ];
+  const kpis: { label: string; value: string; sub: string; icon: Icon; dot: string }[] = [
+    { label: 'TOTAL TASKS', value: '34', sub: 'tasks recorded',    icon: ListChecks,    dot: 'bg-emerald-500' },
+    { label: 'COMPLETED',   value: '21', sub: '62% of total',      icon: CheckCircle2,  dot: 'bg-amber-500' },
+    { label: 'PENDING',     value: '13', sub: 'tasks to complete', icon: Clock,         dot: 'bg-red-500' },
+    { label: 'OVERDUE',     value: '3',  sub: 'missed deadlines',  icon: AlertTriangle, dot: 'bg-amber-500' },
+  ];
+
   return (
-    <div className="flex flex-col h-full overflow-y-auto p-2.5 space-y-2">
-      {/* Health header */}
-      <div className="rounded-[3px] border border-warning/30 bg-warning/5 p-2.5">
-        <div className="flex items-center justify-between mb-1">
-          <span className="text-[7px] px-1.5 py-0.5 rounded-[3px] bg-warning/15 text-warning font-semibold uppercase tracking-wider">Requires Attention</span>
-          <span className="text-[8px] text-muted-foreground">5 projects</span>
+    <div className="flex flex-col h-full overflow-hidden">
+      {/* Command bar */}
+      <div className="flex items-center gap-1.5 px-3 py-1.5 border-b border-border bg-card/60 shrink-0">
+        <button className="text-[8px] flex items-center gap-1 px-2 py-0.5 rounded-[3px] bg-primary text-primary-foreground font-medium"><FileDown className="w-2.5 h-2.5" /> Download report</button>
+        <button className="text-[8px] flex items-center gap-1 px-2 py-0.5 rounded-[3px] border border-border text-muted-foreground"><Download className="w-2.5 h-2.5" /> Export CSV</button>
+        <button className="text-[8px] flex items-center gap-1 px-2 py-0.5 rounded-[3px] border border-border text-muted-foreground"><RefreshCw className="w-2.5 h-2.5" /> Refresh</button>
+        <div className="ml-auto flex items-center gap-1 text-[8px] text-muted-foreground border border-border rounded-[3px] px-2 py-0.5">All <ChevronDown className="w-2.5 h-2.5" /></div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-2.5 space-y-2">
+        {/* Hero status card */}
+        <div className="rounded-[3px] border border-border bg-card ring-1 ring-red-500/30 p-2.5">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <span className="inline-flex items-center gap-1 text-[7px] px-1.5 py-0.5 rounded-full bg-red-500/10 text-red-400 font-bold uppercase tracking-wider"><span className="w-1.5 h-1.5 rounded-full bg-red-500" /> At risk</span>
+              <div className="text-[22px] font-bold text-foreground leading-none mt-1.5">48% <span className="text-[8px] font-normal text-muted-foreground uppercase tracking-wide">Portfolio health</span></div>
+              <div className="space-y-0.5 mt-1.5">
+                <div className="flex items-center gap-1 text-[8px] text-amber-400"><TrendingDown className="w-2.5 h-2.5 shrink-0" /> Velocity −18% vs prior period — 4 fewer tasks completed</div>
+                <div className="flex items-center gap-1 text-[8px] text-amber-400"><TrendingDown className="w-2.5 h-2.5 shrink-0" /> Completion rate 62% below the target of 80%</div>
+                <div className="flex items-center gap-1 text-[8px] text-red-400"><AlertTriangle className="w-2.5 h-2.5 shrink-0" /> &quot;API Gateway Migration&quot; requires attention: 2 overdue tasks</div>
+              </div>
+            </div>
+            <div className="text-right shrink-0">
+              <div className="text-[20px] font-bold text-foreground leading-none">5</div>
+              <div className="text-[7px] text-muted-foreground">projects</div>
+              <div className="mt-1.5 space-y-0.5">
+                <div className="flex items-center gap-1 justify-end text-[7px] text-muted-foreground"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> 3 ok</div>
+                <div className="flex items-center gap-1 justify-end text-[7px] text-muted-foreground"><span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> 1 attention</div>
+                <div className="flex items-center gap-1 justify-end text-[7px] text-muted-foreground"><span className="w-1.5 h-1.5 rounded-full bg-red-500" /> 1 risk</div>
+              </div>
+            </div>
+          </div>
         </div>
-        <div className="text-[22px] font-bold text-foreground leading-none mb-1">48% <span className="text-[9px] font-normal text-muted-foreground">PORTFOLIO HEALTH</span></div>
-        <div className="space-y-0.5">
-          <div className="flex items-center gap-1 text-[8px] text-muted-foreground">
-            <TrendingDown className="w-2.5 h-2.5 text-destructive shrink-0" />
-            Velocity −18% vs previous period
+
+        {/* KPIs */}
+        <div className="grid grid-cols-4 gap-1.5">
+          {kpis.map((k) => (
+            <div key={k.label} className="rounded-[3px] border border-border bg-background p-1.5">
+              <div className="flex items-center justify-between mb-0.5">
+                <div className="flex items-center gap-1 min-w-0">
+                  <k.icon className="w-2.5 h-2.5 text-muted-foreground shrink-0" />
+                  <span className="text-[6px] text-muted-foreground uppercase tracking-[0.05em] truncate">{k.label}</span>
+                </div>
+                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${k.dot}`} />
+              </div>
+              <div className="text-[15px] font-bold text-foreground leading-none">{k.value}</div>
+              <div className="text-[7px] text-muted-foreground mt-0.5">{k.sub}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Trend + Priority */}
+        <div className="grid grid-cols-3 gap-1.5">
+          <div className="col-span-2 rounded-[3px] border border-border bg-background p-2">
+            <div className="flex items-start justify-between">
+              <div>
+                <div className="text-[7px] text-muted-foreground uppercase tracking-wider">Trend · 2 weeks</div>
+                <div className="text-[9px] font-semibold text-foreground">Tasks completed per week</div>
+              </div>
+              <div className="text-right">
+                <div className="text-[13px] font-bold text-foreground leading-none">9</div>
+                <div className="text-[7px] text-red-400">−18% vs prior</div>
+              </div>
+            </div>
+            <svg viewBox="0 0 120 46" className="w-full h-12 mt-1">
+              <defs>
+                <linearGradient id="repTrend" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#D4192C" stopOpacity="0.35" />
+                  <stop offset="100%" stopColor="#D4192C" stopOpacity="0.02" />
+                </linearGradient>
+              </defs>
+              <line x1="12" y1="8"  x2="116" y2="8"  stroke="rgba(255,255,255,0.07)" strokeWidth="0.5" strokeDasharray="2 2" />
+              <line x1="12" y1="20" x2="116" y2="20" stroke="rgba(255,255,255,0.07)" strokeWidth="0.5" strokeDasharray="2 2" />
+              <line x1="12" y1="32" x2="116" y2="32" stroke="rgba(255,255,255,0.07)" strokeWidth="0.5" strokeDasharray="2 2" />
+              <path d="M12 10 L46 14 L80 24 L116 33" stroke="#D4192C" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M12 10 L46 14 L80 24 L116 33 L116 40 L12 40 Z" fill="url(#repTrend)" />
+              <text x="12" y="45" fill="rgba(255,255,255,0.3)" fontSize="5">26 May</text>
+              <text x="92" y="45" fill="rgba(255,255,255,0.3)" fontSize="5">02 Jun</text>
+            </svg>
           </div>
-          <div className="flex items-center gap-1 text-[8px] text-muted-foreground">
-            <TrendingDown className="w-2.5 h-2.5 text-warning shrink-0" />
-            Completion rate 62% below 80% target
-          </div>
-          <div className="flex items-center gap-1 text-[8px] text-muted-foreground">
-            <AlertTriangle className="w-2.5 h-2.5 text-warning shrink-0" />
-            2 active warnings remain unresolved
+          <div className="rounded-[3px] border border-border bg-background p-2">
+            <div className="text-[7px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5">Priority Attention</div>
+            <div className="space-y-1 overflow-hidden">
+              {priority.map((p) => (
+                <div key={p.name} className="flex items-center gap-1">
+                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${p.dot}`} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[8px] text-foreground truncate">{p.name}</p>
+                    <p className="text-[7px] text-muted-foreground">{p.pct} · {p.overdue}</p>
+                  </div>
+                  <ArrowRight className="w-2.5 h-2.5 text-muted-foreground/40 shrink-0" />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
+    </div>
+  );
+}
 
-      {/* KPIs */}
-      <div className="grid grid-cols-4 gap-1.5">
-        {[
-          { label: 'TOTAL TASKS',   value: '34', sub: 'tasks registered',     dot: 'bg-info'       },
-          { label: 'COMPLETED',     value: '21', sub: '62% of total',         dot: 'bg-success'    },
-          { label: 'PENDING',       value: '13', sub: 'tasks to complete',    dot: 'bg-warning'    },
-          { label: 'OVERDUE',       value: '3',  sub: 'past their due date',  dot: 'bg-destructive'},
-        ].map((k) => (
-          <div key={k.label} className="rounded-[3px] border border-border bg-background p-1.5">
-            <div className="flex items-center gap-1 mb-0.5">
-              <span className={`w-1.5 h-1.5 rounded-full ${k.dot}`} />
-              <span className="text-[7px] text-muted-foreground uppercase tracking-[0.06em]">{k.label}</span>
+// ── Alerts view ──────────────────────────────────────────────────────────────
+
+function AlertasView() {
+  const groups: DemoAlert['group'][] = ['Today', 'Yesterday', 'This week'];
+  return (
+    <div className="flex flex-col h-full overflow-hidden">
+      {/* Command bar */}
+      <div className="flex items-center gap-1.5 px-3 py-1.5 border-b border-border bg-surface-secondary/50 shrink-0">
+        <button className="text-[8px] flex items-center gap-1 px-2 py-0.5 rounded-[3px] border border-border text-muted-foreground"><RefreshCw className="w-2 h-2" /> Refresh</button>
+        <span className="h-3 w-px bg-border" />
+        <span className="flex items-center gap-1 text-[8px] px-2 py-0.5 rounded-full bg-primary text-primary-foreground">All <span className="text-[7px] px-1 rounded-full bg-white/20">5</span></span>
+        <span className="flex items-center gap-1 text-[8px] px-2 py-0.5 rounded-full bg-card border border-border text-muted-foreground">Active <span className="text-[7px] px-1 rounded-full bg-background">3</span></span>
+        <span className="flex items-center gap-1 text-[8px] px-2 py-0.5 rounded-full bg-card border border-border text-muted-foreground">Resolved <span className="text-[7px] px-1 rounded-full bg-background">2</span></span>
+        <div className="ml-auto flex items-center gap-1 text-[8px] text-muted-foreground bg-card border border-border rounded-[4px] px-1.5 py-0.5">
+          <Search className="w-2.5 h-2.5" /> Search alerts…
+        </div>
+      </div>
+
+      {/* Summary bar */}
+      <div className="flex items-center gap-4 px-3 py-1.5 border-b border-border bg-surface-secondary/50 shrink-0 text-[8px]">
+        <span className="flex items-center gap-1 text-muted-foreground"><AlertTriangle className="w-2.5 h-2.5 text-warning" /> <span className="font-bold text-foreground">3</span> active</span>
+        <span className="flex items-center gap-1 text-muted-foreground"><CheckCircle2 className="w-2.5 h-2.5 text-success" /> <span className="font-bold text-foreground">2</span> resolved</span>
+        <span className="flex items-center gap-1 text-muted-foreground"><Clock className="w-2.5 h-2.5" /> <span className="font-bold text-foreground">5</span> total</span>
+      </div>
+
+      {/* Grouped list */}
+      <div className="flex-1 overflow-y-auto">
+        {groups.map((g) => (
+          <div key={g}>
+            <div className="px-3 py-1 bg-surface-secondary/80 sticky top-0">
+              <span className="text-[8px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{g}</span>
             </div>
-            <div className="text-[16px] font-bold text-foreground leading-none">{k.value}</div>
-            <div className="text-[7px] text-muted-foreground mt-0.5">{k.sub}</div>
+            <div className="divide-y divide-border">
+              {DEMO_ALERTS.filter((a) => a.group === g).map((a) => (
+                <div key={a.id} className="px-3 py-2 hover:bg-accent/50 transition-colors">
+                  <div className="flex items-start gap-2">
+                    <Square className="w-3 h-3 mt-0.5 shrink-0 text-muted-foreground/40" />
+                    {a.status === 'active'
+                      ? <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0 text-warning" />
+                      : <CheckCircle2 className="w-3 h-3 mt-0.5 shrink-0 text-success" />}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start gap-1.5">
+                        <p className="text-[9px] text-foreground leading-tight flex-1">{a.message}</p>
+                        <span className={`text-[7px] px-1.5 py-0.5 rounded-full font-medium shrink-0 border ${a.status === 'active' ? 'bg-warning/10 text-warning border-warning/20' : 'bg-success/10 text-success border-success/20'}`}>
+                          {a.status === 'active' ? 'Active' : 'Resolved'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 mt-0.5 text-[8px] text-muted-foreground">
+                        <ExternalLink className="w-2.5 h-2.5 shrink-0" />
+                        <span className="truncate">Task: {a.task}</span>
+                        <span>· {a.time}</span>
+                        {a.resolvedAgo && <span className="text-success">· Resolved {a.resolvedAgo}</span>}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         ))}
       </div>
-
-      {/* Trend + Attention */}
-      <div className="grid grid-cols-2 gap-1.5">
-        <div className="rounded-[3px] border border-border bg-background p-2">
-          <div className="text-[8px] text-muted-foreground uppercase tracking-wider mb-0.5">Trend · 2 Weeks</div>
-          <div className="text-[9px] font-semibold text-foreground mb-1.5">Tasks completed per week</div>
-          {/* Sparkline */}
-          <svg viewBox="0 0 120 50" className="w-full h-14">
-            <defs>
-              <linearGradient id="demoSparkGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#f59e0b" stopOpacity="0.35" />
-                <stop offset="100%" stopColor="#f59e0b" stopOpacity="0.02" />
-              </linearGradient>
-            </defs>
-            {/* Grid lines */}
-            <line x1="12" y1="6"  x2="116" y2="6"  stroke="rgba(255,255,255,0.07)" strokeWidth="0.5" strokeDasharray="2 2" />
-            <line x1="12" y1="16" x2="116" y2="16" stroke="rgba(255,255,255,0.07)" strokeWidth="0.5" strokeDasharray="2 2" />
-            <line x1="12" y1="26" x2="116" y2="26" stroke="rgba(255,255,255,0.07)" strokeWidth="0.5" strokeDasharray="2 2" />
-            <line x1="12" y1="36" x2="116" y2="36" stroke="rgba(255,255,255,0.07)" strokeWidth="0.5" strokeDasharray="2 2" />
-            {/* Y labels */}
-            <text x="10" y="9"  fill="rgba(255,255,255,0.3)" fontSize="5" textAnchor="end">8</text>
-            <text x="10" y="19" fill="rgba(255,255,255,0.3)" fontSize="5" textAnchor="end">6</text>
-            <text x="10" y="29" fill="rgba(255,255,255,0.3)" fontSize="5" textAnchor="end">4</text>
-            <text x="10" y="39" fill="rgba(255,255,255,0.3)" fontSize="5" textAnchor="end">2</text>
-            {/* Line — declining trend */}
-            <path d="M12 8 L46 12 L80 21 L116 34" stroke="#f59e0b" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-            {/* Area fill */}
-            <path d="M12 8 L46 12 L80 21 L116 34 L116 43 L12 43 Z" fill="url(#demoSparkGrad)" />
-            {/* X labels */}
-            <text x="12" y="49" fill="rgba(255,255,255,0.3)" fontSize="5">12 May</text>
-            <text x="88" y="49" fill="rgba(255,255,255,0.3)" fontSize="5">26 May</text>
-          </svg>
-        </div>
-        <div className="rounded-[3px] border border-border bg-background p-2">
-          <div className="text-[8px] font-semibold text-foreground mb-1.5">Priority Attention</div>
-          <div className="space-y-1 overflow-hidden">
-            {attProyectos.map((p) => (
-              <div key={p.nombre} className="flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-warning shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-[8px] text-foreground truncate">{p.nombre}</p>
-                  <p className="text-[7px] text-muted-foreground">{p.salud} · {p.vencidas}</p>
-                </div>
-                <ChevronRight className="w-2.5 h-2.5 text-muted-foreground/40 shrink-0" />
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
 
-// ── Alertas view ─────────────────────────────────────────────────────────────
-
-function AlertasView() {
-  return (
-    <div className="flex flex-col h-full overflow-hidden">
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-card/60 shrink-0">
-        <button className="text-[8px] flex items-center gap-1 px-2 py-0.5 rounded-[3px] border border-border text-muted-foreground">↻ Refresh</button>
-        <span className="text-[8px] px-2 py-0.5 rounded-full bg-primary/15 text-primary font-medium">All 5</span>
-        <span className="text-[8px] px-2 py-0.5 rounded-full border border-border text-muted-foreground">Active 3</span>
-        <span className="text-[8px] px-2 py-0.5 rounded-full border border-border text-muted-foreground">Resolved 2</span>
-      </div>
-      <div className="flex items-center gap-4 px-3 py-1.5 border-b border-border/50 bg-background/30 shrink-0 text-[8px] text-muted-foreground">
-        <span className="text-warning font-medium">▲ 3 active</span>
-        <span className="text-success font-medium">○ 2 resolved</span>
-        <span>◎ 5 total</span>
-      </div>
-      <div className="flex-1 overflow-y-auto">
-        <div className="px-3 py-1.5 border-b border-border/30 bg-surface-secondary/20">
-          <span className="text-[8px] text-muted-foreground font-medium uppercase tracking-wider">Yesterday</span>
-        </div>
-        <div className="divide-y divide-border/50">
-          {DEMO_ALERTAS.filter(a => a.activo).map((a) => (
-            <div key={a.id} className="px-3 py-2.5 hover:bg-surface-secondary/20 transition-colors">
-              <div className="flex items-start gap-2">
-                <input type="checkbox" className="mt-0.5 w-3 h-3 shrink-0 accent-primary" readOnly />
-                <AlertTriangle className={`w-3 h-3 mt-0.5 shrink-0 ${a.tipo === 'danger' ? 'text-destructive' : 'text-warning'}`} />
-                <div className="flex-1 min-w-0">
-                  <p className="text-[9px] text-foreground leading-tight line-clamp-2">{a.titulo}</p>
-                  <p className="text-[8px] text-muted-foreground mt-0.5 truncate">↗ Task: {a.tarea} · {a.tiempo}</p>
-                </div>
-                <span className="text-[7px] px-1.5 py-0.5 rounded-[3px] bg-destructive/15 text-destructive font-medium shrink-0">● {a.etiqueta}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="px-3 py-1.5 border-b border-border/30 border-t border-t-border/50 bg-surface-secondary/20 mt-1">
-          <span className="text-[8px] text-muted-foreground font-medium uppercase tracking-wider">This Week</span>
-        </div>
-        <div className="divide-y divide-border/50">
-          {DEMO_ALERTAS.filter(a => !a.activo).map((a) => (
-            <div key={a.id} className="px-3 py-2.5 opacity-60 hover:opacity-80 transition-opacity">
-              <div className="flex items-start gap-2">
-                <input type="checkbox" checked className="mt-0.5 w-3 h-3 shrink-0 accent-primary" readOnly />
-                <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0 text-muted-foreground" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-[9px] text-muted-foreground leading-tight line-clamp-2 line-through">{a.titulo}</p>
-                  <p className="text-[8px] text-muted-foreground/60 mt-0.5 truncate">↗ Task: {a.tarea} · {a.tiempo}</p>
-                </div>
-                <span className="text-[7px] px-1.5 py-0.5 rounded-[3px] bg-success/15 text-success font-medium shrink-0">✓ {a.etiqueta}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── Perfil view ──────────────────────────────────────────────────────────────
+// ── Profile view ─────────────────────────────────────────────────────────────
 
 function PerfilView() {
+  const projects = [
+    { name: 'E-Commerce Redesign', status: 'In Progress', end: '7 Jun 2026',  days: '12d', tone: 'muted' },
+    { name: 'Mobile App v2',        status: 'In Progress', end: '3 Jun 2026',  days: '6d',  tone: 'warning' },
+    { name: 'Design System',        status: 'Review',      end: '19 Jun 2026', days: '16d', tone: 'muted' },
+    { name: 'Admin Dashboard',      status: 'Planning',    end: '1 Jun 2026',  days: 'Vencido', tone: 'destructive' },
+    { name: 'API Gateway Migration',status: 'Planning',    end: '16 Jun 2026', days: '21d', tone: 'muted' },
+  ];
+  const dayClass: Record<string, string> = {
+    destructive: 'text-destructive font-semibold',
+    warning: 'text-warning font-semibold',
+    muted: 'text-muted-foreground',
+  };
+
   return (
     <div className="flex flex-col h-full overflow-y-auto p-2.5 space-y-2">
       <div className="text-[11px] font-semibold text-foreground">My Profile</div>
 
-      <div className="grid grid-cols-2 gap-2">
-        {/* Personal info */}
-        <div className="rounded-[3px] border border-border bg-background p-2.5 space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-[9px] font-semibold text-foreground">Personal Info</span>
-            <button className="text-[7px] px-1.5 py-0.5 rounded-[3px] bg-primary text-primary-foreground">Edit</button>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
-              <span className="text-[10px] font-bold text-primary">A</span>
+      <div className="grid grid-cols-3 gap-2">
+        {/* LEFT (2/3): Personal Information + My Projects */}
+        <div className="col-span-2 space-y-2">
+          <div className="rounded-[3px] border border-border border-l-2 border-l-primary bg-background p-2.5 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[9px] font-semibold text-foreground">Personal Information</span>
+              <button className="text-[7px] px-1.5 py-0.5 rounded-[3px] bg-primary text-primary-foreground">Edit</button>
             </div>
-            <div>
-              <p className="text-[9px] font-semibold text-foreground">Alex García</p>
-              <p className="text-[7px] text-muted-foreground">Tech Lead</p>
-            </div>
-          </div>
-          <div className="space-y-1">
-            {[
-              { icon: User, label: 'Name',  val: 'Alex García' },
-              { icon: Activity, label: 'Email', val: 'alex.garcia@techco.io' },
-              { icon: CheckCircle2, label: 'Role', val: 'Tech Lead' },
-            ].map(({ icon: Icon, label, val }) => (
-              <div key={label}>
-                <div className="flex items-center gap-1 text-[7px] text-muted-foreground mb-0.5">
-                  <Icon className="w-2.5 h-2.5" /> {label}
-                </div>
-                <div className="text-[8px] text-foreground bg-surface-secondary/40 border border-border/50 rounded-[3px] px-2 py-0.5">{val}</div>
+            <div className="flex items-center gap-2 pb-2 border-b border-border/50">
+              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                <span className="text-[11px] font-bold text-primary">A</span>
               </div>
-            ))}
+              <div>
+                <p className="text-[9px] font-semibold text-foreground">Alex García</p>
+                <p className="text-[7px] text-muted-foreground">Plan: Premium</p>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              {[
+                { icon: User, label: 'Name', val: 'Alex García' },
+                { icon: Mail, label: 'Email', val: 'alex.garcia@techco.io' },
+                { icon: Shield, label: 'Plan', val: 'Premium' },
+              ].map(({ icon: Ico, label, val }) => (
+                <div key={label}>
+                  <div className="flex items-center gap-1 text-[7px] text-muted-foreground mb-0.5"><Ico className="w-2.5 h-2.5" /> {label}</div>
+                  <div className="text-[8px] text-foreground bg-surface-secondary/40 border border-border/50 rounded-[3px] px-2 py-0.5">{val}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-[3px] border border-border bg-background overflow-hidden">
+            <div className="px-2.5 py-1.5 border-b border-border bg-card/40 text-[9px] font-semibold text-foreground">My Projects</div>
+            <table className="w-full text-[8px]">
+              <thead>
+                <tr className="border-b border-border/50 text-left">
+                  <th className="px-2.5 py-1 text-muted-foreground font-medium">Project</th>
+                  <th className="px-2 py-1 text-muted-foreground font-medium">Status</th>
+                  <th className="px-2 py-1 text-muted-foreground font-medium">End Date</th>
+                  <th className="px-2.5 py-1 text-muted-foreground font-medium text-right">Days left</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/30">
+                {projects.map((p) => (
+                  <tr key={p.name}>
+                    <td className="px-2.5 py-1 text-foreground truncate max-w-[90px]">{p.name}</td>
+                    <td className="px-2 py-1">
+                      <span className="inline-flex items-center gap-1 text-muted-foreground">
+                        <span className={`w-1.5 h-1.5 rounded-full ${PROJECT_STATUS_DOT[p.status] ?? 'bg-muted-foreground'}`} /> {p.status}
+                      </span>
+                    </td>
+                    <td className="px-2 py-1 text-muted-foreground">{p.end}</td>
+                    <td className={`px-2.5 py-1 text-right ${dayClass[p.tone]}`}>{p.days}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
 
-        {/* Preferences + integrations */}
+        {/* RIGHT (1/3): sidebar cards */}
         <div className="space-y-2">
           <div className="rounded-[3px] border border-border bg-background p-2">
-            <div className="text-[9px] font-semibold text-foreground mb-1.5">Preferences</div>
+            <div className="text-[8px] font-semibold text-foreground mb-1.5">Preferences</div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
-                <Clock className="w-3 h-3 text-muted-foreground" />
-                <span className="text-[8px] text-foreground">Theme — Dark</span>
+                <Moon className="w-3 h-3 text-muted-foreground" />
+                <div>
+                  <p className="text-[8px] text-foreground leading-none">Theme</p>
+                  <p className="text-[7px] text-muted-foreground">Dark</p>
+                </div>
               </div>
               <div className="w-7 h-4 rounded-full bg-primary flex items-center justify-end px-0.5">
                 <div className="w-3 h-3 rounded-full bg-white" />
@@ -566,57 +825,60 @@ function PerfilView() {
           </div>
 
           <div className="rounded-[3px] border border-border bg-background p-2">
-            <div className="text-[9px] font-semibold text-foreground mb-1.5">GitHub</div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5">
-                <Github className="w-3 h-3 text-foreground" />
-                <div>
-                  <p className="text-[8px] text-success font-medium">● Connected</p>
-                  <p className="text-[7px] text-muted-foreground">alexdev2024</p>
+            <div className="text-[8px] font-semibold text-foreground mb-1.5">Security</div>
+            <div className="flex items-center justify-between gap-1 rounded-[3px] border border-border/50 bg-surface-secondary/40 p-1.5">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <Lock className="w-3 h-3 text-muted-foreground shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-[8px] text-foreground">Password</p>
+                  <p className="text-[6px] text-muted-foreground truncate">Manage your credentials from a separate window.</p>
                 </div>
               </div>
-              <button className="text-[7px] px-1.5 py-0.5 rounded-[3px] border border-destructive/40 text-destructive">Disconnect</button>
+              <button className="text-[7px] px-1.5 py-0.5 rounded-[3px] bg-primary text-primary-foreground flex items-center gap-0.5 shrink-0"><KeyRound className="w-2 h-2" /> Change</button>
             </div>
           </div>
 
           <div className="rounded-[3px] border border-border bg-background p-2">
-            <div className="text-[9px] font-semibold text-foreground mb-1.5">Microsoft Azure</div>
+            <div className="text-[8px] font-semibold text-foreground mb-1.5">GitHub</div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
-                <Cloud className="w-3 h-3 text-muted-foreground" />
-                <span className="text-[8px] text-muted-foreground">Connect Azure</span>
+                <CheckCircle2 className="w-3 h-3 text-green-500 shrink-0" />
+                <div>
+                  <p className="text-[8px] text-foreground">Connected to GitHub</p>
+                  <p className="text-[7px] text-muted-foreground font-mono">alexdev2024</p>
+                </div>
               </div>
-              <button className="text-[7px] px-1.5 py-0.5 rounded-[3px] bg-primary text-primary-foreground">Sign in</button>
+              <button className="text-[7px] px-1.5 py-0.5 rounded-[3px] bg-destructive/10 text-destructive">Disconnect</button>
+            </div>
+          </div>
+
+          <div className="rounded-[3px] border border-border bg-background p-2">
+            <div className="text-[8px] font-semibold text-foreground mb-1.5">Microsoft Azure</div>
+            <div className="flex items-center justify-between gap-1">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <Cloud className="w-3 h-3 text-muted-foreground shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-[8px] text-foreground">Connect Azure</p>
+                  <p className="text-[6px] text-muted-foreground truncate">Access your Microsoft Azure information.</p>
+                </div>
+              </div>
+              <button className="text-[7px] px-1.5 py-0.5 rounded-[3px] bg-primary text-primary-foreground flex items-center gap-0.5 shrink-0"><Cloud className="w-2 h-2" /> Access</button>
+            </div>
+          </div>
+
+          <div className="rounded-[3px] border border-success/20 bg-success/10 p-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <Crown className="w-3 h-3 text-success" />
+                <div>
+                  <p className="text-[8px] font-semibold text-foreground">Premium active</p>
+                  <p className="text-[6px] text-muted-foreground">You have access to premium features.</p>
+                </div>
+              </div>
+              <span className="text-[7px] px-1.5 py-0.5 rounded-full bg-success/15 text-success font-medium">Active</span>
             </div>
           </div>
         </div>
-      </div>
-
-      {/* My projects table */}
-      <div className="rounded-[3px] border border-border bg-background p-2">
-        <div className="text-[9px] font-semibold text-foreground mb-1.5">My Projects</div>
-        <table className="w-full text-[8px]">
-          <thead>
-            <tr className="border-b border-border/50">
-              <th className="text-left pb-1 text-muted-foreground font-medium">PROJECT</th>
-              <th className="text-left pb-1 text-muted-foreground font-medium">STATUS</th>
-              <th className="text-right pb-1 text-muted-foreground font-medium">END DATE</th>
-              <th className="text-right pb-1 text-muted-foreground font-medium">DAYS LEFT</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border/30">
-            {DEMO_PROYECTOS.slice(0, 3).map((p) => (
-              <tr key={p.id}>
-                <td className="py-1 text-foreground truncate max-w-[90px]">{p.nombre}</td>
-                <td className="py-1 text-muted-foreground">● {p.estado}</td>
-                <td className="py-1 text-right text-muted-foreground">{p.fecha}</td>
-                <td className={`py-1 text-right font-semibold ${
-                  parseInt(p.dias) <= 5 ? 'text-destructive' : parseInt(p.dias) <= 14 ? 'text-warning' : 'text-muted-foreground'
-                }`}>{p.dias}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
       </div>
     </div>
   );
@@ -630,7 +892,6 @@ export function DashboardShowcase() {
   return (
     <section id="demo" className="container mx-auto px-6 py-24 max-w-6xl scroll-mt-16">
       <div className="flex flex-col items-center gap-10">
-
         {/* Text */}
         <motion.div
           initial={{ opacity: 0, y: -16 }}
@@ -640,7 +901,7 @@ export function DashboardShowcase() {
           className="space-y-5 text-center max-w-2xl w-full"
         >
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-[3px] border border-primary/20 bg-primary/10 text-primary text-[11px] font-medium">
-            <Sparkles className="w-3 h-3" />
+            <LayoutGrid className="w-3 h-3" />
             Interactive Demo — explore the platform
           </div>
 
@@ -658,10 +919,10 @@ export function DashboardShowcase() {
               { icon: BarChart3, text: 'KPIs and portfolio health in real time' },
               { icon: AlertTriangle, text: 'AI-generated early risk alerts' },
               { icon: Users, text: 'Roles and permissions per project' },
-            ].map(({ icon: Icon, text }) => (
+            ].map(({ icon: Ico, text }) => (
               <li key={text} className="flex items-center gap-2.5 text-[13px] text-foreground">
                 <div className="w-5 h-5 rounded-[3px] bg-primary/10 flex items-center justify-center shrink-0">
-                  <Icon className="w-3 h-3 text-primary" />
+                  <Ico className="w-3 h-3 text-primary" />
                 </div>
                 {text}
               </li>
@@ -670,7 +931,7 @@ export function DashboardShowcase() {
 
           {/* Nav pills */}
           <div className="flex flex-wrap gap-2 justify-center">
-            {NAV_ITEMS.map(({ view, label }) => (
+            {NAV_VIEWS.map(({ view, label }) => (
               <button
                 key={view}
                 onClick={() => setActiveView(view)}
@@ -705,72 +966,97 @@ export function DashboardShowcase() {
           className="w-full space-y-3"
         >
           <AppFrame url={`app.yemoda.io/${activeView}`}>
-            <div className="grid grid-cols-[148px_minmax(0,1fr)] h-[480px] overflow-hidden">
-
+            <div className="grid grid-cols-[156px_minmax(0,1fr)] h-[480px] overflow-hidden">
               {/* Sidebar */}
-              <aside className="border-r border-border bg-surface-secondary/40 flex flex-col p-2.5 gap-0.5 overflow-hidden shrink-0">
-                <div className="flex items-center gap-2 px-2 py-2 mb-1">
+              <aside className="border-r border-sidebar-border bg-sidebar flex flex-col overflow-hidden shrink-0">
+                {/* Brand */}
+                <div className="flex items-center gap-2 px-2.5 h-9 border-b border-sidebar-border shrink-0">
                   <div className="w-6 h-6 rounded-[3px] bg-primary flex items-center justify-center shrink-0">
-                    <span className="text-primary-foreground font-bold text-[9px]">YM</span>
+                    <Zap className="w-3.5 h-3.5 text-white" />
                   </div>
                   <div>
-                    <div className="text-[9px] font-semibold text-foreground">Yemoda</div>
-                    <div className="text-[7px] text-muted-foreground">Project Intelligence</div>
+                    <div className="text-[9px] font-semibold text-sidebar-foreground">Yemoda</div>
+                    <div className="text-[7px] text-sidebar-muted">Project Intelligence</div>
                   </div>
                 </div>
 
-                {NAV_ITEMS.map(({ view, icon: Icon, label, section, count, danger }) => {
-                  const isActive = view === activeView;
-                  return (
-                    <div key={label}>
-                      {section && (
-                        <div className="text-[7px] text-muted-foreground/50 uppercase tracking-[0.1em] px-2 pt-2 pb-1">{section}</div>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => setActiveView(view)}
-                        className={`flex items-center justify-between gap-2 w-full px-2.5 py-1.5 rounded-[3px] transition-colors ${
-                          isActive
-                            ? 'bg-primary/10 text-foreground'
-                            : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-primary' : ''}`} />
-                          <span className="text-[10px] truncate">{label}</span>
+                {/* Nav groups */}
+                <div className="flex-1 overflow-y-auto p-1.5 space-y-0.5">
+                  {SIDEBAR_GROUPS.map((group, gi) => (
+                    <div key={gi}>
+                      {group.heading && (
+                        <div className="flex items-center gap-1.5 px-2 pt-2 pb-1">
+                          <span className="text-[7px] text-sidebar-muted uppercase tracking-[0.08em]">{group.heading}</span>
+                          <span className="h-px flex-1 bg-sidebar-border" />
                         </div>
-                        {count != null && (
-                          <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded-full shrink-0 ${danger ? 'bg-destructive/15 text-destructive' : 'bg-primary/10 text-primary'}`}>
-                            {count}
-                          </span>
-                        )}
-                      </button>
+                      )}
+                      {group.items.map((item) => {
+                        const isActive = item.view != null && item.view === activeView;
+                        return (
+                          <button
+                            key={item.label}
+                            type="button"
+                            onClick={() => item.view && setActiveView(item.view)}
+                            className={`relative flex items-center gap-2 w-full px-2.5 py-1.5 rounded-[3px] transition-colors ${
+                              isActive
+                                ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                                : 'text-sidebar-muted hover:bg-sidebar-accent/60 hover:text-sidebar-foreground'
+                            }`}
+                          >
+                            {isActive && <span className="absolute left-0 top-1 bottom-1 w-[2px] rounded-r bg-primary" />}
+                            <item.icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-primary' : ''}`} />
+                            <span className="text-[10px] truncate">{item.label}</span>
+                          </button>
+                        );
+                      })}
                     </div>
-                  );
-                })}
+                  ))}
+                </div>
 
-                {/* User chip at bottom */}
-                <div className="mt-auto pt-2 border-t border-border/50">
-                  <div className="flex items-center gap-2 px-2 py-1.5">
-                    <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
-                      <span className="text-[9px] font-bold text-primary">A</span>
+                {/* User chip + collapse */}
+                <div className="border-t border-sidebar-border p-2 shrink-0">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-full bg-primary/90 flex items-center justify-center shrink-0">
+                      <span className="text-[9px] font-bold text-white">A</span>
                     </div>
-                    <div className="min-w-0">
-                      <p className="text-[9px] font-medium text-foreground truncate">Alex G.</p>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[9px] font-medium text-sidebar-foreground truncate">Alex García</p>
+                      <p className="text-[7px] text-sidebar-muted truncate">Tech Lead</p>
                     </div>
+                    <ChevronLeft className="w-3 h-3 text-sidebar-muted shrink-0" />
                   </div>
                 </div>
               </aside>
 
               {/* Main content */}
               <div className="bg-background flex flex-col overflow-hidden">
-                <div className="flex items-center justify-between gap-3 px-4 py-2 border-b border-border bg-card/80 shrink-0">
-                  <div className="text-[11px] font-semibold text-foreground">{VIEW_LABEL[activeView]}</div>
-                  <div className="flex items-center gap-2 text-[10px] text-muted-foreground bg-surface-secondary/60 border border-border/50 rounded-[3px] px-2.5 py-1">
-                    <Activity className="w-3 h-3" />
-                    Search... Ctrl K
+                {/* Topbar */}
+                <div className="flex items-center justify-between gap-3 px-3 h-9 border-b border-border bg-card shrink-0">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-[10px] font-medium text-foreground">{VIEW_LABEL[activeView]}</span>
+                    <span className="h-3 w-px bg-border" />
+                    <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground bg-background border border-input rounded-[3px] px-2 py-0.5">
+                      <Search className="w-2.5 h-2.5" /> Search...
+                      <span className="ml-1 text-[7px] px-1 rounded border border-border bg-muted text-muted-foreground">Ctrl K</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <div className="relative">
+                      <Bell className="w-3.5 h-3.5 text-muted-foreground" />
+                      <span className="absolute -top-1 -right-1 w-3 h-3 bg-destructive rounded-full text-[5px] text-white flex items-center justify-center font-bold">3</span>
+                    </div>
+                    <Sun className="w-3.5 h-3.5 text-muted-foreground" />
+                    <span className="h-3 w-px bg-border" />
+                    <div className="flex items-center gap-1">
+                      <div className="w-5 h-5 rounded-full bg-primary/90 flex items-center justify-center shrink-0">
+                        <span className="text-[7px] font-bold text-white">A</span>
+                      </div>
+                      <span className="text-[9px] text-foreground">Alex</span>
+                      <ChevronDown className="w-2.5 h-2.5 text-muted-foreground" />
+                    </div>
                   </div>
                 </div>
+
                 <div className="flex-1 overflow-hidden">
                   <AnimatePresence mode="wait">
                     <motion.div
@@ -781,11 +1067,11 @@ export function DashboardShowcase() {
                       transition={{ duration: 0.18, ease: 'easeOut' }}
                       className="h-full"
                     >
-                      {activeView === 'dashboard'  && <DashboardView onNavigate={setActiveView} />}
-                      {activeView === 'proyectos'  && <ProyectosView />}
-                      {activeView === 'reportes'   && <ReportesView />}
-                      {activeView === 'alertas'    && <AlertasView />}
-                      {activeView === 'perfil'     && <PerfilView />}
+                      {activeView === 'dashboard' && <DashboardView onNavigate={setActiveView} />}
+                      {activeView === 'proyectos' && <ProyectosView />}
+                      {activeView === 'reportes' && <ReportesView />}
+                      {activeView === 'alertas' && <AlertasView />}
+                      {activeView === 'perfil' && <PerfilView />}
                     </motion.div>
                   </AnimatePresence>
                 </div>
@@ -795,10 +1081,10 @@ export function DashboardShowcase() {
 
           <p className="text-center text-[11px] text-muted-foreground">
             Click{' '}
-            {NAV_ITEMS.map(({ view, label }, i) => (
+            {NAV_VIEWS.map(({ view, label }, i) => (
               <span key={view}>
                 <button onClick={() => setActiveView(view)} className="font-medium text-foreground hover:text-primary transition-colors">{label}</button>
-                {i < NAV_ITEMS.length - 1 ? ', ' : ''}
+                {i < NAV_VIEWS.length - 1 ? ', ' : ''}
               </span>
             ))}{' '}
             to explore
@@ -816,7 +1102,7 @@ type ProjectTab =
   | 'milestones' | 'scrum-poker' | 'code-review' | 'repositorios'
   | 'equipo' | 'configuracion';
 
-const PROJECT_TABS: { id: ProjectTab; label: string; count?: number }[] = [
+const PROJECT_TABS: { id: ProjectTab; label: string; count?: number; icon?: Icon }[] = [
   { id: 'resumen',      label: 'Overview' },
   { id: 'backlog',      label: 'Backlog' },
   { id: 'timeline',     label: 'Timeline' },
@@ -827,81 +1113,131 @@ const PROJECT_TABS: { id: ProjectTab; label: string; count?: number }[] = [
   { id: 'code-review',  label: 'Code Review' },
   { id: 'repositorios', label: 'Repositories' },
   { id: 'equipo',       label: 'Team', count: 4 },
-  { id: 'configuracion',label: '⚙ Settings' },
+  { id: 'configuracion',label: 'Settings', icon: Settings2 },
 ];
 
-const PROJ_TASKS = [
-  { id:1,  titulo:'Implement payment gateway',    prioridad:'High',  pColor:'text-destructive',      estado:'In progress', eColor:'text-warning',         av:'AG' },
-  { id:2,  titulo:'Shopping cart persistence',    prioridad:'Medium', pColor:'text-warning',          estado:'Completed',   eColor:'text-success',         av:'MS' },
-  { id:3,  titulo:'Product search & filters',     prioridad:'Medium', pColor:'text-warning',          estado:'Completed',   eColor:'text-success',         av:'CR' },
-  { id:4,  titulo:'Mobile responsive layout',     prioridad:'High',  pColor:'text-destructive',      estado:'In review',   eColor:'text-primary',         av:'AL' },
-  { id:5,  titulo:'User checkout flow',           prioridad:'Medium', pColor:'text-warning',          estado:'In progress', eColor:'text-warning',         av:'AG' },
-  { id:6,  titulo:'SEO meta tags setup',          prioridad:'Low',   pColor:'text-muted-foreground', estado:'Pending',     eColor:'text-muted-foreground',av:'—'  },
-  { id:7,  titulo:'Email notifications',          prioridad:'Medium', pColor:'text-warning',          estado:'Completed',   eColor:'text-success',         av:'MS' },
-  { id:8,  titulo:'Analytics integration',        prioridad:'High',  pColor:'text-destructive',      estado:'Completed',   eColor:'text-success',         av:'CR' },
-  { id:9,  titulo:'Performance optimization',     prioridad:'Medium', pColor:'text-warning',          estado:'Pending',     eColor:'text-muted-foreground',av:'—'  },
-  { id:10, titulo:'Security audit',               prioridad:'High',  pColor:'text-destructive',      estado:'In progress', eColor:'text-warning',         av:'AG' },
-  { id:11, titulo:'Developer documentation',      prioridad:'Low',   pColor:'text-muted-foreground', estado:'Pending',     eColor:'text-muted-foreground',av:'—'  },
+// Backlog: Title | Priority | Tags | Sprint. Priority is plain text (no color).
+const PROJ_TASKS: { id: number; title: string; priority: string; tags: { label: string; color: string }[]; sprint: string | null }[] = [
+  { id: 1,  title: 'Implement payment gateway',  priority: 'High',   tags: [{ label: 'backend', color: '#3b82f6' }, { label: 'payments', color: '#a855f7' }], sprint: 'Sprint 3' },
+  { id: 2,  title: 'Shopping cart persistence',  priority: 'Medium', tags: [{ label: 'frontend', color: '#10b981' }], sprint: 'Sprint 3' },
+  { id: 3,  title: 'Product search & filters',   priority: 'Medium', tags: [{ label: 'frontend', color: '#10b981' }], sprint: null },
+  { id: 4,  title: 'Mobile responsive layout',   priority: 'High',   tags: [{ label: 'ui', color: '#f59e0b' }], sprint: 'Sprint 3' },
+  { id: 5,  title: 'User checkout flow',         priority: 'Medium', tags: [{ label: 'frontend', color: '#10b981' }], sprint: null },
+  { id: 6,  title: 'SEO meta tags setup',        priority: 'Low',    tags: [], sprint: null },
+  { id: 7,  title: 'Email notifications',        priority: 'Medium', tags: [{ label: 'backend', color: '#3b82f6' }], sprint: null },
+  { id: 8,  title: 'Analytics integration',      priority: 'High',   tags: [{ label: 'data', color: '#0ea5a4' }], sprint: null },
 ];
 
-const PROJ_BOARD_COLS = [
-  { id:'todo',     label:'To do',       lColor:'text-muted-foreground', taskIds:[6,9,11] },
-  { id:'progress', label:'In progress', lColor:'text-warning',          taskIds:[1,5,10] },
-  { id:'review',   label:'In review',   lColor:'text-primary',          taskIds:[4] },
-  { id:'done',     label:'Completed',   lColor:'text-success',          taskIds:[2,3,7,8] },
+// Boards: user-defined column names; only is_final (Done) gets green count badge.
+const PROJ_BOARD_COLS: { id: string; label: string; isFinal?: boolean; isReview?: boolean; taskIds: number[] }[] = [
+  { id: 'todo',     label: 'To Do',        taskIds: [6, 8] },
+  { id: 'building', label: 'Building',     taskIds: [1, 5] },
+  { id: 'qa',       label: 'QA Review',    isReview: true, taskIds: [4] },
+  { id: 'shipped',  label: 'Shipped',      isFinal: true,  taskIds: [2, 3, 7] },
 ];
 
-const PROJ_TIMELINE_ITEMS = [
-  { titulo:'Payment gateway',    inicio:35, ancho:48, progreso:70 },
-  { titulo:'Mobile responsive',  inicio:15, ancho:42, progreso:82 },
-  { titulo:'Checkout flow',      inicio:50, ancho:50, progreso:55 },
-  { titulo:'Performance optim.', inicio:65, ancho:40, progreso:18 },
-  { titulo:'Security audit',     inicio:42, ancho:38, progreso:62 },
+const PROJ_TIMELINE_ITEMS: { title: string; id: number; start: number; width: number; color: string; done: boolean; meta: string }[] = [
+  { title: 'Payment gateway',   id: 1,  start: 30, width: 44, color: '#1D4ED8', done: false, meta: '12 May - 02 Jun - Alex G. - Building' },
+  { title: 'Mobile responsive', id: 4,  start: 12, width: 40, color: '#9333EA', done: false, meta: '08 May - 28 May - Ana L. - QA Review' },
+  { title: 'Checkout flow',     id: 5,  start: 48, width: 46, color: '#D97706', done: false, meta: '20 May - 10 Jun - Alex G. - Building' },
+  { title: 'Cart persistence',  id: 2,  start: 18, width: 34, color: '#0A5F38', done: true,  meta: '10 May - 24 May - Maria S. - Shipped' },
+  { title: 'Analytics integ.',  id: 8,  start: 58, width: 38, color: '#0EA5A4', done: false, meta: '24 May - 14 Jun - Carlos R. - To Do' },
 ];
 
-const PROJ_SPRINT = [
-  { id:1,  titulo:'Implement payment gateway', estado:'In progress', av:'AG', eColor:'text-warning' },
-  { id:4,  titulo:'Mobile responsive layout',  estado:'In review',   av:'AL', eColor:'text-primary' },
-  { id:5,  titulo:'User checkout flow',        estado:'In progress', av:'AG', eColor:'text-warning' },
-  { id:10, titulo:'Security audit',            estado:'In progress', av:'AG', eColor:'text-warning' },
-  { id:9,  titulo:'Performance optimization',  estado:'Pending',     av:'—',  eColor:'text-muted-foreground' },
-  { id:11, titulo:'Developer documentation',   estado:'Pending',     av:'—',  eColor:'text-muted-foreground' },
+const PROJ_SPRINTS: { id: number; name: string; status: 'active' | 'closed' | 'planned'; end: string }[] = [
+  { id: 3, name: 'Sprint 3', status: 'active',  end: '9 Jun 2026' },
+  { id: 2, name: 'Sprint 2', status: 'closed',  end: '26 May 2026' },
+  { id: 1, name: 'Sprint 1', status: 'closed',  end: '12 May 2026' },
+  { id: 4, name: 'Sprint 4', status: 'planned', end: '23 Jun 2026' },
 ];
 
-const PROJ_MILESTONES = [
-  { titulo:'Alpha Release',     fecha:'30 Apr 2026', progreso:100, mColor:'text-success',          bColor:'bg-success' },
-  { titulo:'Beta Launch',       fecha:'25 May 2026', progreso:75,  mColor:'text-warning',          bColor:'bg-warning' },
-  { titulo:'Production Deploy', fecha:'7 Jun 2026',  progreso:20,  mColor:'text-muted-foreground', bColor:'bg-primary/50' },
-];
+const SPRINT_STATUS_PILL: Record<string, string> = {
+  active: 'bg-success/20 text-success',
+  closed: 'bg-muted text-muted-foreground',
+  planned: 'bg-amber-500/20 text-amber-400',
+};
 
-const PROJ_PRS = [
-  { id:'#44', titulo:'feat: payment gateway integration',    estado:'In review', av:'AG', rama:'feat/payment',    hace:'2h ago',  merged:false },
-  { id:'#43', titulo:'fix: cart persistence on page reload', estado:'Merged',    av:'CR', rama:'fix/cart-state',  hace:'1d ago',  merged:true  },
-  { id:'#42', titulo:'feat: mobile responsive redesign',     estado:'In review', av:'AL', rama:'feat/responsive', hace:'5h ago',  merged:false },
-  { id:'#41', titulo:'chore: update package dependencies',   estado:'Merged',    av:'MS', rama:'chore/deps',      hace:'2d ago',  merged:true  },
+const PROJ_MILESTONES: { title: string; due: string; completed: boolean }[] = [
+  { title: 'Alpha Release',     due: '30 Apr 2026', completed: true },
+  { title: 'Beta Launch',       due: '25 May 2026', completed: true },
+  { title: 'Production Deploy', due: '7 Jun 2026',  completed: false },
 ];
 
 const PROJ_MEMBERS = [
-  { av:'AG', name:'Alex García',    role:'Tech Lead',    bgColor:'bg-primary/20',    tColor:'text-primary' },
-  { av:'MS', name:'Maria Santos',   role:'Frontend Dev', bgColor:'bg-success/20',    tColor:'text-success' },
-  { av:'CR', name:'Carlos Ramírez', role:'Backend Dev',  bgColor:'bg-warning/20',    tColor:'text-warning' },
-  { av:'AL', name:'Ana López',      role:'UI/UX Design', bgColor:'bg-purple-500/20', tColor:'text-purple-400' },
+  { av: 'AG', name: 'Alex García',    role: 'Tech Lead',    bgColor: 'bg-primary/20',    tColor: 'text-primary' },
+  { av: 'MS', name: 'Maria Santos',   role: 'Frontend Dev', bgColor: 'bg-success/20',    tColor: 'text-success' },
+  { av: 'CR', name: 'Carlos Ramírez', role: 'Backend Dev',  bgColor: 'bg-warning/20',    tColor: 'text-warning' },
+  { av: 'AL', name: 'Ana López',      role: 'UI/UX Design',  bgColor: 'bg-violet-500/20', tColor: 'text-violet-400' },
 ];
 
-// ── Tab sub-components ────────────────────────────────────────────────────────
+// ── Diff line type + mini diff viewer (mirrors CodeDiffViewer: 4 columns) ─────
+
+type DiffLineType = 'header' | 'add' | 'remove' | 'context';
+interface DiffLine { type: DiffLineType; content: string; }
+
+const DIFF_ROW_STYLE: Record<DiffLineType, string> = {
+  header:  'bg-primary/5 text-primary font-medium',
+  add:     'bg-emerald-500/[0.06] text-emerald-300',
+  remove:  'bg-red-500/10 text-red-400',
+  context: 'text-muted-foreground',
+};
+const DIFF_GUTTER_STYLE: Record<DiffLineType, string> = {
+  header:  'bg-primary/5 text-primary/40',
+  add:     'bg-emerald-500/[0.04] text-emerald-400/45',
+  remove:  'bg-red-500/[0.05] text-red-500/50',
+  context: 'text-muted-foreground/40',
+};
+
+function MiniDiff({ file, lines, startOld = 1, startNew = 1 }: { file: string; lines: DiffLine[]; startOld?: number; startNew?: number }) {
+  let oldN = startOld;
+  let newN = startNew;
+  return (
+    <div className="rounded-[3px] border border-border overflow-hidden bg-background">
+      <div className="flex items-center gap-1.5 px-2 py-1 bg-surface-secondary/50 border-b border-border">
+        <span className="w-2 h-2 rounded-full bg-primary shrink-0" />
+        <span className="font-mono text-[9px] text-foreground truncate">{file}</span>
+      </div>
+      <table className="w-full font-mono text-[9px] leading-[15px]">
+        <tbody>
+          {lines.map((line, i) => {
+            const isHeader = line.type === 'header';
+            const showOld = line.type === 'context' || line.type === 'remove';
+            const showNew = line.type === 'context' || line.type === 'add';
+            const o = !isHeader && showOld ? oldN++ : '';
+            const n = !isHeader && showNew ? newN++ : '';
+            return (
+              <tr key={i} className={DIFF_ROW_STYLE[line.type]}>
+                <td className={`w-6 text-right pr-1 select-none border-r border-border/30 ${DIFF_GUTTER_STYLE[line.type]}`}>{o}</td>
+                <td className={`w-6 text-right pr-1 select-none border-r border-border/30 ${DIFF_GUTTER_STYLE[line.type]}`}>{n}</td>
+                <td className="w-3 text-center select-none text-muted-foreground/50">
+                  {line.type === 'add' ? '+' : line.type === 'remove' ? '-' : ''}
+                </td>
+                <td className="px-2 whitespace-pre">{line.content}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ── Project tab sub-components ────────────────────────────────────────────────
 
 function ProjOverviewTab() {
   return (
     <div className="p-2.5 space-y-2">
       <div className="grid grid-cols-4 gap-1.5">
         {[
-          { title:'TASKS',        value:'11', sub:'in the project',    border:'border-l-2 border-l-sky-500/60' },
-          { title:'COMPLETED',    value:'8',  sub:'finished',          border:'border-l-2 border-l-success/60' },
-          { title:'OVERDUE',      value:'1',  sub:'need attention',    border:'border-l-2 border-l-destructive/60' },
-          { title:'TIME LEFT',    value:'12d',sub:'7 Jun 2026',        border:'border-l-2 border-l-warning/60' },
-        ].map(k => (
-          <div key={k.title} className={`rounded-[3px] border border-border bg-background p-2 ${k.border}`}>
-            <div className="text-[7px] text-muted-foreground font-medium uppercase tracking-wide mb-0.5">{k.title}</div>
+          { title: 'Tasks',          value: '11',  sub: 'in the project',  icon: List,          border: 'border-l-info' },
+          { title: 'Completed',      value: '8',   sub: 'completed',       icon: CheckCircle2,  border: 'border-l-success' },
+          { title: 'Overdue',        value: '1',   sub: 'require attention', icon: AlertTriangle, border: 'border-l-destructive' },
+          { title: 'Time Remaining', value: '12d', sub: '07 jun 2026',     icon: Clock,         border: 'border-l-warning' },
+        ].map((k) => (
+          <div key={k.title} className={`rounded-[3px] border border-border border-l-2 ${k.border} bg-background p-2`}>
+            <div className="flex items-center gap-1 text-[7px] text-muted-foreground font-medium uppercase tracking-wide mb-0.5">
+              <k.icon className="w-2.5 h-2.5" /> {k.title}
+            </div>
             <div className="text-[14px] font-bold text-foreground leading-none">{k.value}</div>
             <div className="text-[6px] text-muted-foreground mt-0.5">{k.sub}</div>
           </div>
@@ -911,11 +1247,11 @@ function ProjOverviewTab() {
         <div className="text-[8px] font-semibold text-muted-foreground uppercase tracking-wide mb-2">General Information</div>
         <div className="grid grid-cols-2 gap-x-8 gap-y-1.5">
           {[
-            { label:'Status',           val:'In progress' },
-            { label:'Created',          val:'12 Apr 2026' },
-            { label:'End date',         val:'7 Jun 2026' },
-            { label:'Time remaining',   val:'12 days' },
-            { label:'Members',          val:'4 people' },
+            { label: 'Status', val: 'In Progress' },
+            { label: 'Created', val: '12 Apr 2026' },
+            { label: 'End Date', val: '7 Jun 2026' },
+            { label: 'Time remaining', val: '12 dias' },
+            { label: 'Members', val: '4 members' },
           ].map(({ label, val }) => (
             <div key={label}>
               <div className="text-[7px] text-muted-foreground">{label}</div>
@@ -940,28 +1276,44 @@ function ProjOverviewTab() {
 
 function ProjBacklogTab() {
   return (
-    <div className="p-2.5">
+    <div className="p-2.5 space-y-2">
+      <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1 text-[8px] text-muted-foreground bg-surface-secondary/60 border border-border/50 rounded-[3px] px-1.5 py-0.5 flex-1 max-w-[140px]">
+          <Search className="w-2.5 h-2.5" /> Search task...
+        </div>
+        <button className="text-[8px] flex items-center gap-1 px-2 py-0.5 rounded-[3px] border border-border text-muted-foreground"><Filter className="w-2.5 h-2.5" /> Filter</button>
+        <button className="ml-auto text-[8px] flex items-center gap-1 px-2 py-0.5 rounded-[3px] bg-primary text-primary-foreground font-medium"><Plus className="w-2.5 h-2.5" /> New task</button>
+      </div>
       <div className="rounded-[3px] border border-border bg-background overflow-hidden">
         <table className="w-full text-[8px]">
           <thead>
-            <tr className="border-b border-border bg-surface-secondary/40">
-              <th className="text-left px-2.5 py-1.5 text-muted-foreground font-medium w-[42%]">TITLE</th>
-              <th className="text-left px-2 py-1.5 text-muted-foreground font-medium">PRIORITY</th>
-              <th className="text-left px-2 py-1.5 text-muted-foreground font-medium">STATUS</th>
-              <th className="text-left px-2 py-1.5 text-muted-foreground font-medium">ASSIGNED</th>
+            <tr className="border-b border-border bg-surface-secondary/40 text-left">
+              <th className="px-2.5 py-1.5 text-muted-foreground font-medium w-[44%]">Title</th>
+              <th className="px-2 py-1.5 text-muted-foreground font-medium">Priority</th>
+              <th className="px-2 py-1.5 text-muted-foreground font-medium">Tags</th>
+              <th className="px-2 py-1.5 text-muted-foreground font-medium">Sprint</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border/30">
-            {PROJ_TASKS.map(t => (
+            {PROJ_TASKS.map((t) => (
               <tr key={t.id} className="hover:bg-surface-secondary/20 transition-colors">
-                <td className="px-2.5 py-1 text-foreground truncate max-w-0">{t.titulo}</td>
-                <td className={`px-2 py-1 font-medium ${t.pColor}`}>{t.prioridad}</td>
-                <td className={`px-2 py-1 ${t.eColor}`}>{t.estado}</td>
+                <td className="px-2.5 py-1 text-foreground truncate max-w-0">{t.title}</td>
+                <td className="px-2 py-1 text-foreground">{t.priority}</td>
                 <td className="px-2 py-1">
-                  {t.av !== '—'
-                    ? <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center"><span className="text-[7px] font-bold text-primary">{t.av}</span></div>
-                    : <span className="text-muted-foreground">—</span>
-                  }
+                  {t.tags.length === 0 ? (
+                    <span className="text-muted-foreground">—</span>
+                  ) : (
+                    <div className="flex items-center gap-0.5">
+                      {t.tags.map((tag) => (
+                        <span key={tag.label} className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded-[2px] border border-border/60 text-[6px] text-foreground">
+                          <span className="w-1 h-1 rounded-full" style={{ background: tag.color }} /> {tag.label}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </td>
+                <td className="px-2 py-1">
+                  <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded-[2px] border border-dashed border-border text-[6px] text-muted-foreground"><Plus className="w-2 h-2" /> Move</span>
                 </td>
               </tr>
             ))}
@@ -974,37 +1326,42 @@ function ProjBacklogTab() {
 
 function ProjTimelineTab() {
   return (
-    <div className="p-2.5">
+    <div className="p-2.5 space-y-2">
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="text-[9px] font-semibold text-foreground">Timeline</div>
+          <div className="text-[7px] text-muted-foreground">Task history ordered by start and due dates.</div>
+        </div>
+        <div className="flex items-center rounded-[3px] border border-border overflow-hidden text-[7px]">
+          <span className="px-1.5 py-0.5 text-muted-foreground">Day</span>
+          <span className="px-1.5 py-0.5 bg-primary text-primary-foreground">Week</span>
+          <span className="px-1.5 py-0.5 text-muted-foreground">Month</span>
+        </div>
+      </div>
       <div className="rounded-[3px] border border-border bg-background p-2.5">
         <div className="flex items-center justify-between mb-2 text-[7px] text-muted-foreground font-medium">
           <span>May 2026</span><span>Jun 2026</span>
         </div>
-        <div className="border-t border-border/30 space-y-2 pt-2">
+        <div className="relative border-t border-border/30 space-y-1.5 pt-2">
+          {/* today line */}
+          <div className="absolute top-0 bottom-0 w-px" style={{ left: '64%', background: 'rgba(239,68,68,0.95)' }} />
           {PROJ_TIMELINE_ITEMS.map((t, i) => (
             <div key={i} className="flex items-center gap-2">
-              <div className="w-24 text-[7px] text-muted-foreground truncate shrink-0">{t.titulo}</div>
-              <div className="flex-1 relative h-5 bg-surface-secondary/40 rounded-[2px] overflow-hidden">
-                <div
-                  className="absolute top-0 h-full rounded-[2px] bg-primary/25 border border-primary/30"
-                  style={{ left: `${t.inicio}%`, width: `${t.ancho}%` }}
-                />
-                <div
-                  className="absolute top-0 h-full rounded-[2px] bg-primary/75"
-                  style={{ left: `${t.inicio}%`, width: `${t.ancho * t.progreso / 100}%` }}
-                />
-                <div
-                  className="absolute inset-0 flex items-center"
-                  style={{ left: `${t.inicio + t.ancho / 2 - 5}%` }}
-                >
-                  <span className="text-[6px] text-white font-semibold">{t.progreso}%</span>
+              <div className="w-28 shrink-0 min-w-0">
+                <div className="flex items-center gap-1">
+                  {t.done
+                    ? <CheckCircle2 className="w-2.5 h-2.5 text-violet-400 shrink-0" />
+                    : <Circle className="w-2.5 h-2.5 text-emerald-400 shrink-0" />}
+                  <span className="text-[7px] text-foreground truncate">{t.title}</span>
+                  <span className="text-[6px] text-muted-foreground shrink-0">#{t.id}</span>
                 </div>
+                <div className="text-[5px] text-muted-foreground truncate pl-3.5">{t.meta}</div>
+              </div>
+              <div className="flex-1 relative h-3">
+                <div className="absolute top-0.5 h-2 rounded-[2px]" style={{ left: `${t.start}%`, width: `${t.width}%`, background: t.color }} />
               </div>
             </div>
           ))}
-        </div>
-        <div className="mt-2.5 flex justify-center gap-4 text-[7px] text-muted-foreground">
-          <span className="flex items-center gap-1"><span className="w-3 h-1.5 rounded-[1px] bg-primary/25 border border-primary/30 inline-block" />Planned</span>
-          <span className="flex items-center gap-1"><span className="w-3 h-1.5 rounded-[1px] bg-primary/75 inline-block" />Completed</span>
         </div>
       </div>
     </div>
@@ -1012,29 +1369,61 @@ function ProjTimelineTab() {
 }
 
 function ProjSprintsTab() {
+  const [selected, setSelected] = useState(3);
+  const tasks = PROJ_TASKS.filter((t) => t.sprint === 'Sprint 3');
   return (
-    <div className="p-2.5 space-y-2">
-      <div className="rounded-[3px] border border-primary/30 bg-primary/5 p-2.5">
-        <div className="flex items-center justify-between mb-1">
-          <span className="text-[9px] font-semibold text-foreground">Sprint 3</span>
-          <span className="text-[7px] px-1.5 py-0.5 rounded-full bg-primary/15 text-primary font-medium">Active</span>
-        </div>
-        <div className="text-[7px] text-muted-foreground mb-2">26 May – 9 Jun 2026 · 6 tasks</div>
-        <div className="space-y-0.5">
-          {PROJ_SPRINT.map(t => (
-            <div key={t.id} className="flex items-center justify-between py-1 border-b border-border/30 last:border-0">
-              <span className="text-[8px] text-foreground truncate flex-1">{t.titulo}</span>
-              <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                <span className={`text-[7px] ${t.eColor}`}>{t.estado}</span>
-                <div className="w-4 h-4 rounded-full bg-surface-secondary border border-border flex items-center justify-center">
-                  <span className="text-[6px] text-muted-foreground">{t.av}</span>
-                </div>
+    <div className="p-2.5">
+      <div className="grid grid-cols-[110px_minmax(0,1fr)] gap-2 rounded-[3px] border border-border bg-background overflow-hidden" style={{ minHeight: 200 }}>
+        {/* Left: sprint list */}
+        <div className="border-r border-border p-1.5 space-y-1">
+          <div className="flex items-center justify-between px-1">
+            <span className="text-[7px] font-semibold uppercase tracking-wider text-muted-foreground">Sprints</span>
+            <Plus className="w-2.5 h-2.5 text-muted-foreground" />
+          </div>
+          {PROJ_SPRINTS.map((s) => (
+            <button
+              key={s.id}
+              onClick={() => setSelected(s.id)}
+              className={`w-full text-left rounded-[3px] px-1.5 py-1 border transition-colors ${selected === s.id ? 'border-primary/40 bg-primary/5' : 'border-border'}`}
+            >
+              <div className="text-[8px] font-medium text-foreground">{s.name}</div>
+              <div className="flex items-center justify-between mt-0.5">
+                <span className={`text-[6px] px-1 py-0.5 rounded-full font-medium capitalize ${SPRINT_STATUS_PILL[s.status]}`}>
+                  {s.status === 'active' ? 'Active' : s.status === 'closed' ? 'Closed' : 'Planned'}
+                </span>
+                <span className="text-[6px] text-muted-foreground">{s.end}</span>
               </div>
-            </div>
+            </button>
           ))}
         </div>
+        {/* Right: task list */}
+        <div className="p-1.5">
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <div className="flex items-center gap-0.5 text-[7px] text-muted-foreground border border-border rounded-[3px] px-1.5 py-0.5">All tasks <ChevronDown className="w-2 h-2" /></div>
+            <button className="ml-auto text-[7px] flex items-center gap-0.5 px-1.5 py-0.5 rounded-[3px] bg-primary text-primary-foreground"><Plus className="w-2 h-2" /> New task</button>
+          </div>
+          <table className="w-full text-[8px]">
+            <thead>
+              <tr className="border-b border-border/50 text-left">
+                <th className="py-1 text-muted-foreground font-medium">Title</th>
+                <th className="py-1 text-muted-foreground font-medium text-right">Tags</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/30">
+              {tasks.map((t) => (
+                <tr key={t.id}>
+                  <td className="py-1 text-foreground truncate max-w-[120px]">{t.title}</td>
+                  <td className="py-1">
+                    <div className="flex items-center gap-0.5 justify-end">
+                      <span className="text-[6px] px-1 py-0.5 rounded-[2px] bg-primary/10 text-primary">{PROJ_BOARD_COLS.find((c) => c.taskIds.includes(t.id))?.label ?? 'To Do'}</span>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
-      <div className="text-[7px] text-center text-muted-foreground">Sprint 1 (closed · 100%) · Sprint 2 (closed · 100%)</div>
     </div>
   );
 }
@@ -1043,24 +1432,28 @@ function ProjBoardsTab() {
   return (
     <div className="p-2.5">
       <div className="grid grid-cols-4 gap-1.5">
-        {PROJ_BOARD_COLS.map(col => {
-          const tasks = col.taskIds.map(id => PROJ_TASKS.find(t => t.id === id)!);
+        {PROJ_BOARD_COLS.map((col) => {
+          const tasks = col.taskIds.map((id) => PROJ_TASKS.find((t) => t.id === id)!).filter(Boolean);
           return (
             <div key={col.id} className="flex flex-col">
               <div className="flex items-center justify-between mb-1.5 px-0.5">
-                <span className={`text-[8px] font-semibold ${col.lColor}`}>{col.label}</span>
-                <span className="text-[7px] text-muted-foreground">{col.taskIds.length}</span>
+                <div className="flex items-center gap-1">
+                  <span className="text-[8px] font-semibold uppercase tracking-wide text-muted-foreground">{col.label}</span>
+                  {col.isFinal && <Check className="w-2.5 h-2.5 text-success" />}
+                  {col.isReview && <Bot className="w-2.5 h-2.5 text-info" />}
+                </div>
+                <span className={`text-[7px] px-1 rounded-full ${col.isFinal ? 'bg-success/20 text-success' : 'bg-card text-muted-foreground'}`}>{col.taskIds.length}</span>
               </div>
               <div className="space-y-1">
-                {tasks.map(task => (
+                {tasks.map((task) => (
                   <div key={task.id} className="rounded-[3px] border border-border bg-card p-1.5">
-                    <div className="text-[7px] text-foreground leading-snug">{task.titulo}</div>
+                    <div className="text-[7px] text-foreground leading-snug">{task.title}</div>
                     <div className="flex items-center justify-between mt-1">
-                      <span className={`text-[6px] font-medium ${task.pColor}`}>{task.prioridad}</span>
-                      {task.av !== '—' && (
-                        <div className="w-3.5 h-3.5 rounded-full bg-primary/20 flex items-center justify-center">
-                          <span className="text-[5px] font-bold text-primary">{task.av[0]}</span>
-                        </div>
+                      <span className="text-[6px] text-muted-foreground">{task.priority}</span>
+                      {task.tags[0] && (
+                        <span className="inline-flex items-center gap-0.5 text-[5px] text-muted-foreground">
+                          <span className="w-1 h-1 rounded-full" style={{ background: task.tags[0].color }} /> {task.tags[0].label}
+                        </span>
                       )}
                     </div>
                   </div>
@@ -1076,88 +1469,80 @@ function ProjBoardsTab() {
 
 function ProjMilestonesTab() {
   return (
-    <div className="p-2.5 space-y-2">
-      {PROJ_MILESTONES.map((m, i) => (
-        <div key={i} className="rounded-[3px] border border-border bg-background p-2.5">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-[9px] font-semibold text-foreground">{m.titulo}</span>
-            <span className={`text-[7px] font-medium ${m.mColor}`}>
-              {m.progreso === 100 ? '✓ Completed' : m.progreso >= 50 ? '↻ In progress' : '○ Pending'}
-            </span>
-          </div>
-          <div className="text-[7px] text-muted-foreground mb-1.5">{m.fecha}</div>
-          <div className="h-1.5 bg-surface-secondary/60 rounded-full overflow-hidden">
-            <div className={`h-full rounded-full ${m.bColor}`} style={{ width: `${m.progreso}%` }} />
-          </div>
-          <div className="text-[7px] text-muted-foreground mt-0.5">{m.progreso}% completed</div>
-        </div>
-      ))}
+    <div className="p-2.5">
+      <div className="rounded-[3px] border border-border bg-background overflow-hidden">
+        <table className="w-full text-[8px]">
+          <thead>
+            <tr className="border-b border-border bg-surface-secondary/40 text-left">
+              <th className="px-2.5 py-1.5 text-muted-foreground font-medium w-[50%]">Milestone</th>
+              <th className="px-2 py-1.5 text-muted-foreground font-medium">Due Date</th>
+              <th className="px-2.5 py-1.5 text-muted-foreground font-medium text-right">Status</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border/30">
+            {PROJ_MILESTONES.map((m) => (
+              <tr key={m.title} className="hover:bg-surface-secondary/20">
+                <td className="px-2.5 py-1.5 text-foreground font-medium">{m.title}</td>
+                <td className="px-2 py-1.5 text-muted-foreground">{m.due}</td>
+                <td className="px-2.5 py-1.5 text-right">
+                  {m.completed ? (
+                    <span className="inline-flex items-center gap-0.5 text-[7px] px-1.5 py-0.5 rounded-[3px] border border-success/30 bg-success/10 text-success"><Check className="w-2 h-2" /> Completed</span>
+                  ) : (
+                    <span className="inline-flex items-center text-[7px] px-1.5 py-0.5 rounded-[3px] border border-border text-muted-foreground">Mark complete</span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
 
 function ProjScrumPokerTab() {
-  const [selected, setSelected] = useState<number | null>(null);
-  const cards = [1, 2, 3, 5, 8, 13, 21];
+  const FIBONACCI = [1, 2, 3, 5, 8, 13, 21, 34, 55, 89];
+  const rows = [
+    { id: 1, title: 'Implement payment gateway', points: 13, editing: false },
+    { id: 4, title: 'Mobile responsive layout', points: 8, editing: true },
+    { id: 5, title: 'User checkout flow', points: 5, editing: false },
+    { id: 8, title: 'Analytics integration', points: 3, editing: false },
+  ];
   return (
-    <div className="p-2.5 space-y-2">
-      <div className="rounded-[3px] border border-border bg-background p-2.5">
-        <div className="text-[8px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Story to estimate</div>
-        <div className="text-[9px] text-foreground">Implement payment gateway integration</div>
-        <div className="text-[7px] text-muted-foreground mt-0.5">4 participants · 2 have voted</div>
-      </div>
-      <div className="rounded-[3px] border border-border bg-background p-2.5">
-        <div className="text-[8px] font-semibold text-muted-foreground uppercase tracking-wide mb-2">Your estimate</div>
-        <div className="flex gap-1.5 flex-wrap">
-          {cards.map(n => (
-            <button
-              key={n}
-              onClick={() => setSelected(n)}
-              className={`w-8 h-10 rounded-[3px] border text-[10px] font-bold transition-all ${
-                selected === n
-                  ? 'bg-primary text-primary-foreground border-primary shadow-sm'
-                  : 'border-border text-foreground bg-card hover:border-primary/50'
-              }`}
-            >
-              {n}
-            </button>
-          ))}
-          <button
-            onClick={() => setSelected(-1)}
-            className={`w-8 h-10 rounded-[3px] border text-[9px] font-bold transition-all ${
-              selected === -1
-                ? 'bg-primary text-primary-foreground border-primary shadow-sm'
-                : 'border-border text-muted-foreground bg-card hover:border-primary/50'
-            }`}
-          >
-            ?
-          </button>
+    <div className="p-2.5">
+      <div className="rounded-[3px] border border-border bg-card overflow-hidden">
+        <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-surface-secondary/50">
+          <span className="text-[9px] font-semibold text-foreground">Scrum Poker — Story Points</span>
+          <span className="text-[7px] text-muted-foreground italic">Only PM can assign points</span>
         </div>
-        {selected !== null && (
-          <div className="mt-2 text-[8px] text-success font-medium">
-            ✓ Vote recorded: {selected === -1 ? '?' : selected} points
-          </div>
-        )}
-      </div>
-      <div className="rounded-[3px] border border-border bg-background p-2">
-        <div className="text-[8px] font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Participants</div>
-        <div className="space-y-1">
-          {[
-            { av:'AG', name:'Alex García',    voted:true  },
-            { av:'MS', name:'Maria Santos',   voted:true  },
-            { av:'CR', name:'Carlos Ramírez', voted:false },
-            { av:'AL', name:'Ana López',      voted:false },
-          ].map(p => (
-            <div key={p.av} className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5">
-                <div className="w-4 h-4 rounded-full bg-primary/20 flex items-center justify-center">
-                  <span className="text-[6px] font-bold text-primary">{p.av}</span>
-                </div>
-                <span className="text-[8px] text-foreground">{p.name}</span>
+        <div className="divide-y divide-border">
+          {rows.map((r) => (
+            <div key={r.id} className="flex items-start gap-3 px-3 py-2">
+              <span className="text-[9px] text-foreground flex-1 min-w-0 truncate pt-1">{r.title}</span>
+              {!r.editing && (
+                <button className="text-[7px] px-1.5 py-0.5 rounded-[3px] border border-border text-muted-foreground shrink-0 mt-0.5">Edit</button>
+              )}
+              <div className="flex items-center gap-0.5 flex-wrap justify-end border-l border-border pl-2 shrink-0">
+                {FIBONACCI.map((n) => (
+                  <span
+                    key={n}
+                    className={`w-4 h-5 rounded-[2px] border text-[7px] font-semibold flex items-center justify-center ${
+                      r.points === n
+                        ? 'bg-primary border-primary text-primary-foreground'
+                        : `border-border text-muted-foreground ${r.editing ? '' : 'opacity-40'}`
+                    }`}
+                  >
+                    {n}
+                  </span>
+                ))}
+                {r.editing && (
+                  <>
+                    <button className="text-[7px] px-1.5 h-5 rounded-[2px] bg-primary text-primary-foreground ml-0.5">Save</button>
+                    <button className="text-[7px] px-1.5 h-5 rounded-[2px] border border-border text-muted-foreground">Cancel</button>
+                  </>
+                )}
+                <span className="text-[7px] font-semibold text-primary px-1 py-0.5 rounded-[2px] bg-primary/10 border border-primary/30 ml-1">{r.points} pts</span>
               </div>
-              <span className={`text-[7px] ${p.voted ? 'text-success' : 'text-muted-foreground'}`}>
-                {p.voted ? '✓ Voted' : '⏳ Waiting'}
-              </span>
             </div>
           ))}
         </div>
@@ -1166,64 +1551,116 @@ function ProjScrumPokerTab() {
   );
 }
 
+const CR_TASKS: { id: number; title: string; pushes: number; expanded: boolean }[] = [
+  { id: 1, title: 'Implement payment gateway', pushes: 3, expanded: true },
+  { id: 4, title: 'Mobile responsive layout', pushes: 1, expanded: false },
+  { id: 8, title: 'Analytics integration', pushes: 0, expanded: false },
+];
+
+const CR_DIFF: DiffLine[] = [
+  { type: 'header',  content: '@@ -8,6 +8,11 @@ export function calculateHealth(' },
+  { type: 'context', content: '   tasks: Task[],' },
+  { type: 'context', content: ' ): ProjectHealth {' },
+  { type: 'remove',  content: "  const done = tasks.filter(t => t.done).length;" },
+  { type: 'add',     content: "  if (tasks.length === 0) return 'unknown';" },
+  { type: 'add',     content: "  const done = tasks.filter(t => t.done).length;" },
+  { type: 'add',     content: "  const blocked = tasks.filter(t => t.blocked).length;" },
+  { type: 'context', content: '   return done / tasks.length;' },
+];
+
 function ProjCodeReviewTab() {
   return (
-    <div className="p-2.5 space-y-1.5">
-      {PROJ_PRS.map(pr => (
-        <div key={pr.id} className="rounded-[3px] border border-border bg-background p-2 hover:bg-surface-secondary/20 transition-colors">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5 mb-0.5">
-                <span className="text-[7px] text-muted-foreground font-mono">{pr.id}</span>
-                <span className="text-[8px] font-medium text-foreground truncate">{pr.titulo}</span>
-              </div>
-              <div className="text-[7px] text-muted-foreground font-mono">{pr.rama} → main · {pr.hace}</div>
-            </div>
-            <div className="flex items-center gap-1.5 shrink-0">
-              <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center">
-                <span className="text-[7px] font-bold text-primary">{pr.av}</span>
-              </div>
-              <span className={`text-[7px] px-1.5 py-0.5 rounded-[3px] font-medium ${
-                pr.merged ? 'bg-success/15 text-success' : 'bg-warning/15 text-warning'
-              }`}>
-                {pr.estado}
+    <div className="p-2.5 space-y-2">
+      {/* AI Model selector */}
+      <div className="rounded-[3px] border border-border bg-background p-2">
+        <div className="text-[7px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">AI Model</div>
+        <div className="flex items-center justify-between text-[8px] text-foreground bg-surface-secondary/40 border border-border/50 rounded-[3px] px-2 py-1">
+          yemoda-large <ChevronDown className="w-2.5 h-2.5 text-muted-foreground" />
+        </div>
+      </div>
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1 text-[9px] font-semibold text-foreground"><GitCommit className="w-3 h-3 text-muted-foreground" /> 3 tasks</div>
+        <RefreshCw className="w-3 h-3 text-muted-foreground" />
+      </div>
+      {/* Task list */}
+      <div className="space-y-1.5">
+        {CR_TASKS.map((task) => (
+          <div key={task.id} className="rounded-[3px] border border-border bg-background overflow-hidden">
+            <div className="flex items-center gap-1.5 px-2 py-1.5">
+              {task.expanded ? <ChevronDown className="w-2.5 h-2.5 text-muted-foreground" /> : <ChevronRight className="w-2.5 h-2.5 text-muted-foreground" />}
+              <span className="text-[8px] text-foreground truncate flex-1">{task.title}</span>
+              <span className={`text-[6px] px-1.5 py-0.5 rounded-full font-medium ${task.pushes > 0 ? 'bg-primary/10 text-primary' : 'bg-surface-secondary text-muted-foreground/50'}`}>
+                {task.pushes} {task.pushes === 1 ? 'push' : 'pushes'}
               </span>
             </div>
+            {task.expanded && (
+              <div className="border-t border-border/50 p-2 space-y-1.5">
+                {/* Push match */}
+                <div className="flex items-center gap-1.5">
+                  <ChevronDown className="w-2.5 h-2.5 text-muted-foreground" />
+                  <span className="text-[7px] font-mono px-1 rounded-[2px] bg-primary/10 text-primary">feat/payment</span>
+                  <span className="text-[6px] px-1 py-0.5 rounded-[2px] bg-emerald-500/[0.08] text-emerald-300">Full</span>
+                </div>
+                <div className="flex items-center gap-2 text-[7px] text-muted-foreground pl-3.5">
+                  <span className="flex items-center gap-0.5"><User className="w-2 h-2" /> alexdev</span>
+                  <span className="flex items-center gap-0.5"><Clock className="w-2 h-2" /> 2 Jun</span>
+                  <span>3 commits</span>
+                  <span>6 files</span>
+                </div>
+                <MiniDiff file="src/utils/projectHealth.ts" lines={CR_DIFF} startOld={8} startNew={8} />
+                {/* Chat */}
+                <div className="rounded-[3px] border border-border bg-surface-secondary/30 p-1.5">
+                  <div className="text-[7px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">Code Review Chat</div>
+                  <div className="flex items-center gap-1 text-[7px] text-muted-foreground bg-background border border-border/50 rounded-[3px] px-1.5 py-1">
+                    <span className="flex-1">Ask about changes, risks, or improvements…</span>
+                    <Send className="w-2.5 h-2.5 text-primary" />
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }
 
 function ProjRepositoriosTab() {
+  const repos = [
+    { name: 'react-ecommerce-platform', full: 'alexdev2024/react-ecommerce-platform', private: true },
+    { name: 'payments-service',          full: 'alexdev2024/payments-service',          private: true },
+    { name: 'design-tokens',             full: 'alexdev2024/design-tokens',             private: false },
+  ];
   return (
     <div className="p-2.5 space-y-2">
-      <div className="rounded-[3px] border border-border bg-background p-2.5">
-        <div className="flex items-center justify-between mb-2">
-          <div className="text-[9px] font-semibold text-foreground">GitHub</div>
-          <span className="text-[7px] px-1.5 py-0.5 rounded-full bg-success/15 text-success font-medium">● Connected</span>
-        </div>
-        <div className="flex items-center gap-2 p-2 rounded-[3px] bg-surface-secondary/40 border border-border/50">
-          <Github className="w-4 h-4 text-foreground shrink-0" />
-          <div className="min-w-0">
-            <div className="text-[9px] font-medium text-foreground">react-ecommerce-platform</div>
-            <div className="text-[7px] text-muted-foreground">alexdev2024 / react-ecommerce-platform · main</div>
+      {/* Connection header card */}
+      <div className="rounded-[3px] border border-border bg-background p-2.5 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-full bg-[#24292e] flex items-center justify-center shrink-0">
+            <Github className="w-3.5 h-3.5 text-white" />
+          </div>
+          <div>
+            <div className="text-[9px] font-semibold text-foreground">GitHub connected</div>
+            <div className="text-[7px] text-muted-foreground font-mono">alexdev2024</div>
           </div>
         </div>
-        <div className="mt-2 space-y-0.5">
-          <div className="text-[7px] text-muted-foreground font-semibold uppercase tracking-wide mb-1.5">Recent commits</div>
-          {[
-            { hash:'a3f8c2', msg:'feat: add payment gateway middleware',   time:'2h ago', av:'AG' },
-            { hash:'9b2d14', msg:'fix: cart state reset on navigation',    time:'1d ago', av:'CR' },
-            { hash:'7e5f31', msg:'style: responsive breakpoints mobile',   time:'2d ago', av:'AL' },
-          ].map(c => (
-            <div key={c.hash} className="flex items-center gap-2 py-0.5 border-b border-border/30 last:border-0">
-              <span className="text-[7px] font-mono text-primary">{c.hash}</span>
-              <span className="text-[7px] text-foreground truncate flex-1">{c.msg}</span>
-              <span className="text-[6px] text-muted-foreground shrink-0">{c.time}</span>
-              <div className="w-3.5 h-3.5 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
-                <span className="text-[5px] font-bold text-primary">{c.av}</span>
+        <button className="text-[8px] flex items-center gap-1 px-2 py-1 rounded-[3px] bg-primary text-primary-foreground font-medium"><Plus className="w-2.5 h-2.5" /> New repo</button>
+      </div>
+      {/* Repos list card */}
+      <div className="rounded-[3px] border border-border bg-background p-2.5">
+        <div className="text-[9px] font-bold text-foreground pb-1.5 mb-2 border-b border-border">Created repositories</div>
+        <div className="space-y-1.5">
+          {repos.map((r) => (
+            <div key={r.name} className="group flex items-center justify-between py-1.5 px-2 border border-border rounded-[3px] hover:border-primary/30 transition-colors">
+              <div className="flex items-center gap-1.5 min-w-0">
+                {r.private ? <Lock className="w-3 h-3 text-muted-foreground shrink-0" /> : <Unlock className="w-3 h-3 text-muted-foreground shrink-0" />}
+                <span className="text-[8px] font-medium text-foreground truncate">{r.name}</span>
+                <span className="text-[7px] text-muted-foreground truncate hidden sm:inline">{r.full}</span>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <ExternalLink className="w-3 h-3 text-muted-foreground" />
+                <Trash2 className="w-3 h-3 text-destructive opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
             </div>
           ))}
@@ -1248,8 +1685,8 @@ function ProjEquipoTab() {
           <span className="text-[7px] px-1.5 py-0.5 rounded-[3px] border border-border text-muted-foreground shrink-0">Edit</span>
         </div>
       ))}
-      <div className="text-center pt-1">
-        <button className="text-[8px] text-primary hover:underline">+ Add member</button>
+      <div className="flex justify-end pt-1">
+        <button className="text-[8px] flex items-center gap-1 px-2 py-0.5 rounded-[3px] bg-primary text-primary-foreground"><UserPlus className="w-2.5 h-2.5" /> Add Member</button>
       </div>
     </div>
   );
@@ -1258,35 +1695,48 @@ function ProjEquipoTab() {
 function ProjConfiguracionTab() {
   return (
     <div className="p-2.5">
-      <div className="rounded-[3px] border border-border bg-background p-2.5 space-y-2.5 max-w-sm">
-        <div>
-          <label className="block text-[8px] font-semibold text-foreground mb-1">Project stage</label>
-          <div className="h-7 bg-surface-secondary border border-border rounded-[3px] px-2.5 flex items-center justify-between text-[8px] text-foreground">
-            In progress<span className="text-muted-foreground">▾</span>
+      <div className="grid grid-cols-[minmax(0,1fr)_180px] gap-2">
+        {/* Left: Project Settings */}
+        <div className="rounded-[3px] border border-border bg-background p-2.5 space-y-2">
+          <div className="text-[8px] font-semibold text-muted-foreground uppercase tracking-wide">Project Settings</div>
+          <div>
+            <label className="block text-[7px] font-medium text-foreground mb-0.5">Project status</label>
+            <div className="h-6 bg-surface-secondary border border-border rounded-[3px] px-2 flex items-center justify-between text-[8px] text-foreground">
+              In Progress <ChevronDown className="w-2.5 h-2.5 text-muted-foreground" />
+            </div>
           </div>
-        </div>
-        <div>
-          <label className="block text-[8px] font-semibold text-foreground mb-1">Delivery date</label>
-          <div className="h-7 bg-surface-secondary border border-border rounded-[3px] px-2.5 flex items-center justify-between text-[8px] text-foreground">
-            7 Jun 2026<Calendar className="w-3 h-3 text-muted-foreground" />
+          <div>
+            <label className="block text-[7px] font-medium text-foreground mb-0.5">End date</label>
+            <div className="h-6 bg-surface-secondary border border-border rounded-[3px] px-2 flex items-center justify-between text-[8px] text-foreground">
+              7 Jun 2026 <Calendar className="w-2.5 h-2.5 text-muted-foreground" />
+            </div>
           </div>
-        </div>
-        <div>
-          <label className="block text-[8px] font-semibold text-foreground mb-1">Description</label>
-          <div className="h-14 bg-surface-secondary border border-border rounded-[3px] px-2.5 py-1.5 text-[7px] text-muted-foreground leading-relaxed overflow-hidden">
-            Full redesign of the e-commerce platform including new checkout flow, mobile optimization and payment gateway integration.
+          <div>
+            <label className="block text-[7px] font-medium text-foreground mb-0.5">Branches monitored by AI agent</label>
+            <div className="h-6 bg-surface-secondary border border-border rounded-[3px] px-2 flex items-center text-[7px] text-muted-foreground">main,develop  (empty = all branches)</div>
+            <p className="text-[6px] text-muted-foreground mt-0.5 leading-tight">Enter the names separated by commas. Task branches ({'{id}'}-*) are always analyzed.</p>
           </div>
+          <button className="h-6 px-3 bg-primary text-primary-foreground rounded-[3px] text-[8px] font-medium">Save changes</button>
         </div>
-        <div className="flex items-center justify-between pt-1">
-          <button className="text-[8px] text-destructive/70 hover:text-destructive transition-colors">Delete project</button>
-          <button className="h-7 px-3 bg-primary text-primary-foreground rounded-[3px] text-[8px] font-medium">Save changes</button>
+        {/* Right: Team restrictions + Danger Zone */}
+        <div className="space-y-2">
+          <div className="rounded-[3px] border border-border bg-background p-2">
+            <div className="text-[8px] font-semibold text-foreground mb-1">Team restrictions</div>
+            <p className="text-[6px] text-muted-foreground leading-tight mb-1.5">By default only users with a connected GitHub account can be added. You can disable this temporarily.</p>
+            <button className="w-full flex items-center justify-between text-[7px] text-foreground border border-border rounded-[3px] px-1.5 py-1">
+              <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-muted-foreground" /> Require GitHub when adding members</span>
+            </button>
+          </div>
+          <div className="rounded-[3px] border border-destructive/30 bg-destructive/5 p-2">
+            <div className="text-[8px] font-semibold text-destructive uppercase tracking-wide mb-1">Danger Zone</div>
+            <p className="text-[6px] text-muted-foreground leading-tight mb-1.5">Deleting this project will also remove its access from the main view.</p>
+            <button className="flex items-center gap-1 text-[7px] px-2 py-1 rounded-[3px] border border-destructive/30 bg-destructive/10 text-destructive"><Trash2 className="w-2.5 h-2.5" /> Delete project</button>
+          </div>
         </div>
       </div>
     </div>
   );
 }
-
-// ── Main export ───────────────────────────────────────────────────────────────
 
 export function ProjectDetailShowcase() {
   const [activeTab, setActiveTab] = useState<ProjectTab>('resumen');
@@ -1294,7 +1744,6 @@ export function ProjectDetailShowcase() {
   return (
     <section id="project-demo" className="container mx-auto px-6 py-24 max-w-6xl scroll-mt-16">
       <div className="flex flex-col items-center gap-10">
-
         {/* Marketing text */}
         <motion.div
           initial={{ opacity: 0, y: -16 }}
@@ -1319,16 +1768,17 @@ export function ProjectDetailShowcase() {
 
           {/* Tab pills */}
           <div className="flex flex-wrap justify-center gap-1.5">
-            {PROJECT_TABS.map(tab => (
+            {PROJECT_TABS.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`px-3 py-1.5 rounded-[4px] text-[11px] font-medium transition-all ${
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-[4px] text-[11px] font-medium transition-all ${
                   activeTab === tab.id
                     ? 'bg-primary text-primary-foreground shadow-sm'
                     : 'bg-card border border-border text-muted-foreground hover:text-foreground hover:border-primary/30'
                 }`}
               >
+                {tab.icon && <tab.icon className="w-3 h-3" />}
                 {tab.label}{tab.count != null ? ` ${tab.count}` : ''}
               </button>
             ))}
@@ -1343,43 +1793,18 @@ export function ProjectDetailShowcase() {
           transition={{ duration: 0.55, ease: 'easeOut', delay: 0.1 }}
           className="w-full"
         >
-          <AppFrame url={`app.yemoda.io/proyectos/e-commerce${activeTab !== 'resumen' ? `?tab=${activeTab}` : ''}`}>
+          <AppFrame url={`app.yemoda.io/projects/e-commerce${activeTab !== 'resumen' ? `?tab=${activeTab}` : ''}`}>
             <div className="flex flex-col bg-background overflow-hidden" style={{ height: 520 }}>
-
-              {/* App topbar */}
-              <div className="flex items-center justify-between px-3 py-1.5 border-b border-border bg-card/80 shrink-0">
-                <div className="flex items-center gap-1 text-[8px] text-muted-foreground min-w-0">
-                  <span className="hover:text-foreground cursor-pointer transition-colors">Projects</span>
-                  <ChevronRight className="w-2.5 h-2.5 shrink-0" />
-                  <span className="text-foreground font-medium truncate">E-Commerce Redesign</span>
-                </div>
-                <div className="flex items-center gap-2.5 shrink-0">
-                  <div className="flex items-center gap-1 text-[8px] text-muted-foreground bg-surface-secondary/60 border border-border/50 rounded-[3px] px-2 py-0.5">
-                    <Activity className="w-2.5 h-2.5" /> Search...
-                  </div>
-                  <div className="relative">
-                    <Bell className="w-3.5 h-3.5 text-muted-foreground" />
-                    <span className="absolute -top-1 -right-1 w-3 h-3 bg-destructive rounded-full text-[5px] text-white flex items-center justify-center font-bold">3</span>
-                  </div>
-                  <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center shrink-0">
-                    <span className="text-[7px] font-bold text-primary-foreground">C</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* CommandBar */}
-              <div className="flex items-center gap-1.5 px-3 py-1.5 border-b border-border bg-card/60 shrink-0">
+              {/* Command bar */}
+              <div className="flex items-center gap-1.5 px-3 py-1.5 border-b border-border bg-surface-secondary/50 shrink-0">
                 <button className="flex items-center gap-1 text-[8px] text-muted-foreground px-2 py-0.5 rounded-[3px] border border-border hover:text-foreground transition-colors">
-                  ← Back
+                  <ArrowLeft className="w-2.5 h-2.5" /> Back
                 </button>
                 <button className="flex items-center gap-1 text-[8px] text-muted-foreground px-2 py-0.5 rounded-[3px] border border-border hover:text-foreground transition-colors">
-                  ↺ Refresh
+                  <UserPlus className="w-2.5 h-2.5" /> Assign owner
                 </button>
-                <button className="flex items-center gap-1 text-[8px] text-muted-foreground px-2 py-0.5 rounded-[3px] border border-border hover:text-foreground transition-colors">
-                  <Users className="w-2.5 h-2.5" /> Assign owner
-                </button>
-                <div className="ml-auto text-[7px] px-2 py-0.5 rounded-[3px] bg-warning/15 text-warning font-semibold border border-warning/30">
-                  ● In progress
+                <div className="ml-auto inline-flex items-center gap-1 text-[7px] px-2 py-0.5 rounded-[3px] border border-border text-muted-foreground">
+                  <span className="w-1.5 h-1.5 rounded-full bg-info" /> In Progress
                 </div>
               </div>
 
@@ -1393,21 +1818,30 @@ export function ProjectDetailShowcase() {
                 </div>
               </div>
 
-              {/* ADO tab bar */}
-              <div className="flex border-b border-border bg-card/40 shrink-0 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
-                {PROJECT_TABS.map(tab => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`px-2.5 py-2 text-[8px] font-medium whitespace-nowrap transition-colors shrink-0 border-b-2 ${
-                      activeTab === tab.id
-                        ? 'border-primary text-primary bg-primary/5'
-                        : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-surface-secondary/30'
-                    }`}
-                  >
-                    {tab.label}{tab.count != null ? ` ${tab.count}` : ''}
-                  </button>
-                ))}
+              {/* Tab bar with right-pinned refresh */}
+              <div className="flex items-center border-b border-border bg-card/40 shrink-0">
+                <div className="flex overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+                  {PROJECT_TABS.map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`flex items-center gap-1 px-2.5 py-2 text-[8px] font-medium whitespace-nowrap transition-colors shrink-0 border-b-2 ${
+                        activeTab === tab.id
+                          ? 'border-primary text-primary bg-primary/5'
+                          : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-surface-secondary/30'
+                      }`}
+                    >
+                      {tab.icon && <tab.icon className="w-2.5 h-2.5" />}
+                      {tab.label}
+                      {tab.count != null && (
+                        <span className={`text-[6px] px-1 rounded-full ${activeTab === tab.id ? 'bg-primary/15 text-primary' : 'bg-muted text-muted-foreground'}`}>{tab.count}</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+                <button className="ml-auto px-2 py-2 shrink-0 text-muted-foreground hover:text-foreground" title="Refresh current section">
+                  <RefreshCw className="w-3 h-3" />
+                </button>
               </div>
 
               {/* Tab content */}
@@ -1442,116 +1876,21 @@ export function ProjectDetailShowcase() {
   );
 }
 
-// ── Code Review Showcase ─────────────────────────────────────────────────────
+// ── Code Review Showcase (task → push → diff + chat) ─────────────────────────
 
-type DiffLineType = 'header' | 'add' | 'remove' | 'context';
-interface MockDiffLine { type: DiffLineType; content: string; }
-
-const MOCK_DIFF: MockDiffLine[] = [
+const SHOWCASE_DIFF: DiffLine[] = [
   { type: 'header',  content: "@@ -8,7 +8,14 @@ import type { Project } from './types';" },
   { type: 'context', content: ' export function calculateProjectHealth(' },
-  { type: 'context', content: '   project: Project,' },
   { type: 'context', content: '   tasks: Task[],' },
   { type: 'context', content: ' ): ProjectHealth {' },
-  { type: 'remove',  content: "-  const completion = tasks.filter(t => t.status === 'done').length / tasks.length;" },
-  { type: 'remove',  content: "-  if (completion < 0.3) return 'at_risk';" },
-  { type: 'add',     content: "+  if (tasks.length === 0) return 'unknown';" },
-  { type: 'add',     content: "+  const done = tasks.filter(t => t.status === 'done').length;" },
-  { type: 'add',     content: "+  const blocked = tasks.filter(t => t.status === 'blocked').length;" },
-  { type: 'add',     content: '+  const completion = done / tasks.length;' },
-  { type: 'add',     content: "+  if (blocked > 2 || completion < 0.2) return 'at_risk';" },
-  { type: 'add',     content: "+  if (completion < 0.4) return 'warning';" },
-  { type: 'context', content: "   return completion >= 0.8 ? 'on_track' : 'warning';" },
+  { type: 'remove',  content: "  const completion = done / tasks.length;" },
+  { type: 'remove',  content: "  if (completion < 0.3) return 'at_risk';" },
+  { type: 'add',     content: "  if (tasks.length === 0) return 'unknown';" },
+  { type: 'add',     content: "  const blocked = tasks.filter(t => t.blocked).length;" },
+  { type: 'add',     content: "  const completion = done / tasks.length;" },
+  { type: 'add',     content: "  if (blocked > 2 || completion < 0.2) return 'at_risk';" },
+  { type: 'context', content: "  return completion >= 0.8 ? 'on_track' : 'warning';" },
   { type: 'context', content: ' }' },
-];
-
-const DIFF_ROW_STYLE: Record<DiffLineType, string> = {
-  header:  'bg-primary/5 text-primary/70',
-  add:     'bg-emerald-500/8 text-emerald-400',
-  remove:  'bg-red-500/8 text-red-400',
-  context: 'text-muted-foreground',
-};
-
-const MOCK_ALERTS_CR = [
-  { id: 1, tipo: 'danger',  titulo: 'API Gateway timeout',    proyecto: 'Phoenix Backend',     tiempo: '5m ago',  detalle: 'Avg latency 2.3s in prod' },
-  { id: 2, tipo: 'warning', titulo: 'Sprint behind schedule', proyecto: 'Dashboard Analytics', tiempo: '1h ago',  detalle: '4 overdue tasks'          },
-  { id: 3, tipo: 'success', titulo: 'PR merged successfully', proyecto: 'Mobile App v2',       tiempo: '2h ago',  detalle: 'feat: health score · 6 files' },
-  { id: 4, tipo: 'warning', titulo: 'Budget at 87%',          proyecto: 'Client Portal',       tiempo: '3h ago',  detalle: 'Overrun projected'        },
-  { id: 5, tipo: 'info',    titulo: 'New member added',       proyecto: 'Core Platform',       tiempo: '4h ago',  detalle: 'Maria G. → Developer'     },
-];
-
-interface AiFixDemoFile {
-  path: string;
-  warnings: string[];
-  sourceCode: string[];
-  aiDiff: MockDiffLine[];
-  summary: string;
-}
-
-const AI_FIX_DEMO_FILES: AiFixDemoFile[] = [
-  {
-    path: 'backend/api/auth.py',
-    warnings: [
-      'CRITICAL: incomplete docstring between lines 76-83',
-      'WARNING: payload validation mixed with documentation comment',
-      'WARNING: inconsistent error responses for missing fields',
-    ],
-    sourceCode: [
-      'def login(request):',
-      '    """Validate security-sensitive',
-      '    configuration values.)',
-      '    email = request.json.get("email")',
-      '    password = request.json.get("password")',
-      '    if not email or not password:',
-      '        return {"message": "missing credentials"}',
-      '    user = auth_service.find_user(email)',
-      '    if not user:',
-      '        return {"message": "invalid credentials"}',
-      '    return {"token": auth_service.issue_token(user)}',
-    ],
-    aiDiff: [
-      { type: 'header', content: '@@ -1,11 +1,20 @@ def login(request):' },
-      { type: 'remove', content: '-    """Validate security-sensitive' },
-      { type: 'remove', content: '-    configuration values.)' },
-      { type: 'add', content: '+    """Authenticate a user and return an auth token."""' },
-      { type: 'context', content: '     email = request.json.get("email")' },
-      { type: 'context', content: '     password = request.json.get("password")' },
-      { type: 'remove', content: '-    if not email or not password:' },
-      { type: 'remove', content: '-        return {"message": "missing credentials"}' },
-      { type: 'add', content: '+    if not email or not password:' },
-      { type: 'add', content: '+        return {"message": "Missing required fields"}, 400' },
-      { type: 'context', content: '     user = auth_service.find_user(email)' },
-      { type: 'context', content: '     if not user:' },
-      { type: 'remove', content: '-        return {"message": "invalid credentials"}' },
-      { type: 'add', content: '+        return {"message": "Invalid credentials"}, 401' },
-    ],
-    summary: 'The AI fixes the docstring syntax and normalizes 400 and 401 responses without touching business logic.',
-  },
-  {
-    path: 'backend/api/routes.py',
-    warnings: [
-      'CRITICAL: admin endpoint without role verification',
-      'WARNING: missing Authorization header validation',
-    ],
-    sourceCode: [
-      'def list_admin_reports(request):',
-      '    token = request.headers.get("Authorization")',
-      '    user = auth_service.user_from_token(token)',
-      '    return report_service.get_all_reports()',
-    ],
-    aiDiff: [
-      { type: 'header', content: '@@ -1,4 +1,11 @@ def list_admin_reports(request):' },
-      { type: 'context', content: ' def list_admin_reports(request):' },
-      { type: 'context', content: '     token = request.headers.get("Authorization")' },
-      { type: 'add', content: '+    if not token:' },
-      { type: 'add', content: '+        return {"message": "Authorization header is required"}, 401' },
-      { type: 'context', content: '     user = auth_service.user_from_token(token)' },
-      { type: 'add', content: '+    if not user or not user.is_admin:' },
-      { type: 'add', content: '+        return {"message": "Forbidden"}, 403' },
-      { type: 'context', content: '     return report_service.get_all_reports()' },
-    ],
-    summary: 'The AI adds authorization and admin-role guards so the endpoint no longer exposes sensitive reports.',
-  },
 ];
 
 export function CodeReviewShowcase() {
@@ -1567,13 +1906,13 @@ export function CodeReviewShowcase() {
         >
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-[3px] border border-primary/20 bg-primary/10 text-primary text-[11px] font-medium mb-4">
             <Code2 className="w-3 h-3" />
-            Code review integrated with your project
+            Code review connected to your tasks
           </div>
           <h2 className="text-2xl md:text-3xl font-semibold text-foreground mb-3">
-            Your commits connected to sprint tasks
+            Every push, linked to the task it belongs to
           </h2>
           <p className="text-sm text-muted-foreground max-w-xl mx-auto leading-relaxed">
-            Link pull requests and commits directly to tasks. See project alerts while reviewing every code change.
+            Pushes are matched to sprint tasks automatically. Expand a task to inspect each push&apos;s diff and ask the review assistant about risks.
           </p>
         </motion.div>
 
@@ -1583,74 +1922,74 @@ export function CodeReviewShowcase() {
           viewport={{ once: true, margin: '-80px' }}
           transition={{ duration: 0.5, ease: 'easeOut', delay: 0.1 }}
         >
-          <AppFrame url="app.yemoda.io/proyectos/atlas/code-review">
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2.5 bg-surface-secondary/50 border-b border-border">
-              <div className="flex items-center gap-2 text-[11px] text-foreground min-w-0 flex-1">
-                <GitCommit className="w-3.5 h-3.5 text-primary shrink-0" />
-                <span className="font-mono font-medium truncate">feat: improve project health score calculation</span>
-              </div>
-              <div className="flex items-center gap-3 shrink-0">
-                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                  <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center text-[8px] font-bold text-primary">AB</div>
-                  a.bravo
-                </div>
-                <div className="text-[10px] text-muted-foreground border-l border-border pl-3">3 hours ago</div>
-                <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[3px] bg-success/10 text-success text-[10px] font-medium">
-                  <GitMerge className="w-3 h-3" /> Merged
-                </div>
-              </div>
-            </div>
-
-            <div className="grid lg:grid-cols-[1.35fr_0.65fr] max-h-[480px]">
-              <div className="border-r border-border overflow-y-auto bg-background">
-                <div className="sticky top-0 z-10 px-3 py-2 border-b border-border bg-surface-secondary/50 flex items-center gap-2">
-                  <FileCode2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                  <span className="font-mono text-[10px] text-foreground truncate">src/utils/projectHealth.ts</span>
-                  <div className="ml-auto flex gap-1.5 text-[9px] shrink-0">
-                    <span className="text-success bg-success/10 px-1.5 py-0.5 rounded-[2px] font-medium">+8</span>
-                    <span className="text-destructive bg-destructive/10 px-1.5 py-0.5 rounded-[2px] font-medium">−2</span>
+          <AppFrame url="app.yemoda.io/projects/atlas/code-review">
+            <div className="grid lg:grid-cols-[1.4fr_0.6fr] max-h-[480px]">
+              {/* Left: task → push → diff */}
+              <div className="border-r border-border bg-background overflow-y-auto p-3 space-y-2">
+                {/* AI Model */}
+                <div className="rounded-[3px] border border-border bg-card p-2">
+                  <div className="text-[8px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">AI Model</div>
+                  <div className="flex items-center justify-between text-[10px] text-foreground bg-surface-secondary/40 border border-border/50 rounded-[3px] px-2 py-1">
+                    yemoda-large <ChevronDown className="w-3 h-3 text-muted-foreground" />
                   </div>
                 </div>
-                <table className="w-full font-mono text-[10px] leading-[18px]">
-                  <tbody>
-                    {MOCK_DIFF.map((line, i) => (
-                      <tr key={i} className={DIFF_ROW_STYLE[line.type]}>
-                        <td className="w-5 text-center select-none text-[9px] border-r border-border/30 text-muted-foreground/50 px-1 shrink-0">
-                          {line.type === 'add' ? '+' : line.type === 'remove' ? '−' : ''}
-                        </td>
-                        <td className="px-3 whitespace-pre">{line.content}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                {/* Header */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-[11px] font-semibold text-foreground"><GitCommit className="w-3.5 h-3.5 text-muted-foreground" /> 4 tasks</div>
+                  <RefreshCw className="w-3.5 h-3.5 text-muted-foreground" />
+                </div>
+                {/* Expanded task with a push */}
+                <div className="rounded-[3px] border border-border bg-card overflow-hidden">
+                  <div className="flex items-center gap-2 px-2.5 py-2">
+                    <ChevronDown className="w-3 h-3 text-muted-foreground" />
+                    <span className="text-[11px] text-foreground truncate flex-1">Improve project health score</span>
+                    <span className="text-[9px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">2 pushes</span>
+                  </div>
+                  <div className="border-t border-border px-2.5 py-2 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <ChevronDown className="w-3 h-3 text-muted-foreground" />
+                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-[2px] bg-primary/10 text-primary">feat/health-score</span>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded-[2px] bg-emerald-500/[0.08] text-emerald-300">Full</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-[10px] text-muted-foreground pl-5">
+                      <span className="flex items-center gap-1"><User className="w-3 h-3" /> a.bravo</span>
+                      <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> 3 hours ago</span>
+                      <span>4 commits</span>
+                      <span>6 files</span>
+                    </div>
+                    <MiniDiff file="src/utils/projectHealth.ts" lines={SHOWCASE_DIFF} startOld={8} startNew={8} />
+                  </div>
+                </div>
+                {/* Collapsed tasks */}
+                {[
+                  { title: 'Mobile responsive layout', pushes: 1 },
+                  { title: 'Analytics integration', pushes: 0 },
+                ].map((t) => (
+                  <div key={t.title} className="flex items-center gap-2 px-2.5 py-2 rounded-[3px] border border-border bg-card">
+                    <ChevronRight className="w-3 h-3 text-muted-foreground" />
+                    <span className="text-[11px] text-foreground truncate flex-1">{t.title}</span>
+                    <span className={`text-[9px] px-2 py-0.5 rounded-full font-medium ${t.pushes > 0 ? 'bg-primary/10 text-primary' : 'bg-surface-secondary text-muted-foreground/50'}`}>
+                      {t.pushes} {t.pushes === 1 ? 'push' : 'pushes'}
+                    </span>
+                  </div>
+                ))}
               </div>
 
+              {/* Right: Code Review Chat */}
               <div className="flex flex-col overflow-hidden bg-background">
-                <div className="px-4 py-2.5 border-b border-border bg-card/60 shrink-0 flex items-center justify-between">
-                  <div className="text-[11px] font-semibold text-foreground">Project alerts</div>
-                  <div className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-warning/15 text-warning">{MOCK_ALERTS_CR.length} active</div>
+                <div className="px-4 py-2.5 border-b border-border bg-card/60 shrink-0 text-[11px] font-semibold text-foreground">Code Review Chat</div>
+                <div className="flex-1 overflow-y-auto p-3 space-y-2">
+                  <div className="max-w-[85%] ml-auto rounded-[6px] bg-primary/10 text-foreground text-[10px] px-2.5 py-1.5">
+                    Any risks in the new health calc?
+                  </div>
+                  <div className="max-w-[85%] rounded-[6px] bg-card border border-border text-muted-foreground text-[10px] px-2.5 py-1.5 leading-relaxed">
+                    The early <span className="font-mono">return &apos;unknown&apos;</span> guards empty task lists. The blocked-count threshold looks safe; consider a test for the boundary at <span className="font-mono">completion === 0.2</span>.
+                  </div>
                 </div>
-                <div className="flex-1 overflow-y-auto divide-y divide-border">
-                  {MOCK_ALERTS_CR.map((a) => (
-                    <div key={a.id} className="px-4 py-3 hover:bg-surface-secondary/30 transition-colors">
-                      <div className="flex items-start gap-2.5">
-                        <span className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${ALERT_DOT[a.tipo]}`} />
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-baseline justify-between gap-2">
-                            <div className="text-[11px] font-medium text-foreground leading-tight truncate">{a.titulo}</div>
-                            <div className="text-[9px] text-muted-foreground shrink-0">{a.tiempo}</div>
-                          </div>
-                          <div className="text-[10px] text-muted-foreground mt-0.5 truncate">{a.proyecto}</div>
-                          <div className="text-[10px] text-muted-foreground/60 mt-0.5 truncate">{a.detalle}</div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div className="px-4 py-2.5 border-t border-border bg-surface-secondary/30 shrink-0">
-                  <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                    <AlertTriangle className="w-3 h-3 text-warning" />
-                    2 critical alerts require action
+                <div className="px-3 py-2.5 border-t border-border bg-surface-secondary/30 shrink-0">
+                  <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground bg-background border border-border rounded-[3px] px-2 py-1.5">
+                    <span className="flex-1">Ask about changes, risks, or improvements…</span>
+                    <Send className="w-3.5 h-3.5 text-primary" />
                   </div>
                 </div>
               </div>
@@ -1662,9 +2001,70 @@ export function CodeReviewShowcase() {
   );
 }
 
+// ── AI Fix Showcase ("AI change review" modal) ───────────────────────────────
+
+interface AiFixFile {
+  path: string;
+  sourceCode: string[];
+  aiDiff: DiffLine[];
+  startOld: number;
+  startNew: number;
+}
+
+const AI_FIX_FILES: AiFixFile[] = [
+  {
+    path: 'backend/api/auth.py',
+    sourceCode: [
+      'def login(request):',
+      '    """Validate security-sensitive',
+      '    configuration values.)',
+      '    email = request.json.get("email")',
+      '    password = request.json.get("password")',
+      '    if not email or not password:',
+      '        return {"message": "missing credentials"}',
+      '    user = auth_service.find_user(email)',
+      '    if not user:',
+      '        return {"message": "invalid credentials"}',
+    ],
+    aiDiff: [
+      { type: 'header', content: '@@ -1,10 +1,12 @@ def login(request):' },
+      { type: 'remove', content: '    """Validate security-sensitive' },
+      { type: 'remove', content: '    configuration values.)' },
+      { type: 'add', content: '    """Authenticate a user and return a token."""' },
+      { type: 'context', content: '    email = request.json.get("email")' },
+      { type: 'remove', content: '    if not email or not password:' },
+      { type: 'remove', content: '        return {"message": "missing credentials"}' },
+      { type: 'add', content: '    if not email or not password:' },
+      { type: 'add', content: '        return {"message": "Missing required fields"}, 400' },
+    ],
+    startOld: 1,
+    startNew: 1,
+  },
+  {
+    path: 'backend/api/routes.py',
+    sourceCode: [
+      'def list_admin_reports(request):',
+      '    token = request.headers.get("Authorization")',
+      '    user = auth_service.user_from_token(token)',
+      '    return report_service.get_all_reports()',
+    ],
+    aiDiff: [
+      { type: 'header', content: '@@ -1,4 +1,9 @@ def list_admin_reports(request):' },
+      { type: 'context', content: '    token = request.headers.get("Authorization")' },
+      { type: 'add', content: '    if not token:' },
+      { type: 'add', content: '        return {"message": "Authorization required"}, 401' },
+      { type: 'context', content: '    user = auth_service.user_from_token(token)' },
+      { type: 'add', content: '    if not user or not user.is_admin:' },
+      { type: 'add', content: '        return {"message": "Forbidden"}, 403' },
+    ],
+    startOld: 1,
+    startNew: 1,
+  },
+];
+
 export function AiFixShowcase() {
-  const [selectedFileIndex, setSelectedFileIndex] = useState(0);
-  const selectedFile = AI_FIX_DEMO_FILES[selectedFileIndex];
+  const [fileIndex, setFileIndex] = useState(0);
+  const file = AI_FIX_FILES[fileIndex];
 
   return (
     <section className="container mx-auto px-6 py-24 max-w-6xl">
@@ -1676,14 +2076,14 @@ export function AiFixShowcase() {
         className="text-center mb-12"
       >
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-[3px] border border-primary/20 bg-primary/10 text-primary text-[11px] font-medium mb-4">
-          <Sparkles className="w-3 h-3" />
-          AI Fix workflow demo
+          <Bot className="w-3 h-3" />
+          AI change review
         </div>
         <h2 className="text-2xl md:text-3xl font-semibold text-foreground mb-3">
-          Resolve warnings with AI, then approve and push
+          Send a task to AI, inspect the diff, then commit
         </h2>
         <p className="text-sm text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-          The same flow your team uses in product: select warnings, send context to AI, inspect unified diff output, and approve only when changes are safe.
+          The same flow your team uses in product: send task context to AI, compare current code with the AI&apos;s proposed code side by side, and confirm the commit only when the changes are safe.
         </p>
       </motion.div>
 
@@ -1693,63 +2093,45 @@ export function AiFixShowcase() {
         viewport={{ once: true, margin: '-80px' }}
         transition={{ duration: 0.5, ease: 'easeOut', delay: 0.1 }}
       >
-        <AppFrame url="app.yemoda.io/proyectos/atlas/tasks/51/ai-fix">
-          <div className="flex items-center justify-between gap-3 px-4 py-2.5 border-b border-border bg-surface-secondary/50">
-            <div className="min-w-0">
-              <div className="text-[10px] uppercase tracking-[0.08em] text-muted-foreground">Task branch</div>
-              <div className="text-[12px] font-semibold text-foreground truncate">51-auth-hardening</div>
+        <AppFrame url="app.yemoda.io/projects/atlas/tasks/51/ai-review">
+          {/* Modal header */}
+          <div className="px-4 py-2.5 border-b border-border bg-surface-secondary/50">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <div className="text-[12px] font-semibold text-foreground">AI change review — <span className="text-primary">Harden auth endpoints</span></div>
+                <div className="text-[9px] text-muted-foreground">Current code on the left and the AI response on the right.</div>
+              </div>
+              <button className="text-[10px] px-2.5 py-1 rounded-[3px] border border-border text-muted-foreground shrink-0">Close</button>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <button className="text-[10px] px-2.5 py-1 rounded-[3px] border border-border text-muted-foreground">Copy prompt</button>
-              <button className="text-[10px] px-2.5 py-1 rounded-[3px] bg-primary text-primary-foreground font-medium">Send to AI</button>
+            {/* Control bar */}
+            <div className="mt-2 space-y-1.5">
+              <div className="flex items-center gap-1.5">
+                <div className="flex-1 text-[9px] text-muted-foreground bg-background border border-border rounded-[3px] px-2 py-1 truncate">Fix the active warnings on this task without changing business logic…</div>
+                <div className="flex items-center gap-1 text-[9px] text-foreground bg-background border border-border rounded-[3px] px-2 py-1">yemoda-large <ChevronDown className="w-3 h-3 text-muted-foreground" /></div>
+                <button className="text-[9px] px-2.5 py-1 rounded-[3px] bg-primary text-primary-foreground font-medium flex items-center gap-1"><Send className="w-3 h-3" /> Send to AI</button>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1 text-[9px] text-foreground bg-background border border-border rounded-[3px] px-2 py-1">
+                  <span className="text-primary font-mono">[CHANGED]</span> {file.path} <ChevronDown className="w-3 h-3 text-muted-foreground" />
+                </div>
+                <div className="text-[9px] text-muted-foreground bg-background border border-border rounded-[3px] px-2 py-1">Branch: main</div>
+                <button className="text-[9px] px-2.5 py-1 rounded-[3px] border border-border text-muted-foreground">List files</button>
+              </div>
             </div>
           </div>
 
-          <div className="grid lg:grid-cols-[0.85fr_1.2fr_1fr] max-h-[520px]">
-            <div className="border-r border-border bg-card/40 overflow-y-auto">
-              <div className="sticky top-0 z-10 px-3 py-2 border-b border-border bg-card/80">
-                <div className="text-[11px] font-semibold text-foreground">Warnings and links</div>
-                <div className="text-[9px] text-muted-foreground">{selectedFile.warnings.length} selected for this iteration</div>
-              </div>
-              <div className="p-3 space-y-1.5">
-                {selectedFile.warnings.map((warning, index) => (
-                  <label key={index} className="flex items-start gap-2 p-2 rounded-[3px] border border-border bg-background">
-                    <input type="checkbox" checked readOnly className="mt-0.5 w-3.5 h-3.5 accent-primary shrink-0" />
-                    <span className="text-[10px] text-foreground leading-snug">{warning}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
+          {/* Two-column body */}
+          <div className="grid lg:grid-cols-2 max-h-[440px]">
+            {/* Left: current code */}
             <div className="border-r border-border overflow-y-auto bg-background">
               <div className="sticky top-0 z-10 px-3 py-2 border-b border-border bg-card/70">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-[11px] font-semibold text-foreground">Current code</span>
-                  <div className="flex items-center gap-1.5">
-                    {AI_FIX_DEMO_FILES.map((file, index) => (
-                      <button
-                        key={file.path}
-                        type="button"
-                        onClick={() => setSelectedFileIndex(index)}
-                        className={`text-[9px] px-2 py-0.5 rounded-[3px] border transition-colors ${
-                          selectedFileIndex === index
-                            ? 'bg-primary/10 border-primary/40 text-foreground'
-                            : 'border-border text-muted-foreground hover:text-foreground'
-                        }`}
-                      >
-                        {file.path.split('/').slice(-1)[0]}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div className="text-[9px] text-muted-foreground font-mono mt-1 truncate">{selectedFile.path}</div>
+                <span className="text-[11px] font-semibold text-foreground">Current code <span className="text-muted-foreground font-mono text-[9px]">({file.path})</span></span>
               </div>
-
-              <table className="w-full font-mono text-[10px] leading-[18px]">
+              <table className="w-full font-mono text-[10px] leading-[17px]">
                 <tbody>
-                  {selectedFile.sourceCode.map((line, index) => (
+                  {file.sourceCode.map((line, index) => (
                     <tr key={index} className="hover:bg-surface-secondary/30">
-                      <td className="w-9 text-right pr-2 border-r border-border/50 text-muted-foreground/70 select-none">{index + 1}</td>
+                      <td className="w-8 text-right pr-2 border-r border-border/50 text-muted-foreground/70 select-none">{index + 1}</td>
                       <td className="px-3 whitespace-pre text-foreground">{line}</td>
                     </tr>
                   ))}
@@ -1757,44 +2139,44 @@ export function AiFixShowcase() {
               </table>
             </div>
 
-            <div className="overflow-y-auto bg-background">
+            {/* Right: AI response */}
+            <div className="overflow-y-auto bg-background flex flex-col">
               <div className="sticky top-0 z-10 px-3 py-2 border-b border-border bg-card/70">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-[11px] font-semibold text-foreground">AI response</span>
-                  <span className="text-[9px] px-1.5 py-0.5 rounded-[3px] bg-success/10 text-success">Diff ready</span>
+                  <span className="text-[11px] font-semibold text-foreground">AI response <span className="text-muted-foreground text-[9px]">(proposed code)</span></span>
+                  <span className="text-[9px] text-warning">{AI_FIX_FILES.length} file(s) with detected changes</span>
                 </div>
-                <div className="text-[9px] text-muted-foreground mt-1 leading-relaxed">{selectedFile.summary}</div>
-              </div>
-
-              <table className="w-full font-mono text-[10px] leading-[18px]">
-                <tbody>
-                  {selectedFile.aiDiff.map((line, index) => (
-                    <tr key={index} className={DIFF_ROW_STYLE[line.type]}>
-                      <td className="w-5 text-center select-none text-[9px] border-r border-border/30 text-muted-foreground/50 px-1">
-                        {line.type === 'add' ? '+' : line.type === 'remove' ? '−' : ''}
-                      </td>
-                      <td className="px-3 whitespace-pre">{line.content}</td>
-                    </tr>
+                <div className="flex items-center gap-1.5 mt-1">
+                  <span className="text-[8px] text-muted-foreground">Modified file</span>
+                  {AI_FIX_FILES.map((f, index) => (
+                    <button
+                      key={f.path}
+                      type="button"
+                      onClick={() => setFileIndex(index)}
+                      className={`text-[8px] px-1.5 py-0.5 rounded-[3px] border transition-colors ${
+                        fileIndex === index ? 'bg-primary/10 border-primary/40 text-foreground' : 'border-border text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      {f.path.split('/').slice(-1)[0]}
+                    </button>
                   ))}
-                </tbody>
-              </table>
-
-              <div className="sticky bottom-0 px-3 py-2.5 border-t border-border bg-card/85 backdrop-blur-sm flex items-center justify-between gap-2">
-                <div className="text-[9px] text-muted-foreground">Persistence is non-blocking. Commit only after approval.</div>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <button className="text-[10px] px-2.5 py-1 rounded-[3px] border border-border text-muted-foreground">Reject</button>
-                  <button className="text-[10px] px-2.5 py-1 rounded-[3px] bg-primary text-primary-foreground font-medium inline-flex items-center gap-1">
-                    <CheckCircle2 className="w-3 h-3" />
-                    Approve and push
-                  </button>
                 </div>
+              </div>
+              <div className="p-2 flex-1">
+                <MiniDiff file={file.path} lines={file.aiDiff} startOld={file.startOld} startNew={file.startNew} />
+              </div>
+              <div className="sticky bottom-0 px-3 py-2.5 border-t border-border bg-card/85 backdrop-blur-sm flex items-center justify-between gap-2">
+                <div className="text-[9px] text-muted-foreground">If you like the proposal, confirm the commit/push. Only allowed when the AI returns applicable code.</div>
+                <button className="text-[10px] px-2.5 py-1 rounded-[3px] bg-primary text-primary-foreground font-medium inline-flex items-center gap-1 shrink-0">
+                  <GitCommit className="w-3 h-3" /> Commit / Push
+                </button>
               </div>
             </div>
           </div>
         </AppFrame>
 
         <div className="mt-4 text-center text-[11px] text-muted-foreground">
-          Interactive mock: switch files, inspect line-numbered source and AI diff, then approve the push.
+          Interactive mock: switch the modified file to inspect each proposed diff, then commit the AI changes.
         </div>
       </motion.div>
     </section>
