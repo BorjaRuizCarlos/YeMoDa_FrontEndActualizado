@@ -5,6 +5,7 @@ import {
   Bell,
   Brain,
   Shield,
+  ShieldCheck,
   TrendingUp,
   Users,
   ArrowRight,
@@ -386,6 +387,69 @@ export default function Landing() {
             </div>
           ))}
         </div>
+      </section>
+
+      {/* ── The idea behind Yemoda (thesis) ────────────────────────────────── */}
+      <section aria-label="Our thesis" className="mx-auto max-w-6xl px-6 py-24">
+        <div className="mx-auto max-w-3xl text-center">
+          <Eyebrow>The idea behind Yemoda</Eyebrow>
+          <h2 className="mt-4 text-3xl font-semibold tracking-[-0.02em] text-foreground md:text-[2.5rem] md:leading-[1.1]">
+            AI made shipping faster. It also made shipping riskier.
+          </h2>
+          <p className="mt-5 text-[15px] leading-relaxed text-slate-300 sm:text-base">
+            The AI era sent software delivery into overdrive — more code, more platforms, more shipped in a
+            week than used to ship in a quarter. But that speed brought new vulnerabilities, lost context,
+            and risks that surface far too late. Yemoda exists to close that gap.
+          </p>
+        </div>
+
+        <div className="mt-14 grid gap-4 md:grid-cols-3">
+          {[
+            {
+              icon: Zap,
+              tint: 'text-primary',
+              ring: 'border-primary/20',
+              bg: 'bg-primary/10',
+              title: 'Delivery went into overdrive',
+              desc: 'AI ships more code across more platforms, faster than engineering teams have ever shipped before.',
+            },
+            {
+              icon: AlertTriangle,
+              tint: 'text-warning',
+              ring: 'border-warning/20',
+              bg: 'bg-warning/10',
+              title: 'Risk grew right alongside it',
+              desc: 'New vulnerabilities slip in, context gets lost, and blockers only surface once it is too late to course-correct.',
+            },
+            {
+              icon: ShieldCheck,
+              tint: 'text-emerald-400',
+              ring: 'border-emerald-500/20',
+              bg: 'bg-emerald-500/10',
+              title: 'We make it robust',
+              desc: 'Yemoda keeps AI-assisted teams fast — surfacing risks early so what they ship stays solid, secure, and complete.',
+            },
+          ].map((c, i) => (
+            <div key={c.title} className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6">
+              <span
+                className="mb-3 block text-[11px] font-medium tracking-[0.2em] text-slate-500"
+                style={{ fontFamily: 'var(--font-mono-lp)' }}
+              >
+                0{i + 1}
+              </span>
+              <span className={`mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl border ${c.ring} ${c.bg} ${c.tint}`}>
+                <c.icon className="h-5 w-5" />
+              </span>
+              <h3 className="text-[15px] font-semibold text-foreground">{c.title}</h3>
+              <p className="mt-2 text-[13px] leading-relaxed text-slate-400">{c.desc}</p>
+            </div>
+          ))}
+        </div>
+
+        <p className="mx-auto mt-12 max-w-2xl text-center text-base font-medium text-foreground sm:text-lg">
+          Yemoda isn&apos;t a brake on AI — it&apos;s the layer that lets the teams using it to move faster
+          ship software that&apos;s <span className="text-primary">robust and complete</span>.
+        </p>
       </section>
 
       {/* ── The problem ────────────────────────────────────────────────────── */}

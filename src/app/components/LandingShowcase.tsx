@@ -27,8 +27,11 @@ import {
   Filter,
   GitCommit,
   Github,
+  GripVertical,
   KeyRound,
+  LayoutDashboard,
   LayoutGrid,
+  LayoutList,
   List,
   ListChecks,
   Lock,
@@ -60,7 +63,7 @@ type Icon = ComponentType<{ className?: string }>;
 
 function AppFrame({
   children,
-  url = 'app.yemoda.io',
+  url = 'yemoda.site',
   className = '',
 }: {
   children: ReactNode;
@@ -965,7 +968,7 @@ export function DashboardShowcase() {
           transition={{ duration: 0.5, ease: 'easeOut', delay: 0.1 }}
           className="w-full space-y-3"
         >
-          <AppFrame url={`app.yemoda.io/${activeView}`}>
+          <AppFrame url={`yemoda.site/${activeView}`}>
             <div className="grid grid-cols-[156px_minmax(0,1fr)] h-[480px] overflow-hidden">
               {/* Sidebar */}
               <aside className="border-r border-sidebar-border bg-sidebar flex flex-col overflow-hidden shrink-0">
@@ -1128,12 +1131,33 @@ const PROJ_TASKS: { id: number; title: string; priority: string; tags: { label: 
   { id: 8,  title: 'Analytics integration',      priority: 'High',   tags: [{ label: 'data', color: '#0ea5a4' }], sprint: null },
 ];
 
-// Boards: user-defined column names; only is_final (Done) gets green count badge.
-const PROJ_BOARD_COLS: { id: string; label: string; isFinal?: boolean; isReview?: boolean; taskIds: number[] }[] = [
-  { id: 'todo',     label: 'To Do',        taskIds: [6, 8] },
-  { id: 'building', label: 'Building',     taskIds: [1, 5] },
-  { id: 'qa',       label: 'QA Review',    isReview: true, taskIds: [4] },
-  { id: 'shipped',  label: 'Shipped',      isFinal: true,  taskIds: [2, 3, 7] },
+// Boards are user-defined: a list of boards, each with its own ordered columns.
+// Only is_final (Done) columns get a green count badge; is_review columns use Bot/blue.
+// The kanban view lives in the Sprints tab; the Boards tab is column configuration.
+type BoardColumn = { id: string; name: string; isFinal?: boolean; isReview?: boolean; taskIds: number[] };
+type Board = { id: string; name: string; columns: BoardColumn[] };
+
+const PROJ_BOARDS: Board[] = [
+  {
+    id: 'sprint',
+    name: 'Sprint Board',
+    columns: [
+      { id: 'todo',     name: 'To Do',     taskIds: [6, 8] },
+      { id: 'building', name: 'Building',   taskIds: [1, 5] },
+      { id: 'qa',       name: 'QA Review',  isReview: true, taskIds: [4] },
+      { id: 'shipped',  name: 'Shipped',    isFinal: true,  taskIds: [2, 3, 7] },
+    ],
+  },
+  {
+    id: 'release',
+    name: 'Release Flow',
+    columns: [
+      { id: 'triage', name: 'Triage',    taskIds: [6] },
+      { id: 'dev',    name: 'In Dev',    taskIds: [1, 5, 8] },
+      { id: 'review', name: 'AI Review', isReview: true, taskIds: [4] },
+      { id: 'rel',    name: 'Released',  isFinal: true,  taskIds: [2, 3, 7] },
+    ],
+  },
 ];
 
 const PROJ_TIMELINE_ITEMS: { title: string; id: number; start: number; width: number; color: string; done: boolean; meta: string }[] = [
@@ -1324,7 +1348,15 @@ function ProjBacklogTab() {
   );
 }
 
+const TIMELINE_TICKS: Record<'Day' | 'Week' | 'Month', string[]> = {
+  Day: ['08', '11', '14', '17', '20', '23', '26', '29', '01', '04', '07'],
+  Week: ['08 May', '15 May', '22 May', '29 May', '05 Jun'],
+  Month: ['May 2026', 'Jun 2026'],
+};
+
 function ProjTimelineTab() {
+  const [zoom, setZoom] = useState<'Day' | 'Week' | 'Month'>('Week');
+  const ticks = TIMELINE_TICKS[zoom];
   return (
     <div className="p-2.5 space-y-2">
       <div className="flex items-center justify-between">
@@ -1333,21 +1365,36 @@ function ProjTimelineTab() {
           <div className="text-[7px] text-muted-foreground">Task history ordered by start and due dates.</div>
         </div>
         <div className="flex items-center rounded-[3px] border border-border overflow-hidden text-[7px]">
-          <span className="px-1.5 py-0.5 text-muted-foreground">Day</span>
-          <span className="px-1.5 py-0.5 bg-primary text-primary-foreground">Week</span>
-          <span className="px-1.5 py-0.5 text-muted-foreground">Month</span>
+          {(['Day', 'Week', 'Month'] as const).map((z) => (
+            <button
+              key={z}
+              onClick={() => setZoom(z)}
+              className={`px-1.5 py-0.5 transition-colors ${zoom === z ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+            >
+              {z}
+            </button>
+          ))}
         </div>
       </div>
       <div className="rounded-[3px] border border-border bg-background p-2.5">
-        <div className="flex items-center justify-between mb-2 text-[7px] text-muted-foreground font-medium">
-          <span>May 2026</span><span>Jun 2026</span>
+        {/* Axis labels */}
+        <div className="flex">
+          <div className="w-24 shrink-0" />
+          <div className="flex-1 flex justify-between text-[6px] text-muted-foreground font-medium border-b border-border/30 pb-1">
+            {ticks.map((t) => <span key={t}>{t}</span>)}
+          </div>
         </div>
-        <div className="relative border-t border-border/30 space-y-1.5 pt-2">
-          {/* today line */}
-          <div className="absolute top-0 bottom-0 w-px" style={{ left: '64%', background: 'rgba(239,68,68,0.95)' }} />
+        {/* Rows + gridline/today overlay */}
+        <div className="relative pt-2 space-y-1.5">
+          <div className="absolute inset-y-0 left-24 right-0 pointer-events-none">
+            <div className="relative h-full flex justify-between">
+              {ticks.map((_, i) => <span key={i} className="w-px bg-white/[0.06]" />)}
+              <div className="absolute inset-y-0 w-px bg-red-500/90" style={{ left: '62%' }} />
+            </div>
+          </div>
           {PROJ_TIMELINE_ITEMS.map((t, i) => (
-            <div key={i} className="flex items-center gap-2">
-              <div className="w-28 shrink-0 min-w-0">
+            <div key={i} className="flex items-center">
+              <div className="w-24 shrink-0 pr-2 min-w-0">
                 <div className="flex items-center gap-1">
                   {t.done
                     ? <CheckCircle2 className="w-2.5 h-2.5 text-violet-400 shrink-0" />
@@ -1370,10 +1417,11 @@ function ProjTimelineTab() {
 
 function ProjSprintsTab() {
   const [selected, setSelected] = useState(3);
-  const tasks = PROJ_TASKS.filter((t) => t.sprint === 'Sprint 3');
+  const [boardIdx, setBoardIdx] = useState(0);
+  const board = PROJ_BOARDS[boardIdx];
   return (
     <div className="p-2.5">
-      <div className="grid grid-cols-[110px_minmax(0,1fr)] gap-2 rounded-[3px] border border-border bg-background overflow-hidden" style={{ minHeight: 200 }}>
+      <div className="grid grid-cols-[104px_minmax(0,1fr)] gap-2 rounded-[3px] border border-border bg-background overflow-hidden" style={{ minHeight: 220 }}>
         {/* Left: sprint list */}
         <div className="border-r border-border p-1.5 space-y-1">
           <div className="flex items-center justify-between px-1">
@@ -1388,7 +1436,7 @@ function ProjSprintsTab() {
             >
               <div className="text-[8px] font-medium text-foreground">{s.name}</div>
               <div className="flex items-center justify-between mt-0.5">
-                <span className={`text-[6px] px-1 py-0.5 rounded-full font-medium capitalize ${SPRINT_STATUS_PILL[s.status]}`}>
+                <span className={`text-[6px] px-1 py-0.5 rounded-full font-medium ${SPRINT_STATUS_PILL[s.status]}`}>
                   {s.status === 'active' ? 'Active' : s.status === 'closed' ? 'Closed' : 'Planned'}
                 </span>
                 <span className="text-[6px] text-muted-foreground">{s.end}</span>
@@ -1396,32 +1444,48 @@ function ProjSprintsTab() {
             </button>
           ))}
         </div>
-        {/* Right: task list */}
-        <div className="p-1.5">
+        {/* Right: board toolbar + kanban */}
+        <div className="p-1.5 overflow-hidden">
           <div className="flex items-center gap-1.5 mb-1.5">
-            <div className="flex items-center gap-0.5 text-[7px] text-muted-foreground border border-border rounded-[3px] px-1.5 py-0.5">All tasks <ChevronDown className="w-2 h-2" /></div>
+            {/* Board selector — click to switch boards */}
+            <button
+              onClick={() => setBoardIdx((i) => (i + 1) % PROJ_BOARDS.length)}
+              title="Switch board"
+              className="flex items-center gap-1 text-[7px] text-foreground border border-border rounded-[3px] px-1.5 py-0.5 hover:border-primary/40 transition-colors"
+            >
+              <LayoutDashboard className="w-2.5 h-2.5 text-muted-foreground" /> {board.name} <ChevronDown className="w-2 h-2 text-muted-foreground" />
+            </button>
+            {/* view toggle */}
+            <div className="flex items-center rounded-[3px] border border-border overflow-hidden">
+              <span className="px-1 py-0.5 bg-primary text-primary-foreground"><LayoutDashboard className="w-2.5 h-2.5" /></span>
+              <span className="px-1 py-0.5 text-muted-foreground"><LayoutList className="w-2.5 h-2.5" /></span>
+            </div>
             <button className="ml-auto text-[7px] flex items-center gap-0.5 px-1.5 py-0.5 rounded-[3px] bg-primary text-primary-foreground"><Plus className="w-2 h-2" /> New task</button>
           </div>
-          <table className="w-full text-[8px]">
-            <thead>
-              <tr className="border-b border-border/50 text-left">
-                <th className="py-1 text-muted-foreground font-medium">Title</th>
-                <th className="py-1 text-muted-foreground font-medium text-right">Tags</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/30">
-              {tasks.map((t) => (
-                <tr key={t.id}>
-                  <td className="py-1 text-foreground truncate max-w-[120px]">{t.title}</td>
-                  <td className="py-1">
-                    <div className="flex items-center gap-0.5 justify-end">
-                      <span className="text-[6px] px-1 py-0.5 rounded-[2px] bg-primary/10 text-primary">{PROJ_BOARD_COLS.find((c) => c.taskIds.includes(t.id))?.label ?? 'To Do'}</span>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="grid grid-cols-4 gap-1">
+            {board.columns.map((col) => {
+              const tasks = col.taskIds.map((id) => PROJ_TASKS.find((t) => t.id === id)!).filter(Boolean);
+              return (
+                <div key={col.id} className="flex flex-col">
+                  <div className="flex items-center justify-between mb-1 px-0.5">
+                    <span className="text-[7px] font-semibold uppercase tracking-wide text-muted-foreground truncate">{col.name}</span>
+                    <span className={`text-[6px] px-1 rounded-full shrink-0 ${col.isFinal ? 'bg-success/20 text-success' : 'bg-card text-muted-foreground'}`}>{col.taskIds.length}</span>
+                  </div>
+                  <div className="space-y-1">
+                    {tasks.map((task) => (
+                      <div key={task.id} className="rounded-[3px] border border-border bg-card p-1">
+                        <div className="text-[6px] text-foreground leading-snug">{task.title}</div>
+                        <div className="flex items-center justify-between mt-0.5">
+                          <span className="text-[5px] text-muted-foreground">{task.priority}</span>
+                          {task.tags[0] && <span className="w-1 h-1 rounded-full" style={{ background: task.tags[0].color }} />}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>
@@ -1429,39 +1493,83 @@ function ProjSprintsTab() {
 }
 
 function ProjBoardsTab() {
+  const [boardIdx, setBoardIdx] = useState(0);
+  const board = PROJ_BOARDS[boardIdx];
   return (
-    <div className="p-2.5">
-      <div className="grid grid-cols-4 gap-1.5">
-        {PROJ_BOARD_COLS.map((col) => {
-          const tasks = col.taskIds.map((id) => PROJ_TASKS.find((t) => t.id === id)!).filter(Boolean);
-          return (
-            <div key={col.id} className="flex flex-col">
-              <div className="flex items-center justify-between mb-1.5 px-0.5">
-                <div className="flex items-center gap-1">
-                  <span className="text-[8px] font-semibold uppercase tracking-wide text-muted-foreground">{col.label}</span>
-                  {col.isFinal && <Check className="w-2.5 h-2.5 text-success" />}
-                  {col.isReview && <Bot className="w-2.5 h-2.5 text-info" />}
+    <div className="p-2.5 space-y-2">
+      {/* Toolbar */}
+      <div className="flex items-center justify-end gap-1.5">
+        <button className="text-[8px] flex items-center gap-1 px-2 py-0.5 rounded-[3px] bg-primary text-primary-foreground font-medium"><LayoutDashboard className="w-2.5 h-2.5" /> New board</button>
+        <button className="text-[8px] flex items-center gap-1 px-2 py-0.5 rounded-[3px] border border-border text-muted-foreground"><Plus className="w-2.5 h-2.5" /> New column</button>
+      </div>
+
+      <div className="grid grid-cols-[100px_minmax(0,1fr)] gap-2">
+        {/* Left: boards list */}
+        <div className="space-y-1">
+          <div className="text-[7px] font-semibold uppercase tracking-wider text-muted-foreground px-1">Boards</div>
+          {PROJ_BOARDS.map((b, i) => (
+            <button
+              key={b.id}
+              onClick={() => setBoardIdx(i)}
+              className={`w-full text-left rounded-[3px] px-1.5 py-1.5 border transition-colors ${boardIdx === i ? 'border-primary bg-primary/15' : 'border-border hover:border-primary/30'}`}
+            >
+              <div className="text-[8px] font-medium text-foreground truncate">{b.name}</div>
+              <div className="text-[6px] text-muted-foreground">{b.columns.length} columns</div>
+            </button>
+          ))}
+        </div>
+
+        {/* Right: column config + Board AI settings */}
+        <div className="space-y-2">
+          <div className="rounded-[3px] border border-border bg-background p-2 space-y-1">
+            <div className="text-[9px] font-semibold text-foreground mb-1">{board.name}</div>
+            {board.columns.map((c, i) => (
+              <div key={c.id} className="flex items-center gap-1 rounded-[3px] border border-border bg-card px-1.5 py-1">
+                <GripVertical className="w-2.5 h-2.5 text-muted-foreground/50 shrink-0" />
+                <span className="text-[7px] text-foreground flex-1 truncate">{i + 1}. {c.name}</span>
+                {c.isFinal ? (
+                  <span className="text-[6px] flex items-center gap-0.5 px-1 py-0.5 rounded-[2px] border border-success/30 bg-success/10 text-success"><Check className="w-2 h-2" /> Done</span>
+                ) : (
+                  <span className="text-[6px] px-1 py-0.5 rounded-[2px] border border-border text-muted-foreground">Mark as done</span>
+                )}
+                {c.isReview ? (
+                  <span className="text-[6px] flex items-center gap-0.5 px-1 py-0.5 rounded-[2px] border border-info/30 bg-info/10 text-info"><Bot className="w-2 h-2" /> AI Review</span>
+                ) : (
+                  <span className="text-[6px] px-1 py-0.5 rounded-[2px] border border-border text-muted-foreground">Mark for AI review</span>
+                )}
+                <span className="text-[6px] px-1 py-0.5 rounded-[2px] text-destructive">Delete</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="rounded-[3px] border border-border bg-background p-2">
+            <div className="flex items-center gap-1 text-[7px] font-semibold uppercase tracking-wide text-muted-foreground mb-1.5"><Bot className="w-2.5 h-2.5" /> Board AI settings</div>
+            <div className="grid grid-cols-2 gap-1.5">
+              {[
+                { label: 'Code style', val: 'Standard' },
+                { label: 'Review mode', val: 'Strict' },
+                { label: 'Tech stack', val: 'Mixed / Full-Stack' },
+                { label: 'Naming convention', val: 'Language defaults' },
+              ].map((f) => (
+                <div key={f.label}>
+                  <div className="text-[6px] text-muted-foreground mb-0.5">{f.label}</div>
+                  <div className="h-5 bg-surface-secondary border border-border rounded-[3px] px-1.5 flex items-center justify-between text-[7px] text-foreground">{f.val} <ChevronDown className="w-2 h-2 text-muted-foreground" /></div>
                 </div>
-                <span className={`text-[7px] px-1 rounded-full ${col.isFinal ? 'bg-success/20 text-success' : 'bg-card text-muted-foreground'}`}>{col.taskIds.length}</span>
-              </div>
-              <div className="space-y-1">
-                {tasks.map((task) => (
-                  <div key={task.id} className="rounded-[3px] border border-border bg-card p-1.5">
-                    <div className="text-[7px] text-foreground leading-snug">{task.title}</div>
-                    <div className="flex items-center justify-between mt-1">
-                      <span className="text-[6px] text-muted-foreground">{task.priority}</span>
-                      {task.tags[0] && (
-                        <span className="inline-flex items-center gap-0.5 text-[5px] text-muted-foreground">
-                          <span className="w-1 h-1 rounded-full" style={{ background: task.tags[0].color }} /> {task.tags[0].label}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
+              ))}
             </div>
-          );
-        })}
+            <div className="mt-1.5">
+              <div className="text-[6px] text-muted-foreground mb-0.5">Response language</div>
+              <div className="h-5 bg-surface-secondary border border-border rounded-[3px] px-1.5 flex items-center justify-between text-[7px] text-foreground">English <ChevronDown className="w-2 h-2 text-muted-foreground" /></div>
+            </div>
+            <div className="mt-1.5">
+              <div className="text-[6px] text-muted-foreground mb-0.5">Custom instructions</div>
+              <div className="h-8 bg-surface-secondary border border-border rounded-[3px] px-1.5 py-1 text-[6px] text-muted-foreground leading-snug">E.g. This project uses Flutter, ignore Dart null safety warnings…</div>
+            </div>
+            <div className="flex justify-end mt-1.5">
+              <button className="text-[7px] px-2 py-0.5 rounded-[3px] bg-primary text-primary-foreground font-medium">Save settings</button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -1793,7 +1901,7 @@ export function ProjectDetailShowcase() {
           transition={{ duration: 0.55, ease: 'easeOut', delay: 0.1 }}
           className="w-full"
         >
-          <AppFrame url={`app.yemoda.io/projects/e-commerce${activeTab !== 'resumen' ? `?tab=${activeTab}` : ''}`}>
+          <AppFrame url={`yemoda.site/projects/e-commerce${activeTab !== 'resumen' ? `?tab=${activeTab}` : ''}`}>
             <div className="flex flex-col bg-background overflow-hidden" style={{ height: 520 }}>
               {/* Command bar */}
               <div className="flex items-center gap-1.5 px-3 py-1.5 border-b border-border bg-surface-secondary/50 shrink-0">
@@ -1922,7 +2030,7 @@ export function CodeReviewShowcase() {
           viewport={{ once: true, margin: '-80px' }}
           transition={{ duration: 0.5, ease: 'easeOut', delay: 0.1 }}
         >
-          <AppFrame url="app.yemoda.io/projects/atlas/code-review">
+          <AppFrame url="yemoda.site/projects/atlas/code-review">
             <div className="grid lg:grid-cols-[1.4fr_0.6fr] max-h-[480px]">
               {/* Left: task → push → diff */}
               <div className="border-r border-border bg-background overflow-y-auto p-3 space-y-2">
@@ -2093,7 +2201,7 @@ export function AiFixShowcase() {
         viewport={{ once: true, margin: '-80px' }}
         transition={{ duration: 0.5, ease: 'easeOut', delay: 0.1 }}
       >
-        <AppFrame url="app.yemoda.io/projects/atlas/tasks/51/ai-review">
+        <AppFrame url="yemoda.site/projects/atlas/tasks/51/ai-review">
           {/* Modal header */}
           <div className="px-4 py-2.5 border-b border-border bg-surface-secondary/50">
             <div className="flex items-center justify-between gap-2">
