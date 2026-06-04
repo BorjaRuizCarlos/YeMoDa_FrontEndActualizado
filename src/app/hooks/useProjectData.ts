@@ -1,9 +1,9 @@
 ﻿import { useState, useEffect, useCallback } from 'react';
-import { projectsService, tasksService, usersService, githubService, ApiRequestError } from '../../services';
+import { projectsService, tasksService, usersService, githubService, projectRolesService, ApiRequestError } from '../../services';
 import type {
   ApiProject, ApiTask, ApiUserAccount, ApiTaskStatus, ApiTaskPriority,
   ApiBoard, ApiProjectMember, ApiActivityLog, ApiRole, ApiTaskWarning, ApiGithubPushEvent, ApiTaskAssignment,
-  ApiBoardColumn, ApiSprint, ApiMilestone, ApiTag,
+  ApiBoardColumn, ApiSprint, ApiMilestone, ApiTag, ApiProjectRole, ProjectPermissions,
 } from '../../services';
 
 // â”€â”€â”€ Real API hooks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -430,6 +430,60 @@ export function useApiGithubPushes(filters?: { project_id?: number; repo?: strin
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterKey, tick]);
+
+  const refetch = useCallback(() => setTick((t) => t + 1), []);
+  return { data, loading, error, refetch };
+}
+
+/** Resolved capabilities of the current user in a project (for UI gating). */
+export function useProjectPermissions(projectId?: number): UseApiState<ProjectPermissions> {
+  const [data, setData]       = useState<ProjectPermissions | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError]     = useState<string | null>(null);
+  const [tick, setTick]       = useState(0);
+
+  useEffect(() => {
+    if (!projectId) { setData(null); setLoading(false); return; }
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+
+    projectRolesService.myPermissions(projectId)
+      .then((perms) => { if (!cancelled) setData(perms); })
+      .catch((err) => {
+        if (!cancelled) setError(err instanceof ApiRequestError ? err.message : 'Error loading permissions.');
+      })
+      .finally(() => { if (!cancelled) setLoading(false); });
+
+    return () => { cancelled = true; };
+  }, [projectId, tick]);
+
+  const refetch = useCallback(() => setTick((t) => t + 1), []);
+  return { data, loading, error, refetch };
+}
+
+/** Custom roles of a project. */
+export function useApiProjectRoles(projectId?: number): UseApiState<ApiProjectRole[]> {
+  const [data, setData]       = useState<ApiProjectRole[] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError]     = useState<string | null>(null);
+  const [tick, setTick]       = useState(0);
+
+  useEffect(() => {
+    if (!projectId) { setData(null); setLoading(false); return; }
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+
+    projectRolesService.list(projectId)
+      .then((roles) => { if (!cancelled) setData(roles); })
+      .catch((err) => {
+        if (!cancelled) setError(err instanceof ApiRequestError ? err.message : 'Error loading roles.');
+      })
+      .finally(() => { if (!cancelled) setLoading(false); });
+
+    return () => { cancelled = true; };
+  }, [projectId, tick]);
 
   const refetch = useCallback(() => setTick((t) => t + 1), []);
   return { data, loading, error, refetch };

@@ -17,9 +17,11 @@ import { AssignResponsibleModal, type AssignCandidate } from '../components/Assi
 import { AddMemberModal } from '../components/AddMemberModal';
 import {
   useApiBoards, useApiProjectMembers, useApiUsers, useApiTasks, useApiRoles, useApiSprints,
+  useApiBoardColumns, useApiProjectRoles, useProjectPermissions,
 } from '../hooks/useProjectData';
 import { projectsService, tasksService, usersService } from '../../services';
 import type { ApiProject, ApiTask, ApiTaskAssignment, ApiUserAccount } from '../../services';
+import { RoleManager } from '../components/RoleManager';
 import { useAuth } from '../context/AuthContext';
 import { GitHubReposView } from '../components/GitHubReposView';
 import { CodeReviewPanel } from '../components/CodeReviewPanel';
@@ -71,6 +73,9 @@ export default function ProjectDetail() {
 
   // ── Boards ───────────────────────────────────────────────────────────────
   const { data: boards, loading: loadingBoards, refetch: refetchBoards } = useApiBoards(projectId);
+  // Columns of the project's first board — used for the role "move tasks up to" cap picker.
+  const firstBoardId = (boards ?? [])[0]?.id_board;
+  const { data: firstBoardColumns } = useApiBoardColumns(firstBoardId);
   const [selectedBoardId, setSelectedBoardId] = useState<number | undefined>(undefined);
 
   useEffect(() => {
@@ -110,11 +115,18 @@ export default function ProjectDetail() {
     () => getProjectCapabilities(currentUserMember, currentUserAccount, projectRoleIds),
     [currentUserAccount, currentUserMember, projectRoleIds],
   );
+
+  // ── Per-project role permissions (authoritative source from the backend) ────
+  const { data: perms } = useProjectPermissions(projectId);
+  const { data: projectRoles } = useApiProjectRoles(projectId);
+  const isProjectAdmin = perms?.is_project_admin ?? capabilities.isProjectManager;
+
   const canAccessProject = capabilities.canAccessProject;
-  const canManageProject = capabilities.canManageProject;
-  const canManageMembers = capabilities.canManageMembers;
-  const canEditMemberRoles = capabilities.canEditMemberRoles;
-  const canManageTasks = capabilities.canManageTasks;
+  // Backend permissions take precedence; fall back to the legacy heuristic until loaded.
+  const canManageProject = perms?.can_manage_project ?? capabilities.canManageProject;
+  const canManageMembers = perms?.can_manage_members ?? capabilities.canManageMembers;
+  const canEditMemberRoles = isProjectAdmin || canManageMembers;
+  const canManageTasks = perms ? (perms.can_create_tasks || perms.can_edit_tasks) : capabilities.canManageTasks;
   const canCreateRepos = capabilities.canCreateRepos;
 
   const memberIds = useMemo(
@@ -144,6 +156,16 @@ export default function ProjectDetail() {
       const msg = err instanceof Error ? err.message : 'Failed to add member';
       toast.error(msg);
       throw err;
+    }
+  };
+
+  const handleChangeMemberProjectRole = async (memberId: number, projectRoleId: number | null) => {
+    try {
+      await usersService.updateMember(memberId, { project_role: projectRoleId });
+      toast.success('Member role updated.');
+      refetchMembers();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not update the member role.');
     }
   };
 
@@ -698,10 +720,10 @@ export default function ProjectDetail() {
                 id: m.user,
                 name: userMap.get(m.user) ?? `User #${m.user}`,
               }))}
-              canCreateTasks={canManageTasks}
-              canCreateBoards={canManageTasks}
-              canEditTasks={canManageTasks}
-              canDeleteTasks={canManageTasks}
+              canCreateTasks={perms ? perms.can_create_tasks : canManageTasks}
+              canCreateBoards={perms ? perms.can_manage_board : canManageTasks}
+              canEditTasks={perms ? (perms.can_edit_tasks || perms.can_move_tasks) : canManageTasks}
+              canDeleteTasks={perms ? perms.can_delete_tasks : canManageTasks}
               projectEndDate={project?.end_date ?? null}
               projectCreatedAt={project?.created_at ?? null}
               repoFullName={project?.github_repo_full_name ?? null}
@@ -792,7 +814,6 @@ export default function ProjectDetail() {
               <div className="space-y-0.5">
                 {members.map((member) => {
                   const name = userMap.get(member.user) ?? `User #${member.user}`;
-                  const roleName = roleMap.get(member.role ?? 0) ?? `Role #${member.role ?? '—'}`;
                   const memberUser = memberUserMap.get(member.user) ?? null;
                   const canChangeRole = canEditMemberRoles && canEditMemberProjectRole(memberUser, member, projectRoleIds);
                   const roleIsLocked = isStakeholderSystemUser(memberUser);
@@ -808,7 +829,21 @@ export default function ProjectDetail() {
                         <div>
                           <p className="text-[13px] font-medium text-foreground">{name}</p>
                           <div className="flex items-center gap-2 mt-0.5">
-                            <p className="text-[11px] font-medium text-foreground">{member.role ? roleName : 'No role'}</p>
+                            {canEditMemberRoles && (projectRoles ?? []).length > 0 ? (
+                              <select
+                                value={member.project_role ?? ''}
+                                onChange={(e) => void handleChangeMemberProjectRole(member.id, e.target.value ? Number(e.target.value) : null)}
+                                title="Project role (permissions)"
+                                className="h-6 rounded-[3px] border border-border bg-surface-secondary px-1.5 text-[10px] text-foreground"
+                              >
+                                <option value="">No role</option>
+                                {(projectRoles ?? []).map((r) => (
+                                  <option key={r.id_project_role} value={r.id_project_role}>{r.name}</option>
+                                ))}
+                              </select>
+                            ) : (
+                              <p className="text-[11px] font-medium text-foreground">{member.project_role_name ?? 'No role'}</p>
+                            )}
                             {canChangeRole && (
                               <button
                                 type="button"
@@ -854,6 +889,19 @@ export default function ProjectDetail() {
                 })}
               </div>
             )}
+          </div>
+        )}
+
+        {activeTab === 'configuracion' && (
+          <div className="bg-card border border-border rounded-[4px] p-4 mb-3">
+            <h2 className="text-[10px] font-medium text-muted-foreground uppercase tracking-[0.06em] mb-3">
+              Roles &amp; Permissions
+            </h2>
+            <RoleManager
+              projectId={projectId}
+              canManage={isProjectAdmin}
+              boardColumns={firstBoardColumns ?? []}
+            />
           </div>
         )}
 

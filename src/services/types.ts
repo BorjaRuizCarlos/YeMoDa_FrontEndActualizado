@@ -45,7 +45,49 @@ export interface ApiProjectMember {
   user: number;
   project: number;
   role: number | null;
+  // Per-project custom role that drives authorization.
+  project_role: number | null;
+  project_role_name?: string | null;
   joined_at: string;
+}
+
+// ─── Per-project custom roles & permissions ──────────────────────────────────
+
+/** The granular permission flags shared by ProjectRole and the my-permissions response. */
+export interface ProjectPermissionFlags {
+  can_create_tasks: boolean;
+  can_edit_tasks: boolean;
+  can_delete_tasks: boolean;
+  can_move_tasks: boolean;
+  can_manage_sprints: boolean;
+  can_manage_board: boolean;
+  can_manage_milestones: boolean;
+  can_manage_tags: boolean;
+  can_comment: boolean;
+  can_manage_members: boolean;
+  can_manage_project: boolean;
+  can_trigger_ai: boolean;
+}
+
+export interface ApiProjectRole extends ProjectPermissionFlags {
+  id_project_role: number;
+  project: number;
+  name: string;
+  description: string | null;
+  is_admin_role: boolean;
+  is_system: boolean;
+  // Cap: tasks may only be moved into columns with order <= this column's order. Null = no limit.
+  max_move_column: number | null;
+  created_at: string;
+}
+
+/** Resolved capabilities of the current user in a project (GET /projects/:id/my-permissions/). */
+export interface ProjectPermissions extends ProjectPermissionFlags {
+  is_project_admin: boolean;
+  project_role_id: number | null;
+  project_role_name: string | null;
+  max_move_column_id: number | null;
+  max_move_column_order: number | null;
 }
 
 export interface ApiBoard {

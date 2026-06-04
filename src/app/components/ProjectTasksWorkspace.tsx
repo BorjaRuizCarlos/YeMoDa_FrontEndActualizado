@@ -25,6 +25,7 @@ import {
   useApiTasks,
 } from '../hooks/useProjectData';
 import { tasksService } from '../../services';
+import { ApiRequestError } from '../../services/api';
 import type { ApiBoard, ApiBoardColumn, ApiTask, ApiTaskPriority } from '../../services';
 import { TaskDetailPanel } from './TaskDetailPanel';
 import { DatePickerField } from './DatePickerField';
@@ -850,8 +851,10 @@ export function ProjectTasksWorkspace({
       });
       refetchTasks();
       toast.success(targetIsFinal ? 'Task completed.' : 'Task moved.');
-    } catch {
-      toast.error('Could not move the task.');
+    } catch (err) {
+      // Surfaces the backend's reason (e.g. role move-column cap or missing permission).
+      refetchTasks();
+      toast.error(err instanceof ApiRequestError ? err.message : 'Could not move the task.');
     }
   };
 

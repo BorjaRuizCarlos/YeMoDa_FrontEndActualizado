@@ -71,7 +71,7 @@ export const usersService = {
     }
   },
 
-  updateMember(memberId: number, payload: Partial<Pick<ApiProjectMember, 'user' | 'project' | 'role'>>): Promise<ApiProjectMember> {
+  updateMember(memberId: number, payload: Partial<Pick<ApiProjectMember, 'user' | 'project' | 'role' | 'project_role'>>): Promise<ApiProjectMember> {
     return api.patch<ApiProjectMember>(`/project-members/${memberId}/`, payload);
   },
 
