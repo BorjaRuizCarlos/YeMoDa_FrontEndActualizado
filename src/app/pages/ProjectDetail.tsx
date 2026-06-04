@@ -127,7 +127,10 @@ export default function ProjectDetail() {
   const canManageMembers = perms?.can_manage_members ?? capabilities.canManageMembers;
   const canEditMemberRoles = isProjectAdmin || canManageMembers;
   const canManageTasks = perms ? (perms.can_create_tasks || perms.can_edit_tasks) : capabilities.canManageTasks;
-  const canCreateRepos = capabilities.canCreateRepos;
+  // RBAC has no dedicated can_create_repos flag; repo / Code Review access is reserved for
+  // project admins (or those who can manage the project). Fall back to the legacy heuristic
+  // only while the authoritative permissions are still loading.
+  const canCreateRepos = perms ? (perms.is_project_admin || perms.can_manage_project) : capabilities.canCreateRepos;
 
   const memberIds = useMemo(
     () => new Set((members ?? []).map((m) => m.user)),
@@ -724,6 +727,9 @@ export default function ProjectDetail() {
               canCreateBoards={perms ? perms.can_manage_board : canManageTasks}
               canEditTasks={perms ? (perms.can_edit_tasks || perms.can_move_tasks) : canManageTasks}
               canDeleteTasks={perms ? perms.can_delete_tasks : canManageTasks}
+              canComment={perms ? perms.can_comment : true}
+              canTriggerAi={perms ? perms.can_trigger_ai : true}
+              maxMoveColumnOrder={perms?.max_move_column_order ?? null}
               projectEndDate={project?.end_date ?? null}
               projectCreatedAt={project?.created_at ?? null}
               repoFullName={project?.github_repo_full_name ?? null}

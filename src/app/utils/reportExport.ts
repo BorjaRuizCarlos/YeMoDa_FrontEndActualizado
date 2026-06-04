@@ -124,6 +124,17 @@ function tasksForProject(
   });
 }
 
+// Neutralize spreadsheet formula injection: if a cell value starts with a
+// character a spreadsheet treats as a formula trigger, prefix it with a single
+// quote so it is rendered as plain text. Only applies to string values.
+function neutralizeCell<T>(value: T): T | string {
+  if (typeof value !== 'string') return value;
+  if (/^[=+\-@\t\r]/.test(value)) {
+    return `'${value}`;
+  }
+  return value;
+}
+
 function formatDate(iso: string | null | undefined): string {
   if (!iso) return '';
   try {
@@ -338,9 +349,9 @@ function exportXLSX(input: ReportInput, kpisList: ProjectKPIs[]): void {
       const projectTasks = tasksForProject(k.projectId, input.tasks, input.boards);
       for (const t of projectTasks) {
         taskRows.push({
-          Project: k.projectName,
+          Project: neutralizeCell(k.projectName),
           ID: t.id_task,
-          Title: t.title,
+          Title: neutralizeCell(t.title),
           Status: input.statuses.find((s) => s.id_status === t.status)?.name ?? '',
           Priority: input.priorities.find((p) => p.id_priority === t.priority)?.name ?? '',
           Created: formatDate(t.created_at),

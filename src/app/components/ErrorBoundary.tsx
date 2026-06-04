@@ -49,7 +49,9 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             </p>
             {this.state.error && (
               <p className="text-xs text-muted-foreground bg-muted rounded-md px-3 py-2 mb-6 font-mono break-all">
-                {this.state.error.message}
+                {import.meta.env.PROD
+                  ? 'An unexpected error occurred. Please try again.'
+                  : this.state.error.message}
               </p>
             )}
             <div className="flex items-center gap-3 justify-center">

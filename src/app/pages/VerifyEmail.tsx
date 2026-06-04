@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSearchParams, Link } from 'react-router';
 import { CheckCircle2, XCircle, Loader2, MailCheck, ArrowRight, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
@@ -8,7 +8,18 @@ type Status = 'idle' | 'loading' | 'success' | 'error' | 'no_token';
 
 export default function VerifyEmail() {
   const [searchParams] = useSearchParams();
-  const token = searchParams.get('token');
+  // Capture the token once, then strip it from the URL so it is not left in the
+  // address bar / history (mirrors the OAuth callbacks).
+  const tokenRef = useRef<string | null>(searchParams.get('token'));
+  const token = tokenRef.current;
+
+  useEffect(() => {
+    if (token) {
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+    // Runs once on mount; the token was captured synchronously above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [status, setStatus] = useState<Status>(token ? 'idle' : 'no_token');
   const [errorMsg, setErrorMsg] = useState('');

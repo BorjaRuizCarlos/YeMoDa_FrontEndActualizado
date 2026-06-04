@@ -27,30 +27,29 @@ afterEach(() => {
 });
 
 describe('tokenStore', () => {
-  it('stores and retrieves tokens', () => {
-    tokenStore.set('access123', 'refresh456');
+  it('stores and retrieves the access token', () => {
+    tokenStore.set('access123');
     expect(tokenStore.getAccess()).toBe('access123');
-    expect(tokenStore.getRefresh()).toBe('refresh456');
   });
 
-  it('clears tokens', () => {
-    tokenStore.set('a', 'r');
+  it('clears the access token and any legacy refresh', () => {
+    tokenStore.set('a');
+    localStorage.setItem('pip_refresh_token', 'legacy'); // simulate a pre-cookie device
     tokenStore.clear();
     expect(tokenStore.getAccess()).toBeNull();
     expect(tokenStore.getRefresh()).toBeNull();
   });
 
-  it('setAccess updates only the access token', () => {
-    tokenStore.set('old_access', 'old_refresh');
+  it('setAccess updates the access token', () => {
+    tokenStore.set('old_access');
     tokenStore.setAccess('new_access');
     expect(tokenStore.getAccess()).toBe('new_access');
-    expect(tokenStore.getRefresh()).toBe('old_refresh');
   });
 });
 
 describe('api.get', () => {
   it('makes GET request with auth header', async () => {
-    tokenStore.set('mytoken', 'myrefresh');
+    tokenStore.set('mytoken');
     fetchMock.mockResolvedValueOnce({
       ok: true,
       status: 200,
@@ -98,7 +97,7 @@ describe('api.get', () => {
 
 describe('api.post', () => {
   it('sends JSON body', async () => {
-    tokenStore.set('tok', 'ref');
+    tokenStore.set('tok');
     fetchMock.mockResolvedValueOnce({
       ok: true,
       status: 201,
@@ -115,7 +114,7 @@ describe('api.post', () => {
 
 describe('401 retry with token refresh', () => {
   it('retries after successful refresh', async () => {
-    tokenStore.set('expired_token', 'valid_refresh');
+    tokenStore.set('expired_token');
 
     // First call returns 401
     fetchMock.mockResolvedValueOnce({
@@ -148,7 +147,7 @@ describe('401 retry with token refresh', () => {
     const sessionExpiredListener = vi.fn();
     window.addEventListener(AUTH_SESSION_EXPIRED_EVENT, sessionExpiredListener);
 
-    tokenStore.set('expired_token', 'invalid_refresh');
+    tokenStore.set('expired_token');
 
     // First call returns 401
     fetchMock.mockResolvedValueOnce({
@@ -175,7 +174,7 @@ describe('401 retry with token refresh', () => {
   it('emits session-expired for auth requests when backend returns token-expired in non-401 response', async () => {
     const sessionExpiredListener = vi.fn();
     window.addEventListener(AUTH_SESSION_EXPIRED_EVENT, sessionExpiredListener);
-    tokenStore.set('any_access', 'any_refresh');
+    tokenStore.set('any_access');
 
     fetchMock.mockResolvedValueOnce({
       ok: false,

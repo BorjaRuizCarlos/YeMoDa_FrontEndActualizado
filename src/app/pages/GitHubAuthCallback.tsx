@@ -16,6 +16,8 @@ export default function GitHubAuthCallback() {
   const [message, setMessage] = useState('Connecting your GitHub account...');
 
   const searchParams = useMemo(() => new URLSearchParams(window.location.search), []);
+  // Tokens arrive in the URL fragment (#) so they never reach servers/logs/Referer.
+  const hashParams = useMemo(() => new URLSearchParams(window.location.hash.replace(/^#/, '')), []);
 
   useEffect(() => {
     const error = searchParams.get('error');
@@ -25,16 +27,18 @@ export default function GitHubAuthCallback() {
       return;
     }
 
-    const accessToken = readToken(searchParams.get('access_token'));
-    const refreshToken = readToken(searchParams.get('refresh_token'));
+    const accessToken = readToken(hashParams.get('access_token'));
 
-    if (!accessToken || !refreshToken) {
+    if (!accessToken) {
       setState('error');
-      setMessage('The GitHub response did not include the expected tokens.');
+      setMessage('The GitHub response did not include the expected token.');
       return;
     }
 
-    tokenStore.set(accessToken, refreshToken);
+    // Only the access token comes in the fragment; the refresh token is an HttpOnly cookie.
+    tokenStore.set(accessToken);
+    // Strip the tokens from the address bar / history immediately.
+    window.history.replaceState(null, '', window.location.pathname);
     setState('success');
     setMessage('GitHub connected successfully. Redirecting...');
 
@@ -43,7 +47,7 @@ export default function GitHubAuthCallback() {
     }, 800);
 
     return () => window.clearTimeout(redirectId);
-  }, [searchParams]);
+  }, [searchParams, hashParams]);
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-6 py-10">

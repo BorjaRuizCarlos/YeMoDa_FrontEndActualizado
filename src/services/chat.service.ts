@@ -1,4 +1,4 @@
-import { api, tokenStore } from './api';
+import { api, tokenStore, tryRefresh, emitSessionExpired } from './api';
 import type {
   ChatModelsResponse,
   ChatRequestPayload,
@@ -26,19 +26,36 @@ export const chatService = {
    * Falls back to plain text parsing when backend does not emit SSE chunks.
    */
   async stream(payload: ChatRequestPayload, onChunk: (chunk: string) => void): Promise<string> {
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
+    const baseUrl = import.meta.env.VITE_API_TARGET;
+
+    const doFetch = (): Promise<Response> => {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      const token = tokenStore.getAccess();
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      return fetch(`${baseUrl}/chat/`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload),
+      });
     };
 
-    const token = tokenStore.getAccess();
-    if (token) headers['Authorization'] = `Bearer ${token}`;
+    let res = await doFetch();
 
-    const baseUrl = import.meta.env.VITE_API_TARGET;
-    const res = await fetch(`${baseUrl}/chat/`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(payload),
-    });
+    // 401 → try refresh once, then re-attempt; on definitive failure emit
+    // session-expired (mirrors the central request() wrapper in api.ts).
+    if (res.status === 401) {
+      const refreshed = await tryRefresh();
+      if (refreshed) {
+        res = await doFetch();
+      }
+      if (res.status === 401) {
+        tokenStore.clear();
+        emitSessionExpired();
+      }
+    }
 
     if (!res.ok) {
       let detail = `HTTP ${res.status}`;

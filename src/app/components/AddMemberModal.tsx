@@ -48,8 +48,8 @@ export function AddMemberModal({
     }
 
     setSearching(true);
+    let cancelled = false;
     const timer = setTimeout(() => {
-      let cancelled = false;
       usersService.list(trimmed)
         .then((users) => {
           if (cancelled) return;
@@ -63,10 +63,12 @@ export function AddMemberModal({
         .finally(() => {
           if (!cancelled) setSearching(false);
         });
-      return () => { cancelled = true; };
     }, 300);
 
-    return () => clearTimeout(timer);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [query, candidates, memberIds]);
 
   // Items to display: server results when query ≥ 3, otherwise local filter on candidates

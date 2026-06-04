@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   AlertTriangle, CheckCircle2, Clock, ExternalLink,
   RefreshCw, Loader2, Search, Trash2, CheckSquare, Square,
@@ -6,10 +6,9 @@ import {
 import { toast } from 'sonner';
 import { CommandBar } from '../components/CommandBar';
 import { StatusBadge } from '../components/StatusBadge';
-import { useApiBoards, useApiProjectMembers, useApiRoles, useApiTaskWarnings, useApiTasks } from '../hooks/useProjectData';
+import { useApiBoards, useApiProjectMembers, useApiTaskWarnings, useApiTasks } from '../hooks/useProjectData';
 import { useAuth } from '../context/AuthContext';
-import { getProjectCapabilities, getProjectRoleIds } from '../utils/projectPermissions';
-import { tasksService } from '../../services';
+import { projectRolesService, tasksService } from '../../services';
 
 type SeverityFilter = 'all' | 'active' | 'resolved';
 
@@ -23,7 +22,6 @@ export default function Alerts() {
     return Number.isNaN(parsed) || parsed <= 0 ? null : parsed;
   }, [user]);
   const { data: myMemberships } = useApiProjectMembers(undefined, currentUserId ?? undefined);
-  const { data: roles } = useApiRoles();
 
   const [severity, setSeverity] = useState<SeverityFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -55,16 +53,32 @@ export default function Alerts() {
     return map;
   }, [tasks, boardProjectMap]);
 
-  const projectDeletePermissions = useMemo(() => {
-    const map = new Map<number, boolean>();
-    if (!myMemberships || !roles) return map;
-    const roleIds = getProjectRoleIds(roles);
-    for (const membership of myMemberships) {
-      const capabilities = getProjectCapabilities(membership, null, roleIds);
-      map.set(membership.project, capabilities.canManageTasks);
+  // Authoritative per-project delete permission, resolved from the backend my-permissions
+  // endpoint (can_delete_tasks) for each project the current user belongs to.
+  const [projectDeletePermissions, setProjectDeletePermissions] = useState<Map<number, boolean>>(new Map());
+
+  const myProjectIds = useMemo(
+    () => Array.from(new Set((myMemberships ?? []).map((membership) => membership.project))),
+    [myMemberships],
+  );
+
+  useEffect(() => {
+    if (myProjectIds.length === 0) {
+      setProjectDeletePermissions(new Map());
+      return;
     }
-    return map;
-  }, [myMemberships, roles]);
+    let cancelled = false;
+    Promise.all(
+      myProjectIds.map((projectId) =>
+        projectRolesService.myPermissions(projectId)
+          .then((perms) => [projectId, perms.can_delete_tasks] as const)
+          .catch(() => [projectId, false] as const),
+      ),
+    ).then((entries) => {
+      if (!cancelled) setProjectDeletePermissions(new Map(entries));
+    });
+    return () => { cancelled = true; };
+  }, [myProjectIds]);
 
   const canDeleteWarningInProject = (projectId: number | null) => {
     if (projectId == null) return false;
@@ -73,7 +87,7 @@ export default function Alerts() {
 
   const handleDeleteWarning = async (warningId: number, projectId: number | null) => {
     if (!canDeleteWarningInProject(projectId)) {
-      toast.error('Only PM and PO can delete task alerts in this project.');
+      toast.error('Your role cannot delete task alerts in this project.');
       return;
     }
 
@@ -321,7 +335,7 @@ export default function Alerts() {
                             <div><span className="text-muted-foreground">Resolution push:</span> #{w.resolved_in_push}</div>
                           )}
                           {!canDeleteWarning && (
-                            <div className="text-muted-foreground">Only PM and PO of the project can delete this alert.</div>
+                            <div className="text-muted-foreground">Your role cannot delete this alert.</div>
                           )}
                         </div>
                       )}

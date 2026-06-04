@@ -2,6 +2,8 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { Clock3, LogOut } from 'lucide-react';
 import { authService, tokenStore, AUTH_SESSION_EXPIRED_EVENT, AUTH_EMAIL_BLOCKED_EVENT, ApiRequestError } from '../../services';
 import type { ApiUserAccount } from '../../services';
+import { clearAllAppState } from '../../services/github.service';
+import { tryRefresh } from '../../services/api';
 import { mapUserRole } from '../utils/roles';
 import type { UserRole } from '../utils/roles';
 
@@ -23,6 +25,41 @@ function apiUserToUser(apiUser: ApiUserAccount, roleOverride?: UserRole): User {
     email: apiUser.email,
     role,
   };
+}
+
+// Decode a JWT payload (middle segment) without verifying the signature.
+// Mirrors parseJwtPayload in app/pages/GoogleAuthCallback.tsx.
+function parseJwt(token: string): Record<string, unknown> | null {
+  const parts = token.split('.');
+  if (parts.length < 2) return null;
+  try {
+    const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = b64.padEnd(Math.ceil(b64.length / 4) * 4, '=');
+    return JSON.parse(window.atob(padded)) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
+// True if the access token is missing/malformed or its `exp` claim is absent
+// or already in the past relative to now.
+function isAccessTokenExpired(token: string): boolean {
+  const payload = parseJwt(token);
+  if (!payload) return true;
+  const exp = payload.exp;
+  if (typeof exp !== 'number') return true;
+  return exp * 1000 <= Date.now();
+}
+
+// Validate that a parsed value matches the User shape we rely on.
+function isValidStoredUser(value: unknown): value is User {
+  if (typeof value !== 'object' || value === null) return false;
+  const candidate = value as Record<string, unknown>;
+  return (
+    typeof candidate.id === 'string' &&
+    typeof candidate.email === 'string' &&
+    typeof candidate.role === 'string'
+  );
 }
 
 interface AuthContextType {
@@ -53,19 +90,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('pip_user');
   };
 
-  // On mount: if token exists, restore the user from localStorage
+  // On mount: validate the stored user shape, then restore. If the access token is missing or
+  // expired we attempt a silent refresh via the HttpOnly cookie before giving up — only if that
+  // fails do we wipe state and stay logged out.
   useEffect(() => {
     const stored = localStorage.getItem('pip_user');
-    if (stored && tokenStore.getAccess()) {
-      try {
-        setUser(JSON.parse(stored) as User);
-      } catch {
-        // corrupted — clear
-        tokenStore.clear();
-        localStorage.removeItem('pip_user');
-      }
+    if (!stored) {
+      setLoading(false);
+      return;
     }
-    setLoading(false);
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(stored);
+    } catch {
+      clearAllAppState();
+      setLoading(false);
+      return;
+    }
+    if (!isValidStoredUser(parsed)) {
+      clearAllAppState();
+      setLoading(false);
+      return;
+    }
+
+    const token = tokenStore.getAccess();
+    if (token && !isAccessTokenExpired(token)) {
+      setUser(parsed);
+      setLoading(false);
+      return;
+    }
+
+    // Access token missing/expired — try to mint a fresh one from the refresh cookie.
+    let cancelled = false;
+    void (async () => {
+      const refreshed = await tryRefresh();
+      if (cancelled) return;
+      if (refreshed) {
+        setUser(parsed as User);
+      } else {
+        clearAllAppState();
+      }
+      setLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -90,6 +160,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const handleSessionExpired = () => {
       authService.logout();
+      clearAllAppState();
       persistUser(null);
       setSessionExpired(true);
     };
@@ -101,6 +172,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const handleEmailBlocked = () => {
       authService.logout();
+      clearAllAppState();
       persistUser(null);
       window.location.href = '/login?reason=email_blocked';
     };
@@ -134,6 +206,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     setSessionExpired(false);
     authService.logout();
+    clearAllAppState();
     persistUser(null);
   };
 

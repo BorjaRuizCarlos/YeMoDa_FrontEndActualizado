@@ -362,6 +362,8 @@ interface TaskDetailPanelProps {
   canEditAssignment?: boolean;
   canEditTask?: boolean;
   canDeleteTask?: boolean;
+  canComment?: boolean;
+  canTriggerAi?: boolean;
   projectId?: number;
   repoFullName?: string | null;
   boardColumnsByBoard?: Map<number, ApiBoardColumn[]>;
@@ -386,6 +388,8 @@ export function TaskDetailPanel({
   canEditAssignment = true,
   canEditTask = true,
   canDeleteTask = false,
+  canComment = true,
+  canTriggerAi = true,
   projectId,
   repoFullName,
   boardColumnsByBoard,
@@ -533,6 +537,10 @@ export function TaskDetailPanel({
 
   const handleGenerateAiPrompt = async () => {
     if (!task) return;
+    if (!canTriggerAi) {
+      toast.error('Your role cannot trigger AI actions.');
+      return;
+    }
     setGeneratingAiPrompt(true);
     try {
       const payload = await tasksService.getAiFixPrompt(task.id_task);
@@ -727,6 +735,10 @@ export function TaskDetailPanel({
 
   const handleSendWarningsToAi = async () => {
     if (!task) return;
+    if (!canTriggerAi) {
+      toast.error('Your role cannot trigger AI actions.');
+      return;
+    }
     const activeWarningsPayload = warnings.filter((w) => w.status === 'active').map((w) => ({
       id_warning: w.id_warning,
       severity: w.severity,
@@ -806,6 +818,10 @@ export function TaskDetailPanel({
 
   const openAiCodeModal = async () => {
     if (!task) return;
+    if (!canTriggerAi) {
+      toast.error('Your role cannot trigger AI actions.');
+      return;
+    }
     const activeWarningsPayload = warnings.filter((w) => w.status === 'active');
     if (activeWarningsPayload.length === 0) {
       toast.error('No active warnings to send.');
@@ -1022,6 +1038,10 @@ export function TaskDetailPanel({
 
   const handleAddComment = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canComment) {
+      toast.error('Your role cannot comment on tasks.');
+      return;
+    }
     if (!task || !newComment.trim()) return;
     setSendingComment(true);
     try {
@@ -1045,6 +1065,7 @@ export function TaskDetailPanel({
   };
 
   const handleUpdateComment = async (commentId: number) => {
+    if (!canComment) return;
     if (!editingCommentContent.trim()) return;
     try {
       const updated = await tasksService.updateComment(commentId, { content: editingCommentContent.trim() });
@@ -1058,6 +1079,7 @@ export function TaskDetailPanel({
   };
 
   const handleDeleteComment = async (commentId: number) => {
+    if (!canComment) return;
     if (!window.confirm('Delete comment?')) return;
     try {
       await tasksService.deleteComment(commentId);
@@ -1317,24 +1339,28 @@ export function TaskDetailPanel({
                     <GitBranch className="w-3 h-3" /> Branch
                   </button>
                 )}
-                <button
-                  onClick={() => void handleGenerateAiPrompt()}
-                  disabled={generatingAiPrompt}
-                  className="inline-flex items-center gap-1 h-6 px-2 border border-border rounded-[3px] text-[10px] text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors disabled:opacity-50"
-                  title="Generates the prompt with active warnings and copies it to the clipboard"
-                >
-                  {generatingAiPrompt ? <Loader2 className="w-3 h-3 animate-spin" /> : <Copy className="w-3 h-3" />}
-                  {generatingAiPrompt ? 'Generating...' : 'Copy prompt'}
-                </button>
-                <button
-                  onClick={() => void openAiCodeModal()}
-                  disabled={sendingToAi || loadingWarnings}
-                  className="inline-flex items-center gap-1 h-6 px-2 border border-border rounded-[3px] text-[10px] text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors disabled:opacity-50"
-                  title="Open the AI code review"
-                >
-                  <Send className="w-3 h-3" />
-                  Send to AI
-                </button>
+                {canTriggerAi && (
+                  <>
+                    <button
+                      onClick={() => void handleGenerateAiPrompt()}
+                      disabled={generatingAiPrompt}
+                      className="inline-flex items-center gap-1 h-6 px-2 border border-border rounded-[3px] text-[10px] text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors disabled:opacity-50"
+                      title="Generates the prompt with active warnings and copies it to the clipboard"
+                    >
+                      {generatingAiPrompt ? <Loader2 className="w-3 h-3 animate-spin" /> : <Copy className="w-3 h-3" />}
+                      {generatingAiPrompt ? 'Generating...' : 'Copy prompt'}
+                    </button>
+                    <button
+                      onClick={() => void openAiCodeModal()}
+                      disabled={sendingToAi || loadingWarnings}
+                      className="inline-flex items-center gap-1 h-6 px-2 border border-border rounded-[3px] text-[10px] text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors disabled:opacity-50"
+                      title="Open the AI code review"
+                    >
+                      <Send className="w-3 h-3" />
+                      Send to AI
+                    </button>
+                  </>
+                )}
                 <button onClick={onClose} className="p-1 rounded-[3px] hover:bg-surface-secondary transition-colors">
                   <X className="w-3.5 h-3.5 text-muted-foreground" />
                 </button>
@@ -1629,6 +1655,7 @@ export function TaskDetailPanel({
                 parentTask={task}
                 projectId={projectId}
                 canEdit={canEditTask}
+                canTriggerAi={canTriggerAi}
                 boardColumnsByBoard={boardColumnsByBoard}
                 onParentRefreshed={onTaskUpdated}
               />
@@ -1654,7 +1681,7 @@ export function TaskDetailPanel({
                             </span>
                             <div className="flex items-center gap-2">
                               <span className="text-[10px] text-muted-foreground">{formatCommentTimestamp(c.created_at)}</span>
-                              {currentUserId != null && c.user === currentUserId && (
+                              {canComment && currentUserId != null && c.user === currentUserId && (
                                 <>
                                   <button
                                     onClick={() => handleStartEditComment(c)}
@@ -1710,22 +1737,24 @@ export function TaskDetailPanel({
                   )}
 
                   {/* Add comment form */}
-                  <form onSubmit={handleAddComment} className="mt-2 flex gap-1.5">
-                    <input
-                      type="text"
-                      value={newComment}
-                      onChange={(e) => setNewComment(e.target.value)}
-                      placeholder="Add a comment…"
-                      className="flex-1 h-7 bg-surface-secondary border border-border rounded-[3px] px-2.5 text-[11px] text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-primary/20"
-                    />
-                    <button
-                      type="submit"
-                      disabled={sendingComment || !newComment.trim()}
-                      className="h-7 px-2.5 bg-primary hover:bg-primary-hover text-primary-foreground rounded-[3px] text-[11px] font-medium transition-colors disabled:opacity-50"
-                    >
-                      <Send className="w-3 h-3" />
-                    </button>
-                  </form>
+                  {canComment && (
+                    <form onSubmit={handleAddComment} className="mt-2 flex gap-1.5">
+                      <input
+                        type="text"
+                        value={newComment}
+                        onChange={(e) => setNewComment(e.target.value)}
+                        placeholder="Add a comment…"
+                        className="flex-1 h-7 bg-surface-secondary border border-border rounded-[3px] px-2.5 text-[11px] text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-primary/20"
+                      />
+                      <button
+                        type="submit"
+                        disabled={sendingComment || !newComment.trim()}
+                        className="h-7 px-2.5 bg-primary hover:bg-primary-hover text-primary-foreground rounded-[3px] text-[11px] font-medium transition-colors disabled:opacity-50"
+                      >
+                        <Send className="w-3 h-3" />
+                      </button>
+                    </form>
+                  )}
                 </div>
               </div>
 

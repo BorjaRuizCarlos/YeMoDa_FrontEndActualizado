@@ -148,10 +148,11 @@ export function GitHubReposView({ projectId, canCreateRepos = true }: GitHubRepo
       const newRepo = result.repository;
       setRepos((prev) => [newRepo, ...prev.filter((repo) => repo.id_repo !== newRepo.id_repo)]);
 
+      const safeUrl = /^https?:\/\//i.test(newRepo.html_url) ? newRepo.html_url : '#';
       toast.success('Repository created', {
         description: (
           <a
-            href={newRepo.html_url}
+            href={safeUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="underline"
@@ -285,7 +286,9 @@ export function GitHubReposView({ projectId, canCreateRepos = true }: GitHubRepo
           </div>
         ) : (
           <div className="space-y-1.5">
-            {repos.map((repo) => (
+            {repos.map((repo) => {
+              const safeUrl = /^https?:\/\//i.test(repo.html_url) ? repo.html_url : '#';
+              return (
               <div
                 key={repo.id_repo}
                 className="flex items-center justify-between py-2 px-3 border border-border rounded-[4px] hover:border-primary/30 transition-colors group"
@@ -305,18 +308,18 @@ export function GitHubReposView({ projectId, canCreateRepos = true }: GitHubRepo
                 </div>
                 <div className="flex items-center gap-2 ml-3 shrink-0">
                   <a
-                    href={repo.html_url}
+                    href={safeUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-muted-foreground hover:text-primary transition-colors"
-                    title="Abrir en GitHub"
+                    title="Open in GitHub"
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
                   </a>
                   {canCreateRepos && (
                     <button
                       type="button"
-                      title="Desvincular repositorio"
+                      title="Unlink repository"
                       disabled={deletingRepoId === repo.id_repo}
                       onClick={() => void handleDeleteRepo(repo.id_repo, repo.name)}
                       className="opacity-0 group-hover:opacity-100 inline-flex items-center justify-center h-6 w-6 rounded-[3px] border border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/20 transition-all disabled:opacity-50"
@@ -328,7 +331,8 @@ export function GitHubReposView({ projectId, canCreateRepos = true }: GitHubRepo
                   )}
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

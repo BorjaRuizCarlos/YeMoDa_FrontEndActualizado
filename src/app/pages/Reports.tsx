@@ -430,6 +430,9 @@ export default function Reports() {
 
   // ── Export CSV (kept as quick action) ──
   const exportCSV = () => {
+    // Neutralize spreadsheet formula injection from user-controllable fields.
+    const neutralizeCell = (value: string) =>
+      /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
     const rows = filteredTasks.map((t) => ({
       id: t.id_task,
       title: t.title,
@@ -441,7 +444,11 @@ export default function Reports() {
     const headers = Object.keys(rows[0] ?? {});
     const csv = [
       headers.join(','),
-      ...rows.map((r) => headers.map((h) => `"${String(r[h as keyof typeof r]).replace(/"/g, '""')}"`).join(',')),
+      ...rows.map((r) =>
+        headers
+          .map((h) => `"${neutralizeCell(String(r[h as keyof typeof r])).replace(/"/g, '""')}"`)
+          .join(','),
+      ),
     ].join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);

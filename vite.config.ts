@@ -20,6 +20,8 @@ export default defineConfig(({ mode }) => {
     },
   },
   assetsInclude: ['**/*.svg', '**/*.csv'],
+  // Strip console/debugger statements from production builds (keep them in dev).
+  esbuild: mode === 'development' ? {} : { drop: ['console', 'debugger'] },
   // In dev: override VITE_API_TARGET to /api so requests go through the proxy (no CORS)
   // In production: VITE_API_TARGET from .env (full URL) is used as-is
   define: mode === 'development'

@@ -9,7 +9,7 @@ const STORAGE_REFRESH = 'pip_refresh_token';
 export const AUTH_SESSION_EXPIRED_EVENT = 'pip:auth-session-expired';
 export const AUTH_EMAIL_BLOCKED_EVENT = 'pip:auth-email-blocked';
 
-function emitSessionExpired() {
+export function emitSessionExpired() {
   if (typeof window === 'undefined') return;
   window.dispatchEvent(new CustomEvent(AUTH_SESSION_EXPIRED_EVENT));
 }
@@ -30,12 +30,14 @@ function isSessionExpiredError(status: number, body: ApiError): boolean {
 
 export const tokenStore = {
   getAccess: () => localStorage.getItem(STORAGE_ACCESS),
+  // Legacy: the refresh token used to live here. It now lives in an HttpOnly cookie set by the
+  // backend; this getter only exists to migrate devices that still hold an old value.
   getRefresh: () => localStorage.getItem(STORAGE_REFRESH),
-  set: (access: string, refresh: string) => {
-    localStorage.setItem(STORAGE_ACCESS, access);
-    localStorage.setItem(STORAGE_REFRESH, refresh);
-  },
+  // Only the access token is kept in JS-readable storage now; the refresh token is the
+  // HttpOnly cookie and is never written to localStorage.
+  set: (access: string) => localStorage.setItem(STORAGE_ACCESS, access),
   setAccess: (access: string) => localStorage.setItem(STORAGE_ACCESS, access),
+  clearLegacyRefresh: () => localStorage.removeItem(STORAGE_REFRESH),
   clear: () => {
     localStorage.removeItem(STORAGE_ACCESS);
     localStorage.removeItem(STORAGE_REFRESH);
@@ -71,16 +73,19 @@ async function request<T>(
   }
 
   const fullUrl = `${BASE_URL}${path}`;
-  console.log(`[API] ${options.method || 'GET'} ${fullUrl}`);
+  if (import.meta.env.DEV) {
+    console.log(`[API] ${options.method || 'GET'} ${fullUrl}`);
+  }
 
-  const res = await fetch(fullUrl, { ...options, headers });
+  // credentials: 'include' so the HttpOnly refresh cookie is sent (and Set-Cookie honored).
+  const res = await fetch(fullUrl, { ...options, headers, credentials: 'include' });
 
   // 401 → try refresh once, then re-attempt
   if (res.status === 401 && auth) {
     const refreshed = await tryRefresh();
     if (refreshed) {
       headers['Authorization'] = `Bearer ${tokenStore.getAccess()}`;
-      const retry = await fetch(`${BASE_URL}${path}`, { ...options, headers });
+      const retry = await fetch(fullUrl, { ...options, headers, credentials: 'include' });
       return handleResponse<T>(retry, auth);
     }
     // Refresh failed — clear tokens and bubble up
@@ -101,24 +106,29 @@ async function handleResponse<T>(res: Response, authRequest = true): Promise<T> 
       tokenStore.clear();
       emitSessionExpired();
     }
-    console.error(`[API] Error ${res.status} from ${res.url}:`, data);
+    if (import.meta.env.DEV) {
+      console.error(`[API] Error ${res.status} from ${res.url}`);
+    }
     throw new ApiRequestError(res.status, data as ApiError);
   }
   return data as T;
 }
 
-async function tryRefresh(): Promise<boolean> {
-  const refresh = tokenStore.getRefresh();
-  if (!refresh) return false;
+export async function tryRefresh(): Promise<boolean> {
+  // The refresh token is sent automatically via the HttpOnly cookie (credentials: 'include').
+  // A legacy localStorage token (pre-cookie devices) is sent in the body once, to migrate it.
+  const legacy = tokenStore.getRefresh();
   try {
     const res = await fetch(`${BASE_URL}/auth/refresh/`, {
       method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refresh_token: refresh }),
+      body: JSON.stringify(legacy ? { refresh_token: legacy } : {}),
     });
     if (!res.ok) return false;
     const data = await res.json();
     tokenStore.setAccess(data.access_token);
+    if (legacy) tokenStore.clearLegacyRefresh(); // migrated to the cookie
     return true;
   } catch {
     return false;

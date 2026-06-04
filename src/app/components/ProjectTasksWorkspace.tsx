@@ -40,6 +40,10 @@ interface ProjectTasksWorkspaceProps {
   canCreateBoards: boolean;
   canEditTasks: boolean;
   canDeleteTasks: boolean;
+  canComment?: boolean;
+  canTriggerAi?: boolean;
+  /** Server cap: tasks may only be moved into columns with order <= this value. Null = no limit. */
+  maxMoveColumnOrder?: number | null;
   projectEndDate?: string | null;
   projectCreatedAt?: string | null;
   repoFullName?: string | null;
@@ -133,12 +137,14 @@ function SortableColumnItem({
   column,
   boardColumnsByBoard,
   refetchColumns,
+  canManage,
 }: {
   column: ApiBoardColumn;
   boardColumnsByBoard: Map<number, ApiBoardColumn[]>;
   refetchColumns: () => void;
+  canManage: boolean;
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: column.id_column });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: column.id_column, disabled: !canManage });
 
   return (
     <div
@@ -148,13 +154,16 @@ function SortableColumnItem({
     >
       {/* Drag handle */}
       <div className="flex items-center gap-2 min-w-0">
-        <button type="button" {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground shrink-0">
-          <GripVertical className="w-3.5 h-3.5" />
-        </button>
+        {canManage && (
+          <button type="button" {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground shrink-0">
+            <GripVertical className="w-3.5 h-3.5" />
+          </button>
+        )}
         <span className="truncate">{column.order}. {column.name}</span>
       </div>
 
       {/* Actions */}
+      {canManage && (
       <div className="flex items-center gap-2 shrink-0 ml-2">
         <button
           type="button"
@@ -206,6 +215,7 @@ function SortableColumnItem({
           Delete
         </button>
       </div>
+      )}
     </div>
   );
 }
@@ -215,10 +225,12 @@ function ColumnSortableList({
   columns,
   boardColumnsByBoard,
   refetchColumns,
+  canManage,
 }: {
   columns: ApiBoardColumn[];
   boardColumnsByBoard: Map<number, ApiBoardColumn[]>;
   refetchColumns: () => void;
+  canManage: boolean;
 }) {
   const [localColumns, setLocalColumns] = useState<ApiBoardColumn[]>(columns);
   const [saving, setSaving] = useState(false);
@@ -229,6 +241,7 @@ function ColumnSortableList({
   }, [columns]);
 
   const handleDragEnd = async (event: DragEndEvent) => {
+    if (!canManage) return;
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
@@ -273,6 +286,7 @@ function ColumnSortableList({
               column={column}
               boardColumnsByBoard={boardColumnsByBoard}
               refetchColumns={refetchColumns}
+              canManage={canManage}
             />
           ))}
         </SortableContext>
@@ -289,6 +303,9 @@ export function ProjectTasksWorkspace({
   canCreateBoards,
   canEditTasks,
   canDeleteTasks,
+  canComment = true,
+  canTriggerAi = true,
+  maxMoveColumnOrder = null,
   projectEndDate = null,
   projectCreatedAt = null,
   repoFullName = null,
@@ -839,6 +856,11 @@ export function ProjectTasksWorkspace({
     }
     if (!targetColumnId || draggedTask.board_column === targetColumnId) return;
     const targetColumn = (columns ?? []).find((column) => column.id_column === targetColumnId);
+    // Mirror the server-side move cap: reject drops into columns past the allowed order.
+    if (maxMoveColumnOrder != null && targetColumn != null && targetColumn.order > maxMoveColumnOrder) {
+      toast.error('Your role cannot move tasks that far into the board.');
+      return;
+    }
     const targetIsFinal =
       targetColumn?.is_final === true
       || /^(done|completad[ao]|finalizad[ao])$/i.test((targetColumn?.name ?? '').trim());
@@ -1397,9 +1419,11 @@ export function ProjectTasksWorkspace({
                 columns={boardColumnsByBoard.get(selectedBoard.id_board) ?? []}
                 boardColumnsByBoard={boardColumnsByBoard}
                 refetchColumns={refetchColumns}
+                canManage={canCreateBoards}
               />
 
               {/* ── Board AI settings ── */}
+              {canCreateBoards && (
               <div className="mt-4 pt-4 border-t border-border space-y-3">
                 <p className="text-[10px] font-medium uppercase tracking-[0.06em] text-muted-foreground flex items-center gap-1.5">
                   <Bot className="w-3 h-3" /> Board AI settings
@@ -1507,6 +1531,7 @@ export function ProjectTasksWorkspace({
                   </button>
                 </div>
               </div>
+              )}
               </>
             )}
           </div>
@@ -1965,6 +1990,8 @@ export function ProjectTasksWorkspace({
         canEditAssignment={canEditTasks}
         canEditTask={canEditTasks}
         canDeleteTask={canDeleteTasks}
+        canComment={canComment}
+        canTriggerAi={canTriggerAi}
         projectId={projectId}
         repoFullName={repoFullName}
         onClose={() => setSelectedTask(null)}

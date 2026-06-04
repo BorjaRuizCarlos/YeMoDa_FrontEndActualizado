@@ -69,6 +69,13 @@ function ChartContainer({
   );
 }
 
+// Sanitize values before interpolating them into a raw <style> tag to avoid
+// CSS injection. Keys are restricted to CSS-identifier-safe characters and
+// colors to a conservative charset (alphanumerics plus the characters used by
+// hex/rgb/hsl/var notation). Anything outside the allowed set is dropped.
+const sanitizeCssKey = (key: string) => key.replace(/[^\w-]/g, "");
+const sanitizeCssColor = (color: string) => color.replace(/[^\w#(),.%\s-]/g, "");
+
 const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
   const colorConfig = Object.entries(config).filter(
     ([, config]) => config.theme || config.color,
@@ -90,7 +97,9 @@ ${colorConfig
     const color =
       itemConfig.theme?.[theme as keyof typeof itemConfig.theme] ||
       itemConfig.color;
-    return color ? `  --color-${key}: ${color};` : null;
+    return color
+      ? `  --color-${sanitizeCssKey(key)}: ${sanitizeCssColor(color)};`
+      : null;
   })
   .join("\n")}
 }

@@ -49,7 +49,10 @@ export default function Settings() {
   const [notifToggles, setNotifToggles] = useState<ToggleItem[]>(() => {
     try {
       const saved = localStorage.getItem('pip_settings');
-      if (saved) return JSON.parse(saved).notifToggles;
+      if (saved) {
+        const parsed = JSON.parse(saved).notifToggles;
+        if (Array.isArray(parsed)) return parsed;
+      }
     } catch { /* ignore */ }
     return [
       { label: 'At-risk project alerts', description: 'Notify when a project changes to at-risk status', enabled: true },
@@ -62,7 +65,10 @@ export default function Settings() {
   const [emailToggles, setEmailToggles] = useState<ToggleItem[]>(() => {
     try {
       const saved = localStorage.getItem('pip_settings');
-      if (saved) return JSON.parse(saved).emailToggles;
+      if (saved) {
+        const parsed = JSON.parse(saved).emailToggles;
+        if (Array.isArray(parsed)) return parsed;
+      }
     } catch { /* ignore */ }
     return [
       { label: 'Newsletters and updates', enabled: true },

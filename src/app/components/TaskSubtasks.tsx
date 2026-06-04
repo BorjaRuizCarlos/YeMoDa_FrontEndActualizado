@@ -10,6 +10,8 @@ interface TaskSubtasksProps {
   parentTask: ApiTask;
   projectId?: number;
   canEdit?: boolean;
+  /** Whether the current role may trigger AI actions (gates the auto AI review on completion). */
+  canTriggerAi?: boolean;
   /** Board columns grouped by board id — used to resolve the final/open column when toggling. */
   boardColumnsByBoard?: Map<number, ApiBoardColumn[]>;
   /** Called with the refreshed parent task after subtasks change (keeps subtask_progress in sync). */
@@ -24,6 +26,7 @@ export function TaskSubtasks({
   parentTask,
   projectId,
   canEdit = true,
+  canTriggerAi = true,
   boardColumnsByBoard,
   onParentRefreshed,
 }: TaskSubtasksProps) {
@@ -143,9 +146,10 @@ export function TaskSubtasks({
       return;
     }
 
-    // Completing: if this is the LAST open subtask, confirm before triggering the AI review.
+    // Completing: if this is the LAST open subtask and the role may trigger AI, confirm before
+    // triggering the AI review. Without AI permission there is nothing to warn about, so just complete.
     const openSubtasks = subtasks.filter((s) => s.completed_at == null);
-    if (openSubtasks.length <= 1) {
+    if (openSubtasks.length <= 1 && canTriggerAi) {
       setConfirmSub(sub);
       return;
     }
@@ -164,15 +168,19 @@ export function TaskSubtasks({
     if (ok) {
       load();
       refreshParent();
-      try {
-        await tasksService.requestAiReview(parentId);
-        toast.success('Subtask completed. The AI will review the task in the background.');
-      } catch (err) {
-        toast.error(
-          err instanceof ApiRequestError
-            ? err.message
-            : 'Subtask completed, but the AI review could not be started.',
-        );
+      if (canTriggerAi) {
+        try {
+          await tasksService.requestAiReview(parentId);
+          toast.success('Subtask completed. The AI will review the task in the background.');
+        } catch (err) {
+          toast.error(
+            err instanceof ApiRequestError
+              ? err.message
+              : 'Subtask completed, but the AI review could not be started.',
+          );
+        }
+      } else {
+        toast.success('Subtask completed.');
       }
     }
     setConfirmBusy(false);

@@ -12,7 +12,8 @@ export const authService = {
       { email, password },
       false, // no auth header needed for login
     );
-    tokenStore.set(data.access_token, data.refresh_token);
+    // Only the access token is stored client-side; the refresh token is an HttpOnly cookie.
+    tokenStore.set(data.access_token);
     return data;
   },
 
@@ -78,8 +79,12 @@ export const authService = {
     );
   },
 
-  /** Remove tokens from storage (client-side logout). */
+  /**
+   * Logout: ask the backend to clear the HttpOnly refresh cookie, then drop local tokens.
+   * Best-effort — local state is cleared regardless of the network result.
+   */
   logout(): void {
+    void api.post('/auth/logout/', {}, false).catch(() => undefined);
     tokenStore.clear();
   },
 

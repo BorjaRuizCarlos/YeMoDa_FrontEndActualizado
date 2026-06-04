@@ -35,23 +35,23 @@ function normalizeRoleName(value?: string | null) {
     .replace(/[\u0300-\u036f]/g, '');
 }
 
-function resolveRoleId(roles: ApiRole[], matchers: string[], fallbackId: number | null = null) {
+function resolveRoleId(roles: ApiRole[], matchers: string[]): number | null {
   for (const role of roles) {
     const normalized = normalizeRoleName(role.name);
-    if (matchers.some((matcher) => normalized === matcher || normalized.includes(matcher))) {
+    if (matchers.some((matcher) => normalized === matcher)) {
       return role.id_role;
     }
   }
-  return fallbackId;
+  return null;
 }
 
 export function getProjectRoleIds(roles?: ApiRole[] | null): ProjectRoleIds {
   const safeRoles = roles ?? [];
   return {
-    projectManagerId: resolveRoleId(safeRoles, ['project manager', 'pm'], 1),
-    productOwnerId: resolveRoleId(safeRoles, ['product owner', 'po'], 2),
-    scrumMasterId: resolveRoleId(safeRoles, ['scrum master', 'scrum'], 3),
-    developerId: resolveRoleId(safeRoles, ['developer', 'dev'], 4),
+    projectManagerId: resolveRoleId(safeRoles, ['project manager', 'pm']),
+    productOwnerId: resolveRoleId(safeRoles, ['product owner', 'po']),
+    scrumMasterId: resolveRoleId(safeRoles, ['scrum master', 'scrum']),
+    developerId: resolveRoleId(safeRoles, ['developer', 'dev']),
     stakeholderId: resolveRoleId(safeRoles, ['stakeholder']),
   };
 }

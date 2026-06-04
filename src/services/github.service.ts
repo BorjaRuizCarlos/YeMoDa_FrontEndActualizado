@@ -23,6 +23,23 @@ import type {
 // Per-user localStorage key for repos cache only
 const reposKey = (uid: number | string) => `pip_gh_repos_${uid}`;
 
+/**
+ * Remove ALL app-owned client state from localStorage. Sweeps every key with
+ * the `pip_` prefix (tokens, user, needs-nickname flag, per-user repo caches,
+ * etc.) so logout / session-expiry leaves no stale state behind.
+ */
+export function clearAllAppState(): void {
+  try {
+    for (const key of Object.keys(localStorage)) {
+      if (key.startsWith('pip_')) {
+        localStorage.removeItem(key);
+      }
+    }
+  } catch {
+    // localStorage unavailable (SSR / blocked) — nothing to clear
+  }
+}
+
 export const githubService = {
   // ─── Flow 3: Connection Status (always verify with backend) ────────────────
 
@@ -47,8 +64,8 @@ export const githubService = {
   /** POST /api/github/app/oauth/callback/ → exchange code for tokens + github_login */
   async completeOAuth(payload: GitHubOAuthCallbackPayload): Promise<GitHubOAuthCallbackResponse> {
     const res = await api.post<GitHubOAuthCallbackResponse>('/github/app/oauth/callback/', payload);
-    // Backend returns new JWT tokens — persist them
-    tokenStore.set(res.access_token, res.refresh_token);
+    // Backend returns a new access token (refresh is set as an HttpOnly cookie on this response).
+    tokenStore.set(res.access_token);
     return res;
   },
 
@@ -73,10 +90,6 @@ export const githubService = {
 
   persistRepos(userId: number | string, repos: GitHubRepo[]): void {
     localStorage.setItem(reposKey(userId), JSON.stringify(repos));
-  },
-
-  clearRepos(userId: number | string): void {
-    localStorage.removeItem(reposKey(userId));
   },
 
   // ─── Create Repo ───────────────────────────────────────────────────────────

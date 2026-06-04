@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router';
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router';
 import { Eye, EyeOff, Lock, Mail, ArrowRight, BarChart3, Bell, Brain, RefreshCw } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { LoadingButton } from '../components/LoadingButton';
@@ -16,7 +16,12 @@ export default function Login() {
   const [emailBlocked, setEmailBlocked] = useState(() => searchParams.get('reason') === 'email_blocked');
   const [resendLoading, setResendLoading] = useState(false);
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, isAuthenticated, loading } = useAuth();
+
+  // Inverse guard: authenticated users should not see the sign-in page.
+  if (!loading && isAuthenticated) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
