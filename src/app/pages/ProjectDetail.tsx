@@ -21,7 +21,7 @@ import {
 } from '../hooks/useProjectData';
 import { projectsService, tasksService, usersService } from '../../services';
 import type { ApiProject, ApiTask, ApiTaskAssignment, ApiUserAccount } from '../../services';
-import { RoleManager } from '../components/RoleManager';
+import { RoleStudio } from '../components/RoleStudio';
 import { useAuth } from '../context/AuthContext';
 import { GitHubReposView } from '../components/GitHubReposView';
 import { CodeReviewPanel } from '../components/CodeReviewPanel';
@@ -897,7 +897,7 @@ export default function ProjectDetail() {
             <h2 className="text-[10px] font-medium text-muted-foreground uppercase tracking-[0.06em] mb-3">
               Roles &amp; Permissions
             </h2>
-            <RoleManager
+            <RoleStudio
               projectId={projectId}
               canManage={isProjectAdmin}
               boardColumns={firstBoardColumns ?? []}
