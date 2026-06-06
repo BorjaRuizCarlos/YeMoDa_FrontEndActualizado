@@ -85,6 +85,130 @@ export const TOURS: TourDef[] = [
       },
     ],
   },
+  {
+    id: 'backlog-v1',
+    match: (p) => p === '/backlog',
+    steps: [
+      {
+        element: '[data-tour="backlog-header"]',
+        popover: {
+          title: 'Product backlog',
+          description: 'Every task that isn’t in a sprint yet lives here — your team’s pool of upcoming work.',
+          side: 'bottom',
+          align: 'start',
+        },
+      },
+      {
+        element: '[data-tour="backlog-project"]',
+        popover: {
+          title: 'Filter & organize',
+          description: 'Scope the backlog to one project, and create tags to group related tasks.',
+          side: 'bottom',
+          align: 'end',
+        },
+      },
+    ],
+  },
+  {
+    id: 'reports-v1',
+    match: (p) => p === '/reports',
+    steps: [
+      {
+        element: '[data-tour="reports-toolbar"]',
+        popover: {
+          title: 'Reports & exports',
+          description: 'Download a full report or export CSV, switch the project scope, and refresh the data here.',
+          side: 'bottom',
+          align: 'start',
+        },
+      },
+    ],
+  },
+  {
+    id: 'alerts-v1',
+    match: (p) => p === '/alerts',
+    steps: [
+      {
+        element: '[data-tour="alerts-toolbar"]',
+        popover: {
+          title: 'Stay ahead of risk',
+          description: 'Filter alerts by status, search them, and resolve or bulk-clear them from this toolbar.',
+          side: 'bottom',
+          align: 'start',
+        },
+      },
+    ],
+  },
+  {
+    id: 'profile-v1',
+    match: (p) => p === '/profile',
+    steps: [
+      {
+        element: '[data-tour="profile-info"]',
+        popover: {
+          title: 'Your profile',
+          description: 'Update your name, email and plan here — and connect GitHub or Azure from the side cards.',
+          side: 'right',
+          align: 'start',
+        },
+      },
+    ],
+  },
+  {
+    id: 'settings-v1',
+    match: (p) => p === '/settings',
+    steps: [
+      {
+        element: '[data-tour="settings-toolbar"]',
+        popover: {
+          title: 'Preferences',
+          description: 'Tune your notification and email preferences, then hit Save changes.',
+          side: 'bottom',
+          align: 'start',
+        },
+      },
+    ],
+  },
+  {
+    id: 'plans-v1',
+    match: (p) => p === '/plans',
+    steps: [
+      {
+        element: '[data-tour="plans-header"]',
+        popover: {
+          title: 'Upgrade to Pro',
+          description: 'Plans are per project. Continue to the secure Stripe checkout to unlock Pro for this project.',
+          side: 'bottom',
+          align: 'start',
+        },
+      },
+    ],
+  },
+  {
+    // Inside a single project — point at the tab bar that holds everything.
+    id: 'project-detail-v1',
+    match: (p) => /^\/projects\/[^/]+/.test(p),
+    steps: [
+      {
+        element: '[data-tour="project-header"]',
+        popover: {
+          title: 'Your project',
+          description: 'Everything for this project lives here — timeline, budget, team and the AI workflow.',
+          side: 'bottom',
+          align: 'start',
+        },
+      },
+      {
+        element: '[data-tour="project-tabs"]',
+        popover: {
+          title: 'Project tabs',
+          description: 'Switch between Overview, Backlog, Timeline, Sprints, Boards, Milestones, Scrum Poker, Code Review, Repositories, Team and Settings.',
+          side: 'bottom',
+          align: 'start',
+        },
+      },
+    ],
+  },
 ];
 
 export function getTourForPath(pathname: string): TourDef | null {

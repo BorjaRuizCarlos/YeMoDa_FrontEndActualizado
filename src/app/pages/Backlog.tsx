@@ -65,7 +65,7 @@ export default function Backlog() {
       {/* ── Top shell ─────────────────────────────────────────────────────── */}
       <section className="rounded-[6px] border border-border bg-card overflow-hidden">
         {/* Header row */}
-        <div className="flex items-center justify-between gap-4 px-4 py-3 border-b border-border">
+        <div className="flex items-center justify-between gap-4 px-4 py-3 border-b border-border" data-tour="backlog-header">
           <div>
             <h1 className="text-[14px] font-semibold text-foreground">Product Backlog</h1>
             <p className="text-[11px] text-muted-foreground mt-0.5">Tasks without an assigned sprint.</p>
@@ -74,6 +74,7 @@ export default function Backlog() {
           {/* Right: project selector + new tag form */}
           <div className="flex items-center gap-2 shrink-0">
             <select
+              data-tour="backlog-project"
               value={selectedProjectId ?? ''}
               onChange={(e) => {
                 setSelectedProjectId(e.target.value ? Number(e.target.value) : null);

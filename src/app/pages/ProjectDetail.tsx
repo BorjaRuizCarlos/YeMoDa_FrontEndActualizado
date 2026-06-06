@@ -583,7 +583,7 @@ export default function ProjectDetail() {
           <div className="mx-4 my-3 h-14 animate-pulse bg-surface-secondary/50 rounded-[4px]" />
         ) : project ? (
           <div className="px-4 pb-3 pt-2 border-b border-border">
-            <h1 className="text-[16px] font-semibold text-foreground">{project.name}</h1>
+            <h1 className="text-[16px] font-semibold text-foreground" data-tour="project-header">{project.name}</h1>
             {project.description && (
               <p className="text-[12px] text-muted-foreground mt-0.5 line-clamp-2">{project.description}</p>
             )}
@@ -603,7 +603,7 @@ export default function ProjectDetail() {
           </div>
         ) : null}
 
-        <div className="px-3">
+        <div className="px-3" data-tour="project-tabs">
           <ADOTabs
             tabs={[
               { id: 'resumen', label: 'Overview' },

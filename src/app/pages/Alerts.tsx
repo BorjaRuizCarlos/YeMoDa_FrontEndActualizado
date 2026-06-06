@@ -196,6 +196,7 @@ export default function Alerts() {
   return (
     <div className="flex flex-col h-full">
       <CommandBar
+        dataTour="alerts-toolbar"
         actions={[
           { label: 'Refresh', icon: <RefreshCw className="w-3.5 h-3.5" />, onClick: () => { setDeletedIds(new Set()); refetch(); } },
           ...(selectedIds.size > 0 ? [{

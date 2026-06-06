@@ -142,7 +142,7 @@ export function AiUsageCard({ projectId }: AiUsageCardProps) {
           )}
 
           {/* Free projects: always offer the upgrade (project-scoped). The /plans page
-              still lets the user pick monthly vs annual for this specific project. */}
+              starts the monthly per-seat checkout for this specific project. */}
           {isFree && (
             <Link
               to={`/plans?project=${projectId}`}

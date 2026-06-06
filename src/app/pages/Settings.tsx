@@ -101,6 +101,7 @@ export default function Settings() {
   return (
     <div className="px-4 pb-6 pt-3 space-y-3 max-w-[1600px]">
       <CommandBar
+        dataTour="settings-toolbar"
         actions={[
           {
             label: saved ? 'Saved ✓' : 'Save changes',

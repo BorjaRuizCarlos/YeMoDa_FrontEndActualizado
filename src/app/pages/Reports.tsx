@@ -473,6 +473,7 @@ export default function Reports() {
   return (
     <div className="flex flex-col h-full">
       <CommandBar
+        dataTour="reports-toolbar"
         actions={[
           {
             label: 'Download report',

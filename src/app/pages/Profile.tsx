@@ -158,7 +158,7 @@ export default function Profile() {
           {/* Basic Info */}
           <div className="bg-card border border-border border-l-[3px] border-l-primary rounded-[4px] p-4">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-[12px] font-semibold text-foreground">Personal Information</h2>
+              <h2 className="text-[12px] font-semibold text-foreground" data-tour="profile-info">Personal Information</h2>
               <div className="flex items-center gap-2">
                 {editing && (
                   <button

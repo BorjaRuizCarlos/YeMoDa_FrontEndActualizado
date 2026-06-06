@@ -34,6 +34,7 @@ interface CommandBarProps {
   onViewChange?: (value: string) => void;
   rightSlot?: ReactNode;
   className?: string;
+  dataTour?: string;
 }
 
 export function CommandBar({
@@ -45,6 +46,7 @@ export function CommandBar({
   onViewChange,
   rightSlot,
   className = '',
+  dataTour,
 }: CommandBarProps) {
   const variantClass: Record<string, string> = {
     default:
@@ -57,6 +59,7 @@ export function CommandBar({
 
   return (
     <div
+      data-tour={dataTour}
       className={`flex items-center gap-2 px-4 py-1.5 border-b border-border bg-surface-secondary min-h-[36px] ${className}`}
     >
       {/* Primary actions (left) */}
