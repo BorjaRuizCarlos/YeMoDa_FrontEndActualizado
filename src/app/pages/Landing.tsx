@@ -96,13 +96,6 @@ export default function Landing() {
     'Up and running in minutes',
   ];
 
-  const stats = [
-    { value: '99.9%', label: 'Uptime guaranteed' },
-    { value: '150+', label: 'Projects managed' },
-    { value: '40%', label: 'Fewer delays' },
-    { value: '4.8/5', label: 'User satisfaction' },
-  ];
-
   const painPoints: { icon: Icon; title: string; desc: string; tint: string; bg: string; ring: string }[] = [
     {
       icon: Clock,
@@ -369,23 +362,6 @@ export default function Landing() {
               </li>
             ))}
           </ul>
-        </div>
-      </section>
-
-      {/* ── Stats band ─────────────────────────────────────────────────────── */}
-      <section aria-label="Key metrics" className="border-y border-white/[0.07] bg-[#0B0E14]">
-        <div className="mx-auto grid max-w-5xl grid-cols-2 gap-8 px-6 py-10 sm:grid-cols-4">
-          {stats.map((stat) => (
-            <div key={stat.label} className="text-center">
-              <p
-                className="text-3xl font-bold tracking-tight text-foreground md:text-4xl"
-                style={{ fontFamily: 'var(--font-mono-lp)' }}
-              >
-                {stat.value}
-              </p>
-              <p className="mt-1.5 text-[12px] uppercase tracking-wider text-slate-400">{stat.label}</p>
-            </div>
-          ))}
         </div>
       </section>
 

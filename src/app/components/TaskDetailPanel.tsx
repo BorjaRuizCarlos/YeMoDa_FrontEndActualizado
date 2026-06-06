@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   X, Calendar, User, MessageSquare, AlertTriangle,
   GitCommit, Send, Loader2, Pencil, Trash2, Plus,
@@ -62,8 +62,6 @@ const AI_FIX_DIFF_INSTRUCTION = [
   'Do not add any explanation outside the diff.',
   'If there are no changes, respond exactly: NO_CHANGES.',
 ].join('\n');
-export const TASK_REOPEN_ID_STORAGE_KEY = 'pip_reopen_task_id';
-export const TASK_REOPEN_PATH_STORAGE_KEY = 'pip_reopen_task_path';
 
 function formatCommentTimestamp(value: string) {
   const parsed = new Date(value);
@@ -208,6 +206,7 @@ function applyUnifiedPatchToContent(originalContent: string, patch: string): str
   let idx = 0;
   const output: string[] = [];
   let sawHunk = false;
+  let skipped = 0;
 
   while (idx < patchLines.length) {
     const line = patchLines[idx];
@@ -273,6 +272,7 @@ function applyUnifiedPatchToContent(originalContent: string, patch: string): str
           const realigned = tryRealignCursor(expected);
           if (!realigned) {
             // Fuzzy mode: treat unmatched context as optional instead of failing hard.
+            skipped += 1;
             idx += 1;
             continue;
           }
@@ -280,6 +280,7 @@ function applyUnifiedPatchToContent(originalContent: string, patch: string): str
         }
         if (!sameLine(actual, expected)) {
           // Fuzzy mode fallback: keep going without consuming a source line.
+          skipped += 1;
           idx += 1;
           continue;
         }
@@ -299,6 +300,7 @@ function applyUnifiedPatchToContent(originalContent: string, patch: string): str
               }
             } else {
               // Idempotent behavior: if the line is already gone, continue.
+              skipped += 1;
               idx += 1;
               continue;
             }
@@ -307,6 +309,7 @@ function applyUnifiedPatchToContent(originalContent: string, patch: string): str
         }
         if (!sameLine(actual, expected)) {
           // Fuzzy mode fallback: assume line already removed.
+          skipped += 1;
           idx += 1;
           continue;
         }
@@ -320,12 +323,14 @@ function applyUnifiedPatchToContent(originalContent: string, patch: string): str
         if (!sameLine(actual, patchLine)) {
           const realigned = tryRealignCursor(patchLine);
           if (!realigned) {
+            skipped += 1;
             idx += 1;
             continue;
           }
           actual = sourceLines[cursor] ?? '';
         }
         if (!sameLine(actual, patchLine)) {
+          skipped += 1;
           idx += 1;
           continue;
         }
@@ -339,6 +344,13 @@ function applyUnifiedPatchToContent(originalContent: string, patch: string): str
 
   if (!sawHunk) {
     throw new Error('The AI response does not contain applicable diff hunks.');
+  }
+
+  if (skipped > 0) {
+    // The diff no longer aligns with the current file: applying it would silently
+    // drop changes (e.g. a deletion that never happens). Fail loudly instead of
+    // committing a partially-applied, corrupted file.
+    throw new Error(`The diff did not align with the current file (${skipped} line(s) could not be matched). Retry the AI request or choose a different model.`);
   }
 
   while (cursor < sourceLines.length) {
@@ -406,6 +418,10 @@ export function TaskDetailPanel({
     return Number.isNaN(parsed) ? null : parsed;
   }, [user]);
 
+  // Tracks the currently-selected task id so async handlers can detect a task switch
+  // mid-request and discard stale results (the panel instance is reused across tasks).
+  const activeTaskIdRef = useRef<number | null>(task?.id_task ?? null);
+
   const [comments, setComments] = useState<ApiTaskComment[]>([]);
   const [loadingComments, setLoadingComments] = useState(false);
   const [warnings, setWarnings] = useState<ApiTaskWarning[]>([]);
@@ -462,7 +478,6 @@ export function TaskDetailPanel({
   const [taskForm, setTaskForm] = useState({
     title: '',
     description: '',
-    status: '',
     priority: '',
     assignedTo: [] as string[],
     dueDate: '',
@@ -735,6 +750,7 @@ export function TaskDetailPanel({
 
   const handleSendWarningsToAi = async () => {
     if (!task) return;
+    const taskId = task.id_task;
     if (!canTriggerAi) {
       toast.error('Your role cannot trigger AI actions.');
       return;
@@ -782,6 +798,7 @@ export function TaskDetailPanel({
       };
 
       const response = await chatService.send(payload);
+      if (activeTaskIdRef.current !== taskId) return; // task switched mid-request: discard the stale AI response
       const raw = response || '';
       const extracted = extractBestCodeCandidate(raw);
       setAiSuggestedContent(extracted || raw); // show extracted code or full response
@@ -818,6 +835,7 @@ export function TaskDetailPanel({
 
   const openAiCodeModal = async () => {
     if (!task) return;
+    const taskId = task.id_task;
     if (!canTriggerAi) {
       toast.error('Your role cannot trigger AI actions.');
       return;
@@ -862,6 +880,7 @@ export function TaskDetailPanel({
         const repoFilesResult = await loadRepoFiles(nextBranch, nextPath);
         discoveredFiles = repoFilesResult.files;
         resolvedBranch = repoFilesResult.resolvedBranch;
+        nextBranch = resolvedBranch; // keep the resolved branch even if no source file ends up loading
       }
 
       if (!nextPath && discoveredFiles.length > 0) {
@@ -881,12 +900,14 @@ export function TaskDetailPanel({
       }
       // Keep defaults if source retrieval fails; user can still request AI using warnings context.
     } finally {
-      setAiSourceBranch(nextBranch);
-      setAiSourcePath(nextPath);
-      setAiSourceContent(nextContent);
       setAiSourceLoading(false);
-      if (!nextPath) {
-        toast.error('The file was not detected automatically. Enter the path manually in the modal.');
+      if (activeTaskIdRef.current === taskId) {
+        setAiSourceBranch(nextBranch);
+        setAiSourcePath(nextPath);
+        setAiSourceContent(nextContent);
+        if (!nextPath) {
+          toast.error('The file was not detected automatically. Enter the path manually in the modal.');
+        }
       }
     }
   };
@@ -929,12 +950,16 @@ export function TaskDetailPanel({
             const detail = error instanceof Error ? error.message : 'Error applying patch';
             throw new Error(`Could not apply the diff to '${targetPath}': ${detail}`);
           }
-          filesToCommit.push({ path: targetPath, content: updatedContent });
+          if (updatedContent !== currentContent) {
+            // Skip files the patch leaves unchanged so we never push a no-op commit.
+            filesToCommit.push({ path: targetPath, content: updatedContent });
+          }
           if (resolvedRef) resolvedBranch = resolvedRef;
         }
 
         if (filesToCommit.length === 0) {
-          throw new Error('The AI response does not contain applicable per-file changes.');
+          toast.info('The AI changes do not modify the current files; nothing to commit.');
+          return;
         }
 
         await githubService.commitChanges({
@@ -946,6 +971,10 @@ export function TaskDetailPanel({
       } else {
         if (!aiSourcePath) {
           throw new Error('No active file to apply the change.');
+        }
+        if (aiSuggestedContent === aiSourceContent) {
+          toast.info('The proposed content is identical to the current file; nothing to commit.');
+          return;
         }
         await githubService.commitChanges({
           repo: repoFullName,
@@ -973,7 +1002,6 @@ export function TaskDetailPanel({
     setTaskForm({
       title: task.title,
       description: task.description ?? '',
-      status: task.status != null ? String(task.status) : '',
       priority: task.priority != null ? String(task.priority) : '',
       assignedTo: currentTaskAssignments.length > 0
         ? currentTaskAssignments.map((assignment) => String(assignment.assigned_to))
@@ -1034,6 +1062,28 @@ export function TaskDetailPanel({
     return () => {
       cancelled = true;
     };
+  }, [task?.id_task]);
+
+  // Reset transient, per-task UI state whenever the selected task changes. The panel
+  // instance is reused across tasks (the parent swaps the `task` prop without unmounting),
+  // so modal visibility, selections and form inputs would otherwise leak between tasks.
+  useEffect(() => {
+    activeTaskIdRef.current = task?.id_task ?? null;
+    setShowNewTagForm(false);
+    setNewTagName('');
+    setNewTagColor('#56697f');
+    setTagSearch('');
+    setShowBranchModal(false);
+    setBranchResult(null);
+    setSelectedWarningIds(new Set());
+    setShowAiCodeModal(false);
+    setAiModalPrompt('');
+    setAiSuggestedContent('');
+    setAiSuggestedPatches([]);
+    setAiSourcePath('');
+    setAiSourceContent('');
+    setAiSourceBranch('main');
+    setAiRepoFiles([]);
   }, [task?.id_task]);
 
   const handleAddComment = async (e: React.FormEvent) => {
@@ -1100,7 +1150,7 @@ export function TaskDetailPanel({
 
     setSavingTask(true);
     try {
-      const nextStatusId = taskForm.status ? Number(taskForm.status) : null;
+      const nextStatusId = task.status != null ? Number(task.status) : null;
       const shouldSetCompleted = nextStatusId != null && doneStatusIds.has(nextStatusId);
       const updated = await tasksService.update(task.id_task, {
         title: taskForm.title.trim(),
@@ -1361,7 +1411,7 @@ export function TaskDetailPanel({
                     </button>
                   </>
                 )}
-                <button onClick={onClose} className="p-1 rounded-[3px] hover:bg-surface-secondary transition-colors">
+                <button onClick={onClose} aria-label="Close task panel" className="p-1 rounded-[3px] hover:bg-surface-secondary transition-colors">
                   <X className="w-3.5 h-3.5 text-muted-foreground" />
                 </button>
               </div>
@@ -1468,7 +1518,8 @@ export function TaskDetailPanel({
                     )}
                   </div>
 
-                  <div className="flex items-center gap-2 pt-1">                    {canDeleteTask && (
+                  <div className="flex items-center gap-2 pt-1">
+                    {canDeleteTask && (
                       <button
                         type="button"
                         onClick={handleDeleteTask}
@@ -1477,7 +1528,8 @@ export function TaskDetailPanel({
                       >
                         {deletingTask ? 'Deleting…' : 'Delete'}
                       </button>
-                    )}                    <button
+                    )}
+                    <button
                       type="button"
                       onClick={() => setIsEditingTask(false)}
                       className="h-7 px-3 border border-border rounded-[3px] text-[11px]"
@@ -1613,6 +1665,7 @@ export function TaskDetailPanel({
                           <button
                             type="button"
                             onClick={() => void handleRemoveTaskTag(tag.id_tag)}
+                            aria-label={`Remove ${tag.name} tag`}
                             disabled={savingTagId === tag.id_tag}
                             className="text-muted-foreground hover:text-destructive disabled:opacity-50"
                           >
@@ -2087,6 +2140,7 @@ export function TaskDetailPanel({
               <button
                 type="button"
                 onClick={() => setShowBranchModal(false)}
+                aria-label="Close branch creation modal"
                 className="p-1 rounded-[3px] hover:bg-surface-secondary transition-colors"
               >
                 <X className="w-3.5 h-3.5 text-muted-foreground" />
