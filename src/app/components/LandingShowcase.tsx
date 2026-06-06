@@ -19,7 +19,6 @@ import {
   CircleUser,
   Clock,
   Cloud,
-  Code2,
   Crown,
   Download,
   ExternalLink,
@@ -906,9 +905,8 @@ export function DashboardShowcase() {
           transition={{ duration: 0.5, ease: 'easeOut' }}
           className="space-y-5 text-center max-w-2xl w-full"
         >
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-[3px] border border-primary/20 bg-primary/10 text-primary text-[11px] font-medium">
-            <LayoutGrid className="w-3 h-3" />
-            Interactive Demo — explore the platform
+          <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+            Interactive demo — explore the platform
           </div>
 
           <h2 className="text-[2rem] md:text-[2.35rem] font-semibold text-foreground leading-[1.15] tracking-tight">
@@ -1885,15 +1883,11 @@ export function ProjectDetailShowcase() {
           transition={{ duration: 0.5, ease: 'easeOut' }}
           className="space-y-5 text-center max-w-2xl w-full"
         >
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-[3px] border border-primary/20 bg-primary/10 text-primary text-[11px] font-medium">
-            <Briefcase className="w-3 h-3" />
+          <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
             Project workspace — all tools in one place
           </div>
           <h2 className="text-2xl md:text-3xl font-semibold text-foreground leading-snug">
-            One project.{' '}
-            <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-              All your tools.
-            </span>
+            One project. <span className="text-primary">All your tools.</span>
           </h2>
           <p className="text-[13px] text-muted-foreground leading-relaxed max-w-xl mx-auto">
             Backlog, timeline, sprints, boards, milestones, code review and your team — everything inside a single project workspace.
@@ -2037,8 +2031,7 @@ export function CodeReviewShowcase() {
           transition={{ duration: 0.45, ease: 'easeOut' }}
           className="text-center mb-12"
         >
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-[3px] border border-primary/20 bg-primary/10 text-primary text-[11px] font-medium mb-4">
-            <Code2 className="w-3 h-3" />
+          <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground mb-4">
             Code review connected to your tasks
           </div>
           <h2 className="text-2xl md:text-3xl font-semibold text-foreground mb-3">
@@ -2115,8 +2108,11 @@ export function CodeReviewShowcase() {
                   <div className="max-w-[85%] ml-auto rounded-[6px] bg-primary/10 text-foreground text-[10px] px-2.5 py-1.5">
                     Any risks in the new health calc?
                   </div>
-                  <div className="max-w-[85%] rounded-[6px] bg-card border border-border text-muted-foreground text-[10px] px-2.5 py-1.5 leading-relaxed">
-                    The early <span className="font-mono">return &apos;unknown&apos;</span> guards empty task lists. The blocked-count threshold looks safe; consider a test for the boundary at <span className="font-mono">completion === 0.2</span>.
+                  <div className="flex items-start gap-1.5 max-w-[90%]">
+                    <span className="shrink-0 mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-[4px] bg-primary text-primary-foreground text-[8px] font-bold tracking-wide">AI</span>
+                    <div className="rounded-[6px] bg-card border border-border text-muted-foreground text-[10px] px-2.5 py-1.5 leading-relaxed">
+                      The early <span className="font-mono">return &apos;unknown&apos;</span> guards empty task lists. The blocked-count threshold looks safe; consider a test for the boundary at <span className="font-mono">completion === 0.2</span>.
+                    </div>
                   </div>
                 </div>
                 <div className="px-3 py-2.5 border-t border-border bg-surface-secondary/30 shrink-0">
@@ -2208,8 +2204,7 @@ export function AiFixShowcase() {
         transition={{ duration: 0.45, ease: 'easeOut' }}
         className="text-center mb-12"
       >
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-[3px] border border-primary/20 bg-primary/10 text-primary text-[11px] font-medium mb-4">
-          <Bot className="w-3 h-3" />
+        <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground mb-4">
           AI change review
         </div>
         <h2 className="text-2xl md:text-3xl font-semibold text-foreground mb-3">

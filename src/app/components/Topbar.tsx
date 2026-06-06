@@ -1,4 +1,4 @@
-import { Search, LogOut, Moon, Sun, ChevronDown } from 'lucide-react';
+import { Search, LogOut, Moon, Sun, ChevronDown, HelpCircle } from 'lucide-react';
 import { Link, useLocation, useParams, useNavigate } from 'react-router';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -6,6 +6,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Tooltip, TooltipTrigger, TooltipContent } from './ui/tooltip';
 import { NotificationBell } from './NotificationBell';
+import { replayTour } from '../hooks/useTours';
 import { projectsService } from '../../services';
 
 /* ── Breadcrumb route labels ── */
@@ -108,6 +109,7 @@ export function Topbar() {
         {/* Search trigger */}
         <button
           onClick={openCommandPalette}
+          data-tour="topbar-search"
           aria-label="Search (Ctrl+K)"
           className="flex items-center gap-2 pl-2 pr-2 py-1 bg-background rounded-[3px] border border-input text-[12px] text-muted-foreground hover:border-foreground/20 transition-colors cursor-pointer w-48 shrink-0"
         >
@@ -121,8 +123,26 @@ export function Topbar() {
 
       {/* Right: Actions */}
       <div className="flex items-center gap-0.5">
+        {/* Help / replay this page's tour */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              data-tour="topbar-help"
+              onClick={() => replayTour(location.pathname)}
+              aria-label="Replay tips for this page"
+              className="p-1.5 rounded-[3px] hover:bg-accent transition-colors"
+            >
+              <HelpCircle className="w-4 h-4 text-muted-foreground" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent className="text-xs">Page tips</TooltipContent>
+        </Tooltip>
+
         {/* Notification Bell */}
-        <NotificationBell />
+        <span data-tour="topbar-notifications" className="inline-flex">
+          <NotificationBell />
+        </span>
 
         {/* Theme Toggle */}
         <Tooltip>

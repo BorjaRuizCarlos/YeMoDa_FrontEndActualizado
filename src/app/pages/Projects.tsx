@@ -290,6 +290,7 @@ export default function Projects() {
               <button
                 type="button"
                 onClick={() => setShowCreateModal(true)}
+                data-tour="projects-new"
                 className="h-9 px-4 bg-primary hover:bg-primary-hover text-primary-foreground rounded-[4px] text-[12px] font-semibold inline-flex items-center justify-center gap-2 transition-colors shrink-0"
               >
                 <Plus className="w-4 h-4" />

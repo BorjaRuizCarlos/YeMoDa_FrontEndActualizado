@@ -1,66 +1,56 @@
 /* ─── Landing typography ───────────────────────────────────────────── */
-/* Plus Jakarta Sans → display + body (single geometric sans, Linear/Vercel feel) */
-/* JetBrains Mono → eyebrows / labels / mono accents                              */
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+/* Space Grotesk → display headings (engineered, mechanical — NOT generic geometric)   */
+/* IBM Plex Sans → body / prose (humanist, engineering-honest dev-tool body face)       */
+/* JetBrains Mono → eyebrows / labels / numerals / status (the "instrument" voice)      */
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 :root {
-  --font-display: 'Plus Jakarta Sans', var(--font-family);
-  --font-body: 'Plus Jakarta Sans', var(--font-family);
+  --font-display: 'Space Grotesk', var(--font-family);
+  --font-body: 'IBM Plex Sans', var(--font-family);
   --font-mono-lp: 'JetBrains Mono', var(--font-mono);
 }
 
-/* ─── Landing ambient background ────────────────────────────────────── */
+/* ─── Landing ambient structure ─────────────────────────────────────── */
 /* Decorative-only; unlayered so it composes with Tailwind utilities.    */
 
-/* Faint grid that fades toward the edges (radial mask). */
-.lp-grid {
+/* Faint "drafting paper" grid — dark hairlines on the light canvas,
+   fading out via a radial mask so it never competes with content. */
+.lp-paper-grid {
   background-image:
-    linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
-  background-size: 56px 56px;
-  -webkit-mask-image: radial-gradient(ellipse 75% 65% at 50% 0%, #000 30%, transparent 78%);
-          mask-image: radial-gradient(ellipse 75% 65% at 50% 0%, #000 30%, transparent 78%);
+    linear-gradient(to right, rgba(24, 24, 27, 0.035) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(24, 24, 27, 0.035) 1px, transparent 1px);
+  background-size: 64px 64px;
+  -webkit-mask-image: radial-gradient(ellipse 85% 60% at 50% 0%, #000 25%, transparent 82%);
+          mask-image: radial-gradient(ellipse 85% 60% at 50% 0%, #000 25%, transparent 82%);
 }
 
-/* Ambient violet glow (brand accent) behind the hero / CTA. */
-.lp-glow {
-  background: radial-gradient(
-    ellipse 60% 55% at 50% 0%,
-    rgba(147, 51, 234, 0.40),
-    rgba(124, 58, 237, 0.12) 45%,
-    transparent 72%
-  );
+/* Recessed "mounting plate" under each dark demo rack — a soft inset so
+   the dark product screen reads as deliberately seated into the page. */
+.lp-mount-plate {
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.6),
+    0 28px 70px -28px rgba(24, 24, 27, 0.35);
 }
 
-/* ─── Landing motion (entrance + subtle pulse) ──────────────────────── */
+/* ─── Landing motion (entrance only — restraint as signal) ──────────── */
 @keyframes lpFadeUp {
-  from { opacity: 0; transform: translateY(18px); }
+  from { opacity: 0; transform: translateY(16px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes lpGlowPulse {
-  0%, 100% { opacity: 0.55; }
-  50%      { opacity: 0.85; }
-}
-
 .lp-fade-up {
-  animation: lpFadeUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: lpFadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-.lp-glow-pulse {
-  animation: lpGlowPulse 7s ease-in-out infinite;
-}
-
-/* Respect reduced-motion: drop entrance + pulse, keep final state. */
+/* Respect reduced-motion: drop entrance, keep final state. */
 @media (prefers-reduced-motion: reduce) {
   .lp-fade-up { animation: none; }
-  .lp-glow-pulse { animation: none; }
 }
 
-/* Subtle violet scrollbars inside the demo app frames. */
+/* Emerald scrollbars inside the dark demo frames (matches the new accent). */
 .lp-demo-scroll * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(147, 51, 234, 0.45) transparent;
+  scrollbar-color: rgba(34, 197, 94, 0.45) transparent;
 }
 .lp-demo-scroll *::-webkit-scrollbar {
   width: 6px;
@@ -70,9 +60,9 @@
   background: transparent;
 }
 .lp-demo-scroll *::-webkit-scrollbar-thumb {
-  background: rgba(147, 51, 234, 0.40);
+  background: rgba(34, 197, 94, 0.40);
   border-radius: 999px;
 }
 .lp-demo-scroll *::-webkit-scrollbar-thumb:hover {
-  background: rgba(147, 51, 234, 0.60);
+  background: rgba(34, 197, 94, 0.60);
 }

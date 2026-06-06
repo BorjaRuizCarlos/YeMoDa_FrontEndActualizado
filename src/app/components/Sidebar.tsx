@@ -57,6 +57,7 @@ export function Sidebar() {
     const inner = (
       <Link
         to={item.path}
+        data-tour={`nav-${item.path.replace('/', '')}`}
         className={`relative flex items-center gap-2.5 transition-colors duration-100 select-none
           ${collapsed ? 'justify-center px-0 py-2 mx-1 rounded-[3px]' : 'px-3 py-[6px] mx-1.5 rounded-[3px]'}
           ${
@@ -131,7 +132,7 @@ export function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 py-2 overflow-y-auto scrollbar-none" aria-label="Main navigation">
+      <nav className="flex-1 py-2 overflow-y-auto scrollbar-none" aria-label="Main navigation" data-tour="sidebar-nav">
         <div className="space-y-0.5">
           {mainItems.map((item) => (
             <NavLink key={item.path} item={item} />

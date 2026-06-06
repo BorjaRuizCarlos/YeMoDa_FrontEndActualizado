@@ -115,7 +115,7 @@ export function CodeDiffViewer({ patch, filename }: CodeDiffViewerProps) {
   const isCode = language != null;
 
   return (
-    <div className="rounded-[4px] border border-border overflow-hidden text-[11px] leading-[18px]">
+    <div data-cr-file={filename} className="rounded-[4px] border border-border overflow-hidden text-[11px] leading-[18px]">
       {/* File header */}
       <div className="px-3 py-1.5 bg-surface-secondary/50 border-b border-border flex items-center gap-2">
         <span className={`w-2 h-2 rounded-full shrink-0 ${isCode ? 'bg-primary' : 'bg-muted-foreground/40'}`} />
@@ -143,7 +143,10 @@ export function CodeDiffViewer({ patch, filename }: CodeDiffViewerProps) {
                   {line.type === 'add' ? '+' : line.type === 'remove' ? '-' : ''}
                 </td>
                 {/* Content */}
-                <td className="px-2 whitespace-pre">
+                <td
+                  className="px-2 whitespace-pre"
+                  data-cr-line={line.type === 'header' ? undefined : (line.newLine ?? line.oldLine)}
+                >
                   {line.type === 'header' ? (
                     line.content
                   ) : (
