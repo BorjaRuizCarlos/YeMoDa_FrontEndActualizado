@@ -6,10 +6,11 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { projectRolesService, ApiRequestError } from '../../services';
-import type { ApiProjectRole, ApiBoardColumn, ProjectPermissionFlags } from '../../services';
+import type { ApiProjectRole, ApiBoard, ApiBoardColumn, ProjectPermissionFlags } from '../../services';
 import { Switch } from './ui/switch';
 import { EmptyState } from './EmptyState';
 import { cn } from './ui/utils';
+import { useUnsavedChanges } from '../context/UnsavedChangesContext';
 
 interface RoleStudioProps {
   projectId: number;
@@ -17,6 +18,8 @@ interface RoleStudioProps {
   canManage: boolean;
   /** Board columns across the project's boards (for the move-limit picker). */
   boardColumns: ApiBoardColumn[];
+  /** Project boards, used to group the move-limit columns by board. Optional. */
+  boards?: Pick<ApiBoard, 'id_board' | 'name'>[];
 }
 
 type PermKey = keyof ProjectPermissionFlags;
@@ -75,7 +78,7 @@ function naturalList(items: string[]): string {
   return `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`;
 }
 
-export function RoleStudio({ projectId, canManage, boardColumns }: RoleStudioProps) {
+export function RoleStudio({ projectId, canManage, boardColumns, boards }: RoleStudioProps) {
   const [roles, setRoles] = useState<ApiProjectRole[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -101,6 +104,18 @@ export function RoleStudio({ projectId, canManage, boardColumns }: RoleStudioPro
     [boardColumns],
   );
   const colById = useMemo(() => new Map(sortedCols.map((c) => [c.id_column, c])), [sortedCols]);
+
+  // Columns grouped by board (preserving board order, then column order within each board).
+  // Only the boards that actually own a visible column are listed.
+  const colsByBoard = useMemo(() => {
+    if (!boards || boards.length === 0) return null;
+    return boards
+      .map((board) => ({
+        board,
+        columns: sortedCols.filter((c) => c.board === board.id_board),
+      }))
+      .filter((group) => group.columns.length > 0);
+  }, [boards, sortedCols]);
 
   const load = () => {
     setLoading(true);
@@ -132,6 +147,10 @@ export function RoleStudio({ projectId, canManage, boardColumns }: RoleStudioPro
     if (draft.name !== base.name || draft.description !== base.description || draft.max_move_column !== base.max_move_column) return true;
     return ALL_PERMS.some((p) => draft[p] !== base[p]);
   }, [draft, selectedRole]);
+
+  // Register this form's dirty state with the global unsaved-changes guard so in-app
+  // navigation, browser close/refresh, and the modal close gate are all covered.
+  useUnsavedChanges(`role-studio:${projectId}`, isDirty);
 
   // ── Mutators ──────────────────────────────────────────────────────────────
   const setPerm = (perm: PermKey, value: boolean) => setDraft((d) => (d ? { ...d, [perm]: value } : d));
@@ -338,6 +357,37 @@ export function RoleStudio({ projectId, canManage, boardColumns }: RoleStudioPro
     const capOrder = capId == null ? Infinity : (colById.get(capId)?.order ?? Infinity);
     const capName = capId == null ? null : colById.get(capId)?.name ?? null;
 
+    // A single interactive column button (shared by the flat and per-board layouts).
+    const renderColButton = (c: ApiBoardColumn, i: number) => {
+      const reach = capId == null || c.order <= capOrder;
+      const isCap = c.id_column === capId;
+      const beyond = !reach;
+      return (
+        <div key={c.id_column} className="flex items-center gap-1 shrink-0">
+          {i > 0 && <ArrowRight className={cn('w-3 h-3', beyond ? 'text-muted-foreground/40' : 'text-muted-foreground')} />}
+          <button
+            type="button"
+            disabled={readOnly}
+            onClick={() => setMaxMoveColumn(c.id_column)}
+            aria-pressed={isCap}
+            title={`Move tasks up to ${c.name}`}
+            className={cn(
+              'inline-flex items-center gap-1 rounded-[3px] px-2 py-1 text-[11px] transition-all duration-300 disabled:cursor-not-allowed',
+              isCap
+                ? (c.is_review ? 'bg-warning text-warning-foreground' : 'bg-primary text-primary-foreground')
+                : reach
+                  ? (c.is_final ? 'border border-success/40 bg-success/10 text-success' : 'border border-primary/40 bg-primary/10 text-primary')
+                  : 'border border-dashed border-border/60 bg-surface-secondary/30 text-muted-foreground/60',
+            )}
+          >
+            {c.is_final && <Lock className="w-3 h-3" />}
+            {isCap && <CircleDot className="w-3 h-3" />}
+            <span className="truncate max-w-[90px]">{c.name}</span>
+          </button>
+        </div>
+      );
+    };
+
     return (
       <div className={cn('mt-2 rounded-[3px] border border-border/60 bg-surface-secondary/20 p-2.5', !draft.can_move_tasks && 'opacity-60')}>
         <div className="flex items-center justify-between mb-1.5">
@@ -366,52 +416,54 @@ export function RoleStudio({ projectId, canManage, boardColumns }: RoleStudioPro
               {sortedCols.map((c) => <option key={c.id_column} value={c.id_column}>{c.name}</option>)}
             </select>
 
-            <div className="flex items-center gap-1 overflow-x-auto pb-1" role="group" aria-label="Board reach">
-              {sortedCols.map((c, i) => {
-                const reach = capId == null || c.order <= capOrder;
-                const isCap = c.id_column === capId;
-                const beyond = !reach;
-                return (
-                  <div key={c.id_column} className="flex items-center gap-1 shrink-0">
-                    {i > 0 && <ArrowRight className={cn('w-3 h-3', beyond ? 'text-muted-foreground/40' : 'text-muted-foreground')} />}
-                    <button
-                      type="button"
-                      disabled={readOnly}
-                      onClick={() => setMaxMoveColumn(c.id_column)}
-                      aria-pressed={isCap}
-                      title={`Move tasks up to ${c.name}`}
-                      className={cn(
-                        'inline-flex items-center gap-1 rounded-[3px] px-2 py-1 text-[11px] transition-all duration-300 disabled:cursor-not-allowed',
-                        isCap
-                          ? (c.is_review ? 'bg-warning text-warning-foreground' : 'bg-primary text-primary-foreground')
-                          : reach
-                            ? (c.is_final ? 'border border-success/40 bg-success/10 text-success' : 'border border-primary/40 bg-primary/10 text-primary')
-                            : 'border border-dashed border-border/60 bg-surface-secondary/30 text-muted-foreground/60',
-                      )}
-                    >
-                      {c.is_final && <Lock className="w-3 h-3" />}
-                      {isCap && <CircleDot className="w-3 h-3" />}
-                      <span className="truncate max-w-[90px]">{c.name}</span>
-                    </button>
+            {colsByBoard ? (
+              // Grouped by board: a small board-name subheading then that board's columns.
+              <div className="flex flex-col gap-2">
+                {colsByBoard.map((group) => (
+                  <div key={group.board.id_board}>
+                    <span className="block text-[10px] font-medium text-muted-foreground mb-1 truncate">{group.board.name}</span>
+                    <div className="flex items-center gap-1 overflow-x-auto pb-1" role="group" aria-label={`Board reach — ${group.board.name}`}>
+                      {group.columns.map((c, i) => renderColButton(c, i))}
+                    </div>
                   </div>
-                );
-              })}
-              {/* No-limit node */}
-              <ArrowRight className="w-3 h-3 text-muted-foreground shrink-0" />
-              <button
-                type="button"
-                disabled={readOnly}
-                onClick={() => setMaxMoveColumn(null)}
-                aria-pressed={capId == null}
-                title="No limit — move tasks into any column"
-                className={cn(
-                  'inline-flex items-center gap-1 rounded-[3px] px-2 py-1 text-[11px] transition-all shrink-0 disabled:cursor-not-allowed',
-                  capId == null ? 'bg-primary text-primary-foreground' : 'border border-border/60 bg-surface-secondary/30 text-muted-foreground',
-                )}
-              >
-                ∞ No limit
-              </button>
-            </div>
+                ))}
+                <div className="flex items-center gap-1">
+                  {/* No-limit node */}
+                  <button
+                    type="button"
+                    disabled={readOnly}
+                    onClick={() => setMaxMoveColumn(null)}
+                    aria-pressed={capId == null}
+                    title="No limit — move tasks into any column"
+                    className={cn(
+                      'inline-flex items-center gap-1 rounded-[3px] px-2 py-1 text-[11px] transition-all shrink-0 disabled:cursor-not-allowed',
+                      capId == null ? 'bg-primary text-primary-foreground' : 'border border-border/60 bg-surface-secondary/30 text-muted-foreground',
+                    )}
+                  >
+                    ∞ No limit
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1 overflow-x-auto pb-1" role="group" aria-label="Board reach">
+                {sortedCols.map((c, i) => renderColButton(c, i))}
+                {/* No-limit node */}
+                <ArrowRight className="w-3 h-3 text-muted-foreground shrink-0" />
+                <button
+                  type="button"
+                  disabled={readOnly}
+                  onClick={() => setMaxMoveColumn(null)}
+                  aria-pressed={capId == null}
+                  title="No limit — move tasks into any column"
+                  className={cn(
+                    'inline-flex items-center gap-1 rounded-[3px] px-2 py-1 text-[11px] transition-all shrink-0 disabled:cursor-not-allowed',
+                    capId == null ? 'bg-primary text-primary-foreground' : 'border border-border/60 bg-surface-secondary/30 text-muted-foreground',
+                  )}
+                >
+                  ∞ No limit
+                </button>
+              </div>
+            )}
 
             <p className="text-[11px] text-muted-foreground mt-1.5">
               {capName

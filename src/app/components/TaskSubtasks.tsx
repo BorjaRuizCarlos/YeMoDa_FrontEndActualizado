@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router';
 import { Plus, Loader2, Check, Trash2, GitBranch, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { tasksService } from '../../services';
 import { ApiRequestError } from '../../services/api';
 import type { ApiTask, ApiBoardColumn } from '../../services';
+import { handleAiQuotaError } from '../utils/aiQuota';
 
 interface TaskSubtasksProps {
   /** The task whose subtasks are shown. */
@@ -31,6 +33,7 @@ export function TaskSubtasks({
   onParentRefreshed,
 }: TaskSubtasksProps) {
   const parentId = parentTask.id_task;
+  const navigate = useNavigate();
 
   const [subtasks, setSubtasks] = useState<ApiTask[]>([]);
   const [loading, setLoading] = useState(false);
@@ -173,11 +176,13 @@ export function TaskSubtasks({
           await tasksService.requestAiReview(parentId);
           toast.success('Subtask completed. The AI will review the task in the background.');
         } catch (err) {
-          toast.error(
-            err instanceof ApiRequestError
-              ? err.message
-              : 'Subtask completed, but the AI review could not be started.',
-          );
+          if (!handleAiQuotaError(err, navigate, projectId)) {
+            toast.error(
+              err instanceof ApiRequestError
+                ? err.message
+                : 'Subtask completed, but the AI review could not be started.',
+            );
+          }
         }
       } else {
         toast.success('Subtask completed.');

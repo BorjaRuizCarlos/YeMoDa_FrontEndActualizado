@@ -1,5 +1,5 @@
 import { api } from './api';
-import type { ApiProject } from './types';
+import type { ApiProject, AiUsage } from './types';
 
 export interface CreateProjectPayload {
   name: string;
@@ -36,5 +36,10 @@ export const projectsService = {
   /** DELETE /api/projects/:id/ */
   delete(id: number): Promise<void> {
     return api.delete<void>(`/projects/${id}/`);
+  },
+
+  /** GET /api/projects/:id/ai-usage/ — AI quota usage for the current period. */
+  getAiUsage(projectId: number): Promise<AiUsage> {
+    return api.get<AiUsage>(`/projects/${projectId}/ai-usage/`);
   },
 };

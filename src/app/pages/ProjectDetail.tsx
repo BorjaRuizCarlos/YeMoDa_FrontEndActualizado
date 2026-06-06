@@ -3,7 +3,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router';
 import { toast } from 'sonner';
 import {
   ArrowLeft, Calendar, Users, Clock, CheckCircle2,
-  AlertTriangle, UserPlus, List, Trash2, Settings2, RefreshCw,
+  AlertTriangle, UserPlus, List, Trash2, Settings2, RefreshCw, Shield,
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { StatusBadge } from '../components/StatusBadge';
@@ -22,9 +22,12 @@ import {
 import { projectsService, tasksService, usersService } from '../../services';
 import type { ApiProject, ApiTask, ApiTaskAssignment, ApiUserAccount } from '../../services';
 import { RoleStudio } from '../components/RoleStudio';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
+import { useUnsavedChangesContext } from '../context/UnsavedChangesContext';
 import { useAuth } from '../context/AuthContext';
 import { GitHubReposView } from '../components/GitHubReposView';
 import { CodeReviewPanel } from '../components/CodeReviewPanel';
+import { AiUsageCard } from '../components/AiUsageCard';
 import { ScrumPoker } from '../components/ScrumPoker';
 import { ProjectTasksWorkspace } from '../components/ProjectTasksWorkspace.tsx';
 import Timeline from '../components/Timeline';
@@ -73,9 +76,9 @@ export default function ProjectDetail() {
 
   // ── Boards ───────────────────────────────────────────────────────────────
   const { data: boards, loading: loadingBoards, refetch: refetchBoards } = useApiBoards(projectId);
-  // Columns of the project's first board — used for the role "move tasks up to" cap picker.
-  const firstBoardId = (boards ?? [])[0]?.id_board;
-  const { data: firstBoardColumns } = useApiBoardColumns(firstBoardId);
+  // Columns across ALL the project's accessible boards — used for the role "move tasks up to"
+  // cap picker, which lists every column grouped by board (no boardId => fetch all).
+  const { data: allBoardColumns } = useApiBoardColumns();
   const [selectedBoardId, setSelectedBoardId] = useState<number | undefined>(undefined);
 
   useEffect(() => {
@@ -143,6 +146,8 @@ export default function ProjectDetail() {
   }, [users, memberIds]);
 
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
+  const [showRolesModal, setShowRolesModal] = useState(false);
+  const { confirmDiscardIfDirty } = useUnsavedChangesContext();
   const [bypassGithubCheck, setBypassGithubCheck] = useState(false);
   const [sectionRefreshToken, setSectionRefreshToken] = useState<number | null>(null);
   const refreshClickTimestamps = useRef<number[]>([]);
@@ -799,15 +804,26 @@ export default function ProjectDetail() {
                   />
                 )}
               </div>
-              {canManageMembers && (
-                <button
-                  onClick={() => setShowAddMemberModal(true)}
-                  className="flex items-center gap-1.5 text-[11px] font-medium text-primary bg-primary/10 hover:bg-primary/20 px-2.5 py-1 rounded-[3px] transition-colors"
-                >
-                  <UserPlus className="w-3.5 h-3.5" />
-                  Add Member
-                </button>
-              )}
+              <div className="flex items-center gap-2">
+                {isProjectAdmin && (
+                  <button
+                    onClick={() => setShowRolesModal(true)}
+                    className="flex items-center gap-1.5 text-[11px] font-medium text-primary bg-primary/10 hover:bg-primary/20 px-2.5 py-1 rounded-[3px] transition-colors"
+                  >
+                    <Shield className="w-3.5 h-3.5" />
+                    Manage roles
+                  </button>
+                )}
+                {canManageMembers && (
+                  <button
+                    onClick={() => setShowAddMemberModal(true)}
+                    className="flex items-center gap-1.5 text-[11px] font-medium text-primary bg-primary/10 hover:bg-primary/20 px-2.5 py-1 rounded-[3px] transition-colors"
+                  >
+                    <UserPlus className="w-3.5 h-3.5" />
+                    Add Member
+                  </button>
+                )}
+              </div>
             </div>
 
             {(loadingMembers || loadingUsers) ? (
@@ -899,19 +915,6 @@ export default function ProjectDetail() {
         )}
 
         {activeTab === 'configuracion' && (
-          <div className="bg-card border border-border rounded-[4px] p-4 mb-3">
-            <h2 className="text-[10px] font-medium text-muted-foreground uppercase tracking-[0.06em] mb-3">
-              Roles &amp; Permissions
-            </h2>
-            <RoleStudio
-              projectId={projectId}
-              canManage={isProjectAdmin}
-              boardColumns={firstBoardColumns ?? []}
-            />
-          </div>
-        )}
-
-        {activeTab === 'configuracion' && (
           <div className="grid lg:grid-cols-[minmax(0,1fr)_320px] gap-3">
             <div className="bg-card border border-border rounded-[4px] p-4">
               <h2 className="text-[10px] font-medium text-muted-foreground uppercase tracking-[0.06em] mb-3">
@@ -978,6 +981,8 @@ export default function ProjectDetail() {
             </div>
 
             <div className="space-y-3">
+              <AiUsageCard projectId={projectId} />
+
               <div className="bg-card border border-border rounded-[4px] p-4">
                 <h2 className="text-[10px] font-medium text-muted-foreground uppercase tracking-[0.06em] mb-1">Team restrictions</h2>
                 <p className="text-[11px] text-muted-foreground mb-3">By default only users with a connected GitHub account can be added. You can disable this temporarily.</p>
@@ -1028,6 +1033,33 @@ export default function ProjectDetail() {
         bypassGithubCheck={bypassGithubCheck}
         onSubmit={handleAddMember}
       />
+
+      <Dialog
+        open={showRolesModal}
+        onOpenChange={async (open) => {
+          if (open) {
+            setShowRolesModal(true);
+            return;
+          }
+          // Guard the close: if RoleStudio has unsaved changes, confirm before discarding.
+          const ok = await confirmDiscardIfDirty();
+          if (ok) setShowRolesModal(false);
+        }}
+      >
+        <DialogContent className="max-w-4xl w-full max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Roles &amp; permissions</DialogTitle>
+          </DialogHeader>
+          {showRolesModal && (
+            <RoleStudio
+              projectId={projectId}
+              canManage={isProjectAdmin}
+              boardColumns={allBoardColumns ?? []}
+              boards={boards ?? []}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
 
       <AssignResponsibleModal
         open={showAssignModal}

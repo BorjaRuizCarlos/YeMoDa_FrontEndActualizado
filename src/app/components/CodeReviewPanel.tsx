@@ -1,13 +1,16 @@
 ﻿import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router';
 import {
   GitCommit, ChevronDown, ChevronRight, FileCode2,
-  Loader2, RefreshCw, Clock, User, AlertCircle, Send,
+  Loader2, RefreshCw, Clock, User, AlertCircle, Send, X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { chatService, tasksService, githubService } from '../../services';
 import { ApiRequestError } from '../../services/api';
 import type { ApiTask, ApiTaskPushMatch, ChatModelsResponse } from '../../services';
 import { CodeDiffViewer } from './CodeDiffViewer';
+import { ChatMarkdown } from './ChatMarkdown';
+import { handleAiQuotaError } from '../utils/aiQuota';
 
 interface CodeReviewPanelProps {
   projectId: number;
@@ -46,6 +49,48 @@ interface ChatMessage {
   content: string;
 }
 
+// What the user has highlighted inside a diff — surfaced back to them as a chip and
+// fed to the AI so it can focus on the selection when the question is about it.
+interface CodeSelection {
+  file: string;
+  startLine: number | null;
+  startCol: number;
+  endLine: number | null;
+  endCol: number;
+  text: string;
+}
+
+// Map a (DOM node, offset) point inside the diff to a 1-based line:column. The line
+// number comes from the content cell's data-cr-line; the column is the char count from
+// the start of that cell's text to the point (measured with a Range, so syntax-
+// highlight spans don't matter).
+function pointToLineCol(container: Node, offset: number): { line: number | null; col: number } | null {
+  const base = container.nodeType === Node.TEXT_NODE ? container.parentElement : (container as Element);
+  const cell = base?.closest('[data-cr-line]') as HTMLElement | null;
+  if (!cell) return null;
+  const lineAttr = cell.getAttribute('data-cr-line');
+  const line = lineAttr ? parseInt(lineAttr, 10) : NaN;
+  const range = document.createRange();
+  range.selectNodeContents(cell);
+  try { range.setEnd(container, offset); } catch { /* point at a boundary — ignore */ }
+  return { line: Number.isFinite(line) ? line : null, col: range.toString().length + 1 };
+}
+
+function formatSelectionRange(sel: CodeSelection): string {
+  if (sel.startLine != null && sel.startLine === sel.endLine) {
+    return `L${sel.startLine}:${sel.startCol}–${sel.endCol}`;
+  }
+  const start = sel.startLine != null ? `L${sel.startLine}:${sel.startCol}` : `:${sel.startCol}`;
+  const end = sel.endLine != null ? `L${sel.endLine}:${sel.endCol}` : `:${sel.endCol}`;
+  return `${start} → ${end}`;
+}
+
+function shortFileName(path: string): string {
+  if (!path) return 'selection';
+  const parts = path.split('/');
+  return parts[parts.length - 1] || path;
+}
+
 function buildMatchFingerprint(match: ApiTaskPushMatch): string {
   const commits = [...(match.push_commits ?? [])]
     .map((commit) => commit.id)
@@ -80,6 +125,7 @@ function dedupeMatches(matches: ApiTaskPushMatch[]): ApiTaskPushMatch[] {
 }
 
 export function CodeReviewPanel({ projectId, repoFullName }: CodeReviewPanelProps) {
+  const navigate = useNavigate();
   const [tasks, setTasks] = useState<ApiTask[]>([]);
   const [loadingTasks, setLoadingTasks] = useState(true);
   const [expandedTasks, setExpandedTasks] = useState<Set<number>>(new Set());
@@ -92,6 +138,56 @@ export function CodeReviewPanel({ projectId, repoFullName }: CodeReviewPanelProp
   const [chatInputByTask, setChatInputByTask] = useState<Map<number, string>>(new Map());
   const [chatByTask, setChatByTask] = useState<Map<number, ChatMessage[]>>(new Map());
   const [sendingTaskId, setSendingTaskId] = useState<number | null>(null);
+  const [selectionByTask, setSelectionByTask] = useState<Map<number, CodeSelection>>(new Map());
+
+  // Track what the user highlights inside a task's diff so we can show feedback and
+  // hand it to the AI. Scoped per task via the `data-cr-diff` wrapper around each diff.
+  useEffect(() => {
+    const onSelectionChange = () => {
+      const sel = window.getSelection();
+      if (!sel || sel.isCollapsed || sel.rangeCount === 0) return;
+      const range = sel.getRangeAt(0);
+      const startEl = range.startContainer.nodeType === Node.TEXT_NODE
+        ? range.startContainer.parentElement
+        : (range.startContainer as Element);
+      const diffWrap = startEl?.closest('[data-cr-diff]') as HTMLElement | null;
+      if (!diffWrap) return; // selection isn't inside a diff — keep the last one
+      const taskId = parseInt(diffWrap.getAttribute('data-task-id') ?? '', 10);
+      if (!Number.isFinite(taskId)) return;
+      const text = sel.toString();
+      if (!text.trim()) return;
+      const start = pointToLineCol(range.startContainer, range.startOffset);
+      const end = pointToLineCol(range.endContainer, range.endOffset);
+      const fileEl = startEl?.closest('[data-cr-file]') as HTMLElement | null;
+      const next: CodeSelection = {
+        file: fileEl?.getAttribute('data-cr-file') ?? '',
+        startLine: start?.line ?? null,
+        startCol: start?.col ?? 1,
+        endLine: end?.line ?? null,
+        endCol: end?.col ?? 1,
+        text: text.length > 800 ? `${text.slice(0, 800)}…` : text,
+      };
+      setSelectionByTask((prev) => {
+        const cur = prev.get(taskId);
+        if (cur && cur.text === next.text && cur.startLine === next.startLine
+          && cur.startCol === next.startCol && cur.endLine === next.endLine && cur.endCol === next.endCol) {
+          return prev;
+        }
+        return new Map(prev).set(taskId, next);
+      });
+    };
+    document.addEventListener('selectionchange', onSelectionChange);
+    return () => document.removeEventListener('selectionchange', onSelectionChange);
+  }, []);
+
+  const clearSelection = (taskId: number) => {
+    setSelectionByTask((prev) => {
+      if (!prev.has(taskId)) return prev;
+      const next = new Map(prev);
+      next.delete(taskId);
+      return next;
+    });
+  };
 
   const fetchTasks = useCallback(async () => {
     setLoadingTasks(true);
@@ -179,6 +275,26 @@ export function CodeReviewPanel({ projectId, repoFullName }: CodeReviewPanelProp
       ?? history.map((item) => item.push_diff_text).filter(Boolean).join('\n\n')
       ?? null;
 
+    // If the user highlighted code in the diff, prepend it (with its location) to the
+    // message the AI receives — and tell it to focus on the selection only when relevant.
+    // The displayed message stays clean (just the user's question).
+    const selection = selectionByTask.get(task.id_task) ?? null;
+    let requestInput = input;
+    if (selection && selection.text.trim()) {
+      const loc = selection.startLine != null && selection.startLine === selection.endLine
+        ? `line ${selection.startLine}, columns ${selection.startCol}-${selection.endCol}`
+        : `line ${selection.startLine}:${selection.startCol} to line ${selection.endLine}:${selection.endCol}`;
+      requestInput = [
+        `The user highlighted this snippet in ${selection.file || 'the diff'} (${loc}):`,
+        '```',
+        selection.text,
+        '```',
+        'If the question is about this selection, focus your answer on it; otherwise answer from the full diff.',
+        '',
+        `Question: ${input}`,
+      ].join('\n');
+    }
+
     const nextUserMessage: ChatMessage = { role: 'user', content: input };
     const pendingAssistant: ChatMessage = { role: 'assistant', content: '' };
     const previousMessages = chatByTask.get(task.id_task) ?? [];
@@ -186,7 +302,7 @@ export function CodeReviewPanel({ projectId, repoFullName }: CodeReviewPanelProp
       ...previousMessages
         .filter((message) => message.content.trim().length > 0)
         .map((message) => ({ role: message.role, content: message.content })),
-      { role: 'user' as const, content: input },
+      { role: 'user' as const, content: requestInput },
     ];
 
     setChatByTask((prev) => {
@@ -229,13 +345,15 @@ export function CodeReviewPanel({ projectId, repoFullName }: CodeReviewPanelProp
         return new Map(prev).set(task.id_task, current);
       });
     } catch (err) {
-      const detail = err instanceof ApiRequestError
-        ? String(err.body?.detail ?? '')
-        : err instanceof Error ? err.message : '';
-      if (/unavailable|temporarily|down|service/i.test(detail)) {
-        toast.error('AI service temporarily unavailable.');
-      } else {
-        toast.error('Could not send the review message.');
+      if (!handleAiQuotaError(err, navigate, projectId)) {
+        const detail = err instanceof ApiRequestError
+          ? String(err.body?.detail ?? '')
+          : err instanceof Error ? err.message : '';
+        if (/unavailable|temporarily|down|service/i.test(detail)) {
+          toast.error('AI service temporarily unavailable.');
+        } else {
+          toast.error('Could not send the review message.');
+        }
       }
 
       setChatByTask((prev) => {
@@ -318,6 +436,7 @@ export function CodeReviewPanel({ projectId, repoFullName }: CodeReviewPanelProp
       {tasks.map((task) => {
         const isTaskExpanded = expandedTasks.has(task.id_task);
         const history = taskHistories.get(task.id_task);
+        const taskSelection = selectionByTask.get(task.id_task);
 
         return (
           <div key={task.id_task} className="border border-border rounded-[4px] overflow-hidden">
@@ -342,9 +461,15 @@ export function CodeReviewPanel({ projectId, repoFullName }: CodeReviewPanelProp
               )}
             </button>
 
-            {/* Push matches */}
+            {/* Expanded: diffs on the left, Code Review Chat docked on the right (like the demo) */}
             {isTaskExpanded && (
-              <div className="divide-y divide-border/50">
+              <div className="lg:grid lg:grid-cols-[1fr_minmax(280px,360px)] lg:h-[520px]">
+                {/* Left column: push matches + diffs (selection source) */}
+                <div
+                  data-cr-diff
+                  data-task-id={task.id_task}
+                  className="divide-y divide-border/50 min-h-0 lg:overflow-y-auto lg:border-r lg:border-border"
+                >
                 {history?.loading && (
                   <div className="flex items-center gap-2 px-4 py-3 text-[11px] text-muted-foreground">
                     <Loader2 className="w-3 h-3 animate-spin" /> Loading history…
@@ -440,35 +565,84 @@ export function CodeReviewPanel({ projectId, repoFullName }: CodeReviewPanelProp
                   );
                 })}
 
-                <div className="px-3 py-3 bg-card space-y-2">
-                  <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-[0.06em]">Code Review Chat</p>
-                  <div className="max-h-44 overflow-y-auto rounded-[4px] border border-border bg-surface-secondary/30 p-2 space-y-1.5">
+                </div>
+
+                {/* Right column: Code Review Chat docked to the right (like the demo) */}
+                <div className="flex flex-col bg-card min-h-0 h-[420px] lg:h-auto border-t border-border lg:border-t-0">
+                  <div className="px-3 py-2.5 border-b border-border shrink-0">
+                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-[0.06em]">Code Review Chat</p>
+                  </div>
+                  <div className="flex-1 overflow-y-auto p-2.5 space-y-2 bg-surface-secondary/20">
                     {(chatByTask.get(task.id_task) ?? []).length === 0 ? (
-                      <p className="text-[11px] text-muted-foreground">Ask about the diff to start the conversation.</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        Ask about the diff to start — or select code on the left to ask about it specifically.
+                      </p>
                     ) : (
-                      (chatByTask.get(task.id_task) ?? []).map((message, index) => (
-                        <div key={`${task.id_task}-${index}`} className={`rounded-[3px] px-2 py-1.5 text-[11px] ${message.role === 'user' ? 'bg-primary/10 text-foreground' : 'bg-card border border-border text-muted-foreground'}`}>
-                          {message.content || (sendingTaskId === task.id_task && message.role === 'assistant' ? 'Typing…' : '')}
-                        </div>
-                      ))
+                      (chatByTask.get(task.id_task) ?? []).map((message, index) => {
+                        const text = message.content
+                          || (sendingTaskId === task.id_task && message.role === 'assistant' ? 'Typing…' : '');
+                        // User → purple bubble on the right. AI → dark bubble on the left,
+                        // tagged with an "AI" badge so it's clear the assistant wrote it.
+                        if (message.role === 'user') {
+                          return (
+                            <div
+                              key={`${task.id_task}-${index}`}
+                              className="max-w-[85%] ml-auto rounded-[6px] bg-primary/10 text-foreground text-[11px] px-2.5 py-1.5 leading-relaxed"
+                            >
+                              {text}
+                            </div>
+                          );
+                        }
+                        return (
+                          <div key={`${task.id_task}-${index}`} className="flex items-start gap-1.5 max-w-[90%]">
+                            <span className="shrink-0 mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-[4px] bg-primary text-primary-foreground text-[8px] font-bold tracking-wide">
+                              AI
+                            </span>
+                            <div className="rounded-[6px] bg-card border border-border text-muted-foreground text-[11px] px-2.5 py-1.5 leading-relaxed min-w-0">
+                              <ChatMarkdown content={text} />
+                            </div>
+                          </div>
+                        );
+                      })
                     )}
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <input
-                      type="text"
-                      value={chatInputByTask.get(task.id_task) ?? ''}
-                      onChange={(e) => setChatInputByTask((prev) => new Map(prev).set(task.id_task, e.target.value))}
-                      placeholder="Ask about changes, risks, or improvements…"
-                      className="flex-1 h-7 rounded-[3px] border border-border bg-surface-secondary px-2 text-[11px]"
-                    />
-                    <button
-                      type="button"
-                      disabled={sendingTaskId === task.id_task || !(chatInputByTask.get(task.id_task) ?? '').trim()}
-                      onClick={() => void sendCodeReviewMessage(task)}
-                      className="h-7 w-7 rounded-[3px] bg-primary text-primary-foreground inline-flex items-center justify-center disabled:opacity-50"
-                    >
-                      {sendingTaskId === task.id_task ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
-                    </button>
+                  <div className="p-2.5 border-t border-border shrink-0 space-y-2">
+                    {taskSelection && (
+                      <div className="flex items-start gap-1.5 rounded-[4px] border border-primary/30 bg-primary/5 px-2 py-1.5">
+                        <FileCode2 className="w-3 h-3 text-primary mt-0.5 shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[10px] font-mono text-primary truncate">
+                            {shortFileName(taskSelection.file)} · {formatSelectionRange(taskSelection)}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground truncate">{taskSelection.text.split('\n')[0]}</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => clearSelection(task.id_task)}
+                          className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+                          aria-label="Clear selection"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="text"
+                        value={chatInputByTask.get(task.id_task) ?? ''}
+                        onChange={(e) => setChatInputByTask((prev) => new Map(prev).set(task.id_task, e.target.value))}
+                        placeholder="Ask about changes, risks, or improvements…"
+                        className="flex-1 h-7 rounded-[3px] border border-border bg-surface-secondary px-2 text-[11px]"
+                      />
+                      <button
+                        type="button"
+                        disabled={sendingTaskId === task.id_task || !(chatInputByTask.get(task.id_task) ?? '').trim()}
+                        onClick={() => void sendCodeReviewMessage(task)}
+                        className="h-7 w-7 rounded-[3px] bg-primary text-primary-foreground inline-flex items-center justify-center disabled:opacity-50"
+                      >
+                        {sendingTaskId === task.id_task ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>

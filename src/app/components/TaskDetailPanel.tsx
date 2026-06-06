@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
+import { useNavigate } from 'react-router';
 import {
   X, Calendar, User, MessageSquare, AlertTriangle,
   GitCommit, Send, Loader2, Pencil, Trash2, Plus,
@@ -29,6 +30,7 @@ import { TagColorPicker } from './TagColorPicker';
 import { CodeDiffViewer } from './CodeDiffViewer';
 import { TaskSubtasks } from './TaskSubtasks';
 import { useAuth } from '../context/AuthContext';
+import { handleAiQuotaError } from '../utils/aiQuota';
 
 const DONE_STATUS_NAMES = new Set(['done', 'completada', 'completado']);
 const EMPTY_ASSIGNABLE_USERS: Array<{ id: number; name: string }> = [];
@@ -412,6 +414,7 @@ export function TaskDetailPanel({
   onTaskUpdated,
   onCreateTag,
 }: TaskDetailPanelProps) {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const currentUserId = useMemo(() => {
     const parsed = Number(user?.id ?? 0);
@@ -820,6 +823,7 @@ export function TaskDetailPanel({
 
       toast.success('Response received from AI.');
     } catch (err) {
+      if (handleAiQuotaError(err, navigate, projectId)) return;
       const detail = err instanceof ApiRequestError
         ? String(err.body?.detail ?? '')
         : err instanceof Error ? err.message : '';
@@ -892,6 +896,10 @@ export function TaskDetailPanel({
         nextBranch = resolvedBranch;
       }
     } catch (err) {
+      if (handleAiQuotaError(err, navigate, projectId)) {
+        setShowAiCodeModal(false);
+        return;
+      }
       const detail = err instanceof ApiRequestError
         ? String(err.body?.detail ?? '')
         : err instanceof Error ? err.message : '';

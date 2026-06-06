@@ -7,7 +7,11 @@ import { PageTransition } from './PageTransition';
 import { ScrollToTop } from './ScrollToTop';
 import { ErrorBoundary } from './ErrorBoundary';
 import { useGlobalShortcuts } from '../hooks/useGlobalShortcuts';
+import { useTours } from '../hooks/useTours';
+import { OnboardingWelcome } from './OnboardingWelcome';
 import { useAuth } from '../context/AuthContext';
+import { ConfirmProvider } from '../context/ConfirmContext';
+import { UnsavedChangesProvider } from '../context/UnsavedChangesContext';
 import { ApiRequestError, usersService } from '../../services';
 import { toast } from 'sonner';
 
@@ -16,6 +20,7 @@ export function AppLayout() {
   const [nicknameInput, setNicknameInput] = useState('');
   const [savingNickname, setSavingNickname] = useState(false);
   useGlobalShortcuts();
+  useTours();
 
   const mustChooseNickname = useMemo(() => {
     if (!user) return false;
@@ -93,22 +98,27 @@ export function AppLayout() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
-      <ScrollToTop />
-      <Sidebar />
-      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-        <Topbar />
-        <div className="flex-1 flex overflow-hidden">
-          <main className="flex-1 overflow-y-auto min-w-0 scrollbar-app">
-            <ErrorBoundary>
-              <PageTransition>
-                <Outlet />
-              </PageTransition>
-            </ErrorBoundary>
-          </main>
+    <ConfirmProvider>
+      <UnsavedChangesProvider>
+        <div className="flex h-screen overflow-hidden bg-background">
+          <ScrollToTop />
+          <Sidebar />
+          <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+            <Topbar />
+            <div className="flex-1 flex overflow-hidden">
+              <main className="flex-1 overflow-y-auto min-w-0 scrollbar-app">
+                <ErrorBoundary>
+                  <PageTransition>
+                    <Outlet />
+                  </PageTransition>
+                </ErrorBoundary>
+              </main>
+            </div>
+          </div>
+          <CommandPalette />
         </div>
-      </div>
-      <CommandPalette />
-    </div>
+        <OnboardingWelcome />
+      </UnsavedChangesProvider>
+    </ConfirmProvider>
   );
 }

@@ -69,9 +69,10 @@ export const githubService = {
     return res;
   },
 
-  // ─── Flow 2: App Installation (Admin only) ────────────────────────────────
+  // ─── Flow 2: App Installation (personal account or organization) ──────────
 
-  /** GET /api/github/app/install/start/ → redirect to GitHub App installation page (admin only) */
+  /** GET /api/github/app/install/start/ → redirect to the GitHub App installation page
+   * (lets the user install it on their personal account or an organization). */
   async startAppInstall(): Promise<void> {
     const data = await api.get<GitHubAppInstallStartResponse>('/github/app/install/start/');
     window.location.href = data.install_url;

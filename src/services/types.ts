@@ -217,6 +217,36 @@ export interface CreateCheckoutSessionResponse {
   checkout_url: string;
 }
 
+/** POST /api/payments/cancel/ — cancels the project's subscription at period end. */
+export interface CancelSubscriptionResponse {
+  detail: string;
+  cancel_at_period_end?: boolean;
+  current_period_end?: string;
+}
+
+// ─── AI usage quotas (paywall) ───────────────────────────────────────────────
+
+/** The three metered AI categories shared by quota / used / remaining. */
+export interface AiUsageCategories {
+  reviews: number;   // push + on-demand AI reviews
+  chat: number;      // AI chat questions
+  aifix: number;     // "send warnings to AI to resolve"
+}
+
+/** The billing plan a project is on. Billing is per-project, not per-user. */
+export type ProjectPlan = 'free' | 'pro';
+
+/** GET /api/projects/:id/ai-usage/ — the project's AI quota usage for the current period. */
+export interface AiUsage {
+  period: string;            // YYYY-MM
+  plan: ProjectPlan;         // 'free' or 'pro' (per-project)
+  seats: number;
+  enforced: boolean;
+  quota: AiUsageCategories;
+  used: AiUsageCategories;
+  remaining: AiUsageCategories;
+}
+
 // ─── Auth response shapes ────────────────────────────────────────────────────
 
 export interface LoginResponse {
@@ -267,11 +297,15 @@ export interface GitHubOAuthCallbackResponse {
   expires_at: string;
   github_login: string;
   user: ApiUserAccount;
+  /** Whether the user has the GitHub App installed (personal account or org). */
+  has_installation?: boolean;
 }
 
 export interface GitHubConnectionStatusResponse {
   connected: boolean;
   github_login: string | null;
+  /** Present when connected=true: whether the GitHub App is installed (personal or org). */
+  has_installation?: boolean;
   reason?: string;
 }
 

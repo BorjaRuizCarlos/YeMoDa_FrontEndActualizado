@@ -31,6 +31,20 @@ import { TaskDetailPanel } from './TaskDetailPanel';
 import { DatePickerField } from './DatePickerField';
 import { TaskAssigneePicker } from './TaskAssigneePicker';
 import { TagColorPicker } from './TagColorPicker';
+import { useConfirm } from '../context/ConfirmContext';
+import { useUnsavedChanges, useUnsavedChangesContext } from '../context/UnsavedChangesContext';
+
+// A board can have at most this many columns (Review + Done + custom).
+const MAX_COLUMNS_PER_BOARD = 6;
+
+type BoardAiDraft = {
+  coding_style: ApiBoard['coding_style'];
+  review_focus: ApiBoard['review_focus'];
+  tech_stack: ApiBoard['tech_stack'];
+  naming_convention: ApiBoard['naming_convention'];
+  response_language: ApiBoard['response_language'];
+  custom_instructions: string;
+};
 
 interface ProjectTasksWorkspaceProps {
   projectId: number;
@@ -145,6 +159,32 @@ function SortableColumnItem({
   canManage: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: column.id_column, disabled: !canManage });
+  const [editingName, setEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState(column.name);
+  const [savingName, setSavingName] = useState(false);
+
+  useEffect(() => {
+    setNameDraft(column.name);
+  }, [column.name]);
+
+  const saveName = async () => {
+    const next = nameDraft.trim();
+    if (!next || next === column.name) {
+      setEditingName(false);
+      setNameDraft(column.name);
+      return;
+    }
+    setSavingName(true);
+    try {
+      await tasksService.updateBoardColumn(column.id_column, { name: next });
+      refetchColumns();
+      setEditingName(false);
+    } catch {
+      toast.error('Could not rename the column.');
+    } finally {
+      setSavingName(false);
+    }
+  };
 
   return (
     <div
@@ -152,19 +192,42 @@ function SortableColumnItem({
       style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 }}
       className="flex items-center justify-between rounded-[3px] border border-border bg-surface-secondary/40 px-2 py-1.5 text-[11px]"
     >
-      {/* Drag handle */}
+      {/* Drag handle + name */}
       <div className="flex items-center gap-2 min-w-0">
         {canManage && (
           <button type="button" {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground shrink-0">
             <GripVertical className="w-3.5 h-3.5" />
           </button>
         )}
-        <span className="truncate">{column.order}. {column.name}</span>
+        {editingName ? (
+          <input
+            value={nameDraft}
+            autoFocus
+            disabled={savingName}
+            onChange={(e) => setNameDraft(e.target.value)}
+            onBlur={() => void saveName()}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') { e.preventDefault(); void saveName(); }
+              if (e.key === 'Escape') { setEditingName(false); setNameDraft(column.name); }
+            }}
+            className="h-6 min-w-0 flex-1 rounded-[3px] border border-border bg-surface-secondary px-1.5 text-[11px] focus:outline-none focus:ring-1 focus:ring-primary/40"
+          />
+        ) : (
+          <span className="truncate">{column.order}. {column.name}</span>
+        )}
       </div>
 
       {/* Actions */}
       {canManage && (
       <div className="flex items-center gap-2 shrink-0 ml-2">
+        <button
+          type="button"
+          title="Rename column"
+          onClick={() => setEditingName(true)}
+          className="h-6 w-6 inline-flex items-center justify-center rounded-[3px] border border-border text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <Pencil className="w-3 h-3" />
+        </button>
         <button
           type="button"
           onClick={() => {
@@ -291,6 +354,128 @@ function ColumnSortableList({
           ))}
         </SortableContext>
       </DndContext>
+    </div>
+  );
+}
+
+// ── Reusable AI-config form (used inline on the board pane and in the creation wizard) ──
+function BoardAiSettingsForm({
+  value,
+  onChange,
+  onSave,
+  saving,
+  saveLabel = 'Save settings',
+}: {
+  value: BoardAiDraft;
+  onChange: (next: BoardAiDraft) => void;
+  onSave: () => void;
+  saving: boolean;
+  saveLabel?: string;
+}) {
+  return (
+    <div className="space-y-3">
+      <p className="text-[10px] font-medium uppercase tracking-[0.06em] text-muted-foreground flex items-center gap-1.5">
+        <Bot className="w-3 h-3" /> Board AI settings
+      </p>
+      <div className="grid grid-cols-2 gap-2">
+        <div className="space-y-1">
+          <label className="text-[10px] font-medium text-muted-foreground">Code style</label>
+          <select
+            value={value.coding_style}
+            onChange={(e) => onChange({ ...value, coding_style: e.target.value as ApiBoard['coding_style'] })}
+            className="w-full h-8 rounded-[3px] border border-border bg-surface-secondary px-2 text-[11px]"
+          >
+            <option value="standard">Standard</option>
+            <option value="clean_code">Clean Code</option>
+            <option value="tdd">TDD</option>
+            <option value="security">Security</option>
+            <option value="performance">Performance</option>
+          </select>
+        </div>
+        <div className="space-y-1">
+          <label className="text-[10px] font-medium text-muted-foreground">Review mode</label>
+          <select
+            value={value.review_focus}
+            onChange={(e) => onChange({ ...value, review_focus: e.target.value as ApiBoard['review_focus'] })}
+            className="w-full h-8 rounded-[3px] border border-border bg-surface-secondary px-2 text-[11px]"
+          >
+            <option value="general">General</option>
+            <option value="strict">Strict</option>
+          </select>
+        </div>
+        <div className="space-y-1">
+          <label className="text-[10px] font-medium text-muted-foreground">Tech stack</label>
+          <select
+            value={value.tech_stack}
+            onChange={(e) => onChange({ ...value, tech_stack: e.target.value as ApiBoard['tech_stack'] })}
+            className="w-full h-8 rounded-[3px] border border-border bg-surface-secondary px-2 text-[11px]"
+          >
+            <option value="mixed">Mixed / Full-Stack</option>
+            <option value="python">Python</option>
+            <option value="nodejs">Node.js / JavaScript</option>
+            <option value="typescript">TypeScript / Node.js</option>
+            <option value="java">Java / Spring</option>
+            <option value="go">Go</option>
+            <option value="dotnet">C# / .NET</option>
+            <option value="react">React</option>
+            <option value="nextjs">Next.js</option>
+            <option value="angular">Angular</option>
+            <option value="vue">Vue.js</option>
+            <option value="vite">Vite / Vanilla JS</option>
+          </select>
+        </div>
+        <div className="space-y-1">
+          <label className="text-[10px] font-medium text-muted-foreground">Naming convention</label>
+          <select
+            value={value.naming_convention}
+            onChange={(e) => onChange({ ...value, naming_convention: e.target.value as ApiBoard['naming_convention'] })}
+            className="w-full h-8 rounded-[3px] border border-border bg-surface-secondary px-2 text-[11px]"
+          >
+            <option value="default">Language defaults</option>
+            <option value="camel_case">camelCase</option>
+            <option value="pascal_case">PascalCase</option>
+            <option value="snake_case">snake_case</option>
+            <option value="kebab_case">kebab-case</option>
+            <option value="mixed">Mixed</option>
+          </select>
+        </div>
+      </div>
+      <div className="space-y-1">
+        <label className="text-[10px] font-medium text-muted-foreground">Response language</label>
+        <select
+          value={value.response_language}
+          onChange={(e) => onChange({ ...value, response_language: e.target.value as ApiBoard['response_language'] })}
+          className="w-full h-8 rounded-[3px] border border-border bg-surface-secondary px-2 text-[11px]"
+        >
+          <option value="es">Español</option>
+          <option value="en">English</option>
+        </select>
+      </div>
+      <div className="space-y-1">
+        <label className="text-[10px] font-medium text-muted-foreground">Custom instructions</label>
+        <textarea
+          value={value.custom_instructions}
+          onChange={(e) => onChange({ ...value, custom_instructions: e.target.value.slice(0, 1000) })}
+          placeholder="E.g. This project uses Flutter, ignore Dart null safety warnings…"
+          rows={3}
+          maxLength={1000}
+          className="w-full rounded-[3px] border border-border bg-surface-secondary px-2 py-1.5 text-[11px] resize-none placeholder:text-muted-foreground/60 focus:outline-none"
+        />
+        <p className={`text-right text-[10px] ${value.custom_instructions.length >= 950 ? 'text-warning' : 'text-muted-foreground'}`}>
+          {value.custom_instructions.length}/1000
+        </p>
+      </div>
+      <div className="flex justify-end">
+        <button
+          type="button"
+          disabled={saving}
+          onClick={onSave}
+          className="h-8 px-3 bg-primary text-primary-foreground rounded-[3px] text-[11px] inline-flex items-center gap-1.5 disabled:opacity-50"
+        >
+          {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+          {saveLabel}
+        </button>
+      </div>
     </div>
   );
 }
@@ -545,6 +730,18 @@ export function ProjectTasksWorkspace({
   }>({ coding_style: 'standard', review_focus: 'general', tech_stack: 'mixed', naming_convention: 'default', response_language: 'es', custom_instructions: '' });
   const [boardSettingsSaving, setBoardSettingsSaving] = useState(false);
 
+  // Confirm dialogs + global unsaved-changes guard. (Aliased to avoid shadowing window.confirm,
+  // which other handlers in this file still use for quick delete confirmations.)
+  const { confirm: askConfirm } = useConfirm();
+  const { confirmDiscardIfDirty } = useUnsavedChangesContext();
+
+  // Board-creation wizard: review prompt → column editor → (optional) AI config.
+  const [wizardStep, setWizardStep] = useState<null | 'review' | 'columns' | 'ai'>(null);
+  const [wizardBoardId, setWizardBoardId] = useState<number | null>(null);
+  const [wizardReviewEnabled, setWizardReviewEnabled] = useState(false);
+  const [wizardBusy, setWizardBusy] = useState(false);
+  const [wizardColumnName, setWizardColumnName] = useState('');
+
   const selectedBoard = (boards ?? []).find((board) => board.id_board === selectedBoardId) ?? null;
 
   useEffect(() => {
@@ -559,6 +756,26 @@ export function ProjectTasksWorkspace({
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedBoard?.id_board]);
+
+  const hasReviewColumn = selectedBoardColumns.some((col) => col.is_review);
+  const wizardBoardColumns = wizardBoardId ? (boardColumnsByBoard.get(wizardBoardId) ?? []) : [];
+
+  // AI settings are "dirty" when the draft differs from the board's saved values.
+  const aiDirty = !!selectedBoard && (
+    draftBoard.coding_style !== (selectedBoard.coding_style ?? 'standard') ||
+    draftBoard.review_focus !== (selectedBoard.review_focus ?? 'general') ||
+    draftBoard.tech_stack !== (selectedBoard.tech_stack ?? 'mixed') ||
+    draftBoard.naming_convention !== (selectedBoard.naming_convention ?? 'default') ||
+    draftBoard.response_language !== (selectedBoard.response_language ?? 'es') ||
+    draftBoard.custom_instructions !== (selectedBoard.custom_instructions ?? '')
+  );
+
+  // Register dirty state with the global guard (intercepts navigation + browser close/refresh).
+  useUnsavedChanges('board-ai:' + (selectedBoardId ?? 'none'), aiDirty);
+  useUnsavedChanges('board-create', showBoardModal && (newBoard.name.trim() !== '' || newBoard.description.trim() !== ''));
+  useUnsavedChanges('column-create', showColumnModal && newColumn.name.trim() !== '');
+  useUnsavedChanges('board-wizard', wizardStep !== null);
+  useUnsavedChanges('task-create', showTaskModal && (newTask.title.trim() !== '' || newTask.description.trim() !== ''));
 
   const selectedTaskAssignments = useMemo(() => taskAssignments ?? [], [taskAssignments]);
 
@@ -632,7 +849,10 @@ export function ProjectTasksWorkspace({
       setNewBoard({ name: '', description: '' });
       setShowBoardModal(false);
       refetchBoards();
-      toast.success('Board created.');
+      // Kick off the guided setup (Review prompt → columns → AI).
+      setWizardBoardId(created.id_board);
+      setWizardReviewEnabled(false);
+      setWizardStep('review');
     } catch {
       toast.error('Could not create the board.');
     } finally {
@@ -640,10 +860,101 @@ export function ProjectTasksWorkspace({
     }
   };
 
+  // ── Board-creation wizard handlers ───────────────────────────────────────────
+  const wizardEnableReview = async () => {
+    if (!wizardBoardId || wizardBusy) return;
+    setWizardBusy(true);
+    try {
+      // Auto-create the two editable starter columns: Review (AI) + Done (final).
+      await tasksService.createBoardColumn({ board: wizardBoardId, name: 'Review', order: 1, is_final: false, is_review: true });
+      await tasksService.createBoardColumn({ board: wizardBoardId, name: 'Done', order: 2, is_final: true, is_review: false });
+      refetchColumns();
+      setWizardReviewEnabled(true);
+      setWizardStep('columns');
+    } catch {
+      toast.error('Could not create the starter columns.');
+    } finally {
+      setWizardBusy(false);
+    }
+  };
+
+  const wizardSkipReview = () => {
+    setWizardReviewEnabled(false);
+    setWizardStep('columns');
+  };
+
+  const wizardAddColumn = async () => {
+    if (!wizardBoardId || wizardBusy) return;
+    const name = wizardColumnName.trim();
+    if (!name) return;
+    const existing = boardColumnsByBoard.get(wizardBoardId) ?? [];
+    if (existing.length >= MAX_COLUMNS_PER_BOARD) {
+      toast.error(`A board can have at most ${MAX_COLUMNS_PER_BOARD} columns.`);
+      return;
+    }
+    setWizardBusy(true);
+    try {
+      await tasksService.createBoardColumn({ board: wizardBoardId, name, order: existing.length + 1, is_final: false, is_review: false });
+      setWizardColumnName('');
+      refetchColumns();
+    } catch {
+      toast.error('Could not create the column.');
+    } finally {
+      setWizardBusy(false);
+    }
+  };
+
+  const wizardFinishColumns = () => {
+    if (wizardReviewEnabled) {
+      setWizardStep('ai');
+    } else {
+      closeWizard();
+      toast.success('Board ready.');
+    }
+  };
+
+  const closeWizard = () => {
+    setWizardStep(null);
+    setWizardBoardId(null);
+    setWizardReviewEnabled(false);
+    setWizardColumnName('');
+  };
+
+  const wizardSaveAi = async () => {
+    await handleSaveBoardSettings();
+    closeWizard();
+  };
+
+  // Re-hydrate the AI draft from the saved board (used to genuinely discard unsaved edits).
+  const resetAiDraft = () => {
+    if (!selectedBoard) return;
+    setDraftBoard({
+      coding_style: selectedBoard.coding_style ?? 'standard',
+      review_focus: selectedBoard.review_focus ?? 'general',
+      tech_stack: selectedBoard.tech_stack ?? 'mixed',
+      naming_convention: selectedBoard.naming_convention ?? 'default',
+      response_language: selectedBoard.response_language ?? 'es',
+      custom_instructions: selectedBoard.custom_instructions ?? '',
+    });
+  };
+
+  // Switching the workspace tab discards unsaved changes after confirmation.
+  const handleTabChange = async (tab: WorkspaceTab) => {
+    if (tab === activeTab) return;
+    if (!(await confirmDiscardIfDirty())) return;
+    resetAiDraft();
+    setActiveTab(tab);
+  };
+
   const createColumn = async (e: React.FormEvent) => {
     e.preventDefault();
     if (creatingColumn || !selectedBoardId || !newColumn.name.trim()) return;
-    const nextOrder = (boardColumnsByBoard.get(selectedBoardId) ?? []).length + 1;
+    const existingColumns = boardColumnsByBoard.get(selectedBoardId) ?? [];
+    if (existingColumns.length >= MAX_COLUMNS_PER_BOARD) {
+      toast.error(`A board can have at most ${MAX_COLUMNS_PER_BOARD} columns.`);
+      return;
+    }
+    const nextOrder = existingColumns.length + 1;
     setCreatingColumn(true);
     try {
       await tasksService.createBoardColumn({
@@ -892,7 +1203,7 @@ export function ProjectTasksWorkspace({
               <button
                 key={tab}
                 type="button"
-                onClick={() => setActiveTab(tab)}
+                onClick={() => void handleTabChange(tab)}
                 className={`h-7 px-3 rounded-[3px] text-[11px] font-medium capitalize ${activeTab === tab ? 'bg-card text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
               >
                 {tab}
@@ -999,7 +1310,8 @@ export function ProjectTasksWorkspace({
               <button
                 type="button"
                 onClick={() => setShowColumnModal(true)}
-                disabled={!selectedBoardId}
+                disabled={!selectedBoardId || selectedBoardColumns.length >= MAX_COLUMNS_PER_BOARD}
+                title={selectedBoardId && selectedBoardColumns.length >= MAX_COLUMNS_PER_BOARD ? `Maximum ${MAX_COLUMNS_PER_BOARD} columns per board` : undefined}
                 className="h-8 px-3 rounded-[3px] border border-border text-[11px] inline-flex items-center gap-1.5 disabled:opacity-40 hover:bg-accent/30 transition-colors"
               >
                 <Plus className="w-3.5 h-3.5" /> New column
@@ -1422,115 +1734,21 @@ export function ProjectTasksWorkspace({
                 canManage={canCreateBoards}
               />
 
-              {/* ── Board AI settings ── */}
-              {canCreateBoards && (
-              <div className="mt-4 pt-4 border-t border-border space-y-3">
-                <p className="text-[10px] font-medium uppercase tracking-[0.06em] text-muted-foreground flex items-center gap-1.5">
-                  <Bot className="w-3 h-3" /> Board AI settings
-                </p>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-medium text-muted-foreground">Code style</label>
-                    <select
-                      value={draftBoard.coding_style}
-                      onChange={(e) => setDraftBoard((prev) => ({ ...prev, coding_style: e.target.value as ApiBoard['coding_style'] }))}
-                      className="w-full h-8 rounded-[3px] border border-border bg-surface-secondary px-2 text-[11px]"
-                    >
-                      <option value="standard">Standard</option>
-                      <option value="clean_code">Clean Code</option>
-                      <option value="tdd">TDD</option>
-                      <option value="security">Security</option>
-                      <option value="performance">Performance</option>
-                    </select>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-medium text-muted-foreground">Review mode</label>
-                    <select
-                      value={draftBoard.review_focus}
-                      onChange={(e) => setDraftBoard((prev) => ({ ...prev, review_focus: e.target.value as ApiBoard['review_focus'] }))}
-                      className="w-full h-8 rounded-[3px] border border-border bg-surface-secondary px-2 text-[11px]"
-                    >
-                      <option value="general">General</option>
-                      <option value="strict">Strict</option>
-                    </select>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-medium text-muted-foreground">Tech stack</label>
-                    <select
-                      value={draftBoard.tech_stack}
-                      onChange={(e) => setDraftBoard((prev) => ({ ...prev, tech_stack: e.target.value as ApiBoard['tech_stack'] }))}
-                      className="w-full h-8 rounded-[3px] border border-border bg-surface-secondary px-2 text-[11px]"
-                    >
-                      <option value="mixed">Mixed / Full-Stack</option>
-                      <option value="python">Python</option>
-                      <option value="nodejs">Node.js / JavaScript</option>
-                      <option value="typescript">TypeScript / Node.js</option>
-                      <option value="java">Java / Spring</option>
-                      <option value="go">Go</option>
-                      <option value="dotnet">C# / .NET</option>
-                      <option value="react">React</option>
-                      <option value="nextjs">Next.js</option>
-                      <option value="angular">Angular</option>
-                      <option value="vue">Vue.js</option>
-                      <option value="vite">Vite / Vanilla JS</option>
-                    </select>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-medium text-muted-foreground">Naming convention</label>
-                    <select
-                      value={draftBoard.naming_convention}
-                      onChange={(e) => setDraftBoard((prev) => ({ ...prev, naming_convention: e.target.value as ApiBoard['naming_convention'] }))}
-                      className="w-full h-8 rounded-[3px] border border-border bg-surface-secondary px-2 text-[11px]"
-                    >
-                      <option value="default">Language defaults</option>
-                      <option value="camel_case">camelCase</option>
-                      <option value="pascal_case">PascalCase</option>
-                      <option value="snake_case">snake_case</option>
-                      <option value="kebab_case">kebab-case</option>
-                      <option value="mixed">Mixed</option>
-                    </select>
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-medium text-muted-foreground">Response language</label>
-                  <select
-                    value={draftBoard.response_language}
-                    onChange={(e) => setDraftBoard((prev) => ({ ...prev, response_language: e.target.value as ApiBoard['response_language'] }))}
-                    className="w-full h-8 rounded-[3px] border border-border bg-surface-secondary px-2 text-[11px]"
-                  >
-                    <option value="es">Español</option>
-                    <option value="en">English</option>
-                  </select>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-medium text-muted-foreground">Custom instructions</label>
-                  <textarea
-                    value={draftBoard.custom_instructions}
-                    onChange={(e) => {
-                      const val = e.target.value.slice(0, 1000);
-                      setDraftBoard((prev) => ({ ...prev, custom_instructions: val }));
-                    }}
-                    placeholder="E.g. This project uses Flutter, ignore Dart null safety warnings…"
-                    rows={3}
-                    maxLength={1000}
-                    className="w-full rounded-[3px] border border-border bg-surface-secondary px-2 py-1.5 text-[11px] resize-none placeholder:text-muted-foreground/60 focus:outline-none"
+              {/* ── Board AI settings (only when a Review column exists) ── */}
+              {canCreateBoards && hasReviewColumn && (
+                <div className="mt-4 pt-4 border-t border-border">
+                  <BoardAiSettingsForm
+                    value={draftBoard}
+                    onChange={setDraftBoard}
+                    onSave={() => void handleSaveBoardSettings()}
+                    saving={boardSettingsSaving}
                   />
-                  <p className={`text-right text-[10px] ${draftBoard.custom_instructions.length >= 950 ? 'text-warning' : 'text-muted-foreground'}`}>
-                    {draftBoard.custom_instructions.length}/1000
-                  </p>
                 </div>
-                <div className="flex justify-end">
-                  <button
-                    type="button"
-                    disabled={boardSettingsSaving}
-                    onClick={() => void handleSaveBoardSettings()}
-                    className="h-8 px-3 bg-primary text-primary-foreground rounded-[3px] text-[11px] inline-flex items-center gap-1.5 disabled:opacity-50"
-                  >
-                    {boardSettingsSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
-                    Save settings
-                  </button>
+              )}
+              {canCreateBoards && !hasReviewColumn && (
+                <div className="mt-4 pt-4 border-t border-border text-[11px] text-muted-foreground">
+                  Mark a column as <span className="text-info font-medium">AI Review</span> to configure the AI for this board. Without a review column, Yemoda's AI features stay off.
                 </div>
-              </div>
               )}
               </>
             )}
@@ -1807,7 +2025,16 @@ export function ProjectTasksWorkspace({
             <input value={newBoard.name} onChange={(e) => setNewBoard((prev) => ({ ...prev, name: e.target.value }))} placeholder="Name" className="w-full h-8 rounded-[3px] border border-border bg-surface-secondary px-2 text-[11px]" />
             <textarea value={newBoard.description} onChange={(e) => setNewBoard((prev) => ({ ...prev, description: e.target.value }))} placeholder="Description" rows={3} className="w-full rounded-[3px] border border-border bg-surface-secondary px-2 py-1 text-[11px]" />
             <div className="flex justify-end gap-2">
-              <button type="button" onClick={() => setShowBoardModal(false)} className="h-8 px-3 border border-border rounded-[3px] text-[11px]">Cancel</button>
+              <button
+                type="button"
+                onClick={async () => {
+                  const dirty = newBoard.name.trim() !== '' || newBoard.description.trim() !== '';
+                  if (dirty && !(await askConfirm({ title: 'Discard new board?', message: 'Your changes will be lost.', confirmLabel: 'Discard', cancelLabel: 'Keep editing', danger: true }))) return;
+                  setShowBoardModal(false);
+                  setNewBoard({ name: '', description: '' });
+                }}
+                className="h-8 px-3 border border-border rounded-[3px] text-[11px]"
+              >Cancel</button>
               <button type="submit" disabled={creatingBoard} className="h-8 px-3 bg-primary text-primary-foreground rounded-[3px] text-[11px] inline-flex items-center gap-1.5 disabled:opacity-50">
                 {creatingBoard && <Loader2 className="w-3 h-3 animate-spin" />} Create
               </button>
@@ -1860,12 +2087,121 @@ export function ProjectTasksWorkspace({
               </div>
             </button>
             <div className="flex justify-end gap-2">
-              <button type="button" onClick={() => setShowColumnModal(false)} className="h-8 px-3 border border-border rounded-[3px] text-[11px]">Cancel</button>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (newColumn.name.trim() !== '' && !(await askConfirm({ title: 'Discard column?', message: 'Your changes will be lost.', confirmLabel: 'Discard', cancelLabel: 'Keep editing', danger: true }))) return;
+                  setShowColumnModal(false);
+                  setNewColumn({ name: '', is_final: false, is_review: false });
+                }}
+                className="h-8 px-3 border border-border rounded-[3px] text-[11px]"
+              >Cancel</button>
               <button type="submit" disabled={creatingColumn} className="h-8 px-3 bg-primary text-primary-foreground rounded-[3px] text-[11px] inline-flex items-center gap-1.5 disabled:opacity-50">
                 {creatingColumn && <Loader2 className="w-3 h-3 animate-spin" />} Create
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* ── Board-creation wizard: step 1 — Review column prompt ── */}
+      {wizardStep === 'review' && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-6">
+          <div className="w-full max-w-md rounded-[6px] border border-border bg-card p-5 space-y-4">
+            <div className="flex items-center gap-2">
+              <Bot className="w-4 h-4 text-info" />
+              <h2 className="text-[13px] font-semibold">Enable the AI Review column?</h2>
+            </div>
+            <p className="text-[11px] leading-5 text-muted-foreground">
+              Yemoda's AI reviews your work when a task reaches the <span className="text-info font-medium">Review</span> column.
+              If you don't enable it, the AI won't run on this project and you won't be able to use what Yemoda offers.
+            </p>
+            <p className="text-[11px] leading-5 text-muted-foreground">
+              Enabling it adds two starter columns — <span className="font-medium text-foreground">Review</span> and{' '}
+              <span className="font-medium text-foreground">Done</span> — which you can rename in the next step.
+            </p>
+            <div className="flex justify-end gap-2 pt-1">
+              <button type="button" disabled={wizardBusy} onClick={wizardSkipReview} className="h-8 px-3 border border-border rounded-[3px] text-[11px] disabled:opacity-50">
+                Skip (no AI)
+              </button>
+              <button type="button" disabled={wizardBusy} onClick={() => void wizardEnableReview()} className="h-8 px-3 bg-primary text-primary-foreground rounded-[3px] text-[11px] inline-flex items-center gap-1.5 disabled:opacity-50">
+                {wizardBusy && <Loader2 className="w-3 h-3 animate-spin" />} Enable Review
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Board-creation wizard: step 2 — columns editor (max 6) ── */}
+      {wizardStep === 'columns' && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-6">
+          <div className="w-full max-w-lg rounded-[6px] border border-border bg-card p-5 space-y-3 max-h-[85vh] overflow-y-auto">
+            <h2 className="text-[13px] font-semibold">Set up your columns</h2>
+            <p className="text-[11px] text-muted-foreground">
+              Rename, reorder or delete columns. Up to {MAX_COLUMNS_PER_BOARD} per board ({wizardBoardColumns.length}/{MAX_COLUMNS_PER_BOARD}).
+            </p>
+            {wizardBoardColumns.length > 0 ? (
+              <ColumnSortableList
+                columns={wizardBoardColumns}
+                boardColumnsByBoard={boardColumnsByBoard}
+                refetchColumns={refetchColumns}
+                canManage={canCreateBoards}
+              />
+            ) : (
+              <p className="text-[11px] text-muted-foreground">No columns yet — add your first one below.</p>
+            )}
+            {wizardBoardColumns.length < MAX_COLUMNS_PER_BOARD && (
+              <div className="flex items-center gap-2 pt-1">
+                <input
+                  value={wizardColumnName}
+                  onChange={(e) => setWizardColumnName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void wizardAddColumn(); } }}
+                  placeholder="New column name"
+                  className="h-8 flex-1 rounded-[3px] border border-border bg-surface-secondary px-2 text-[11px]"
+                />
+                <button type="button" disabled={wizardBusy || !wizardColumnName.trim()} onClick={() => void wizardAddColumn()} className="h-8 px-3 rounded-[3px] border border-border text-[11px] inline-flex items-center gap-1.5 disabled:opacity-40">
+                  <Plus className="w-3.5 h-3.5" /> Add
+                </button>
+              </div>
+            )}
+            <div className="flex justify-end gap-2 pt-2 border-t border-border">
+              <button type="button" onClick={closeWizard} className="h-8 px-3 border border-border rounded-[3px] text-[11px]">
+                Close
+              </button>
+              <button type="button" onClick={wizardFinishColumns} className="h-8 px-3 bg-primary text-primary-foreground rounded-[3px] text-[11px]">
+                {wizardReviewEnabled ? 'Continue to AI' : 'Finish'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Board-creation wizard: step 3 — AI config (only when Review enabled) ── */}
+      {wizardStep === 'ai' && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-6">
+          <div className="w-full max-w-lg rounded-[6px] border border-border bg-card p-5 space-y-3 max-h-[85vh] overflow-y-auto">
+            <h2 className="text-[13px] font-semibold">Configure the AI</h2>
+            <p className="text-[11px] text-muted-foreground">Customize how Yemoda's AI reviews this board. You can change these later in the board settings.</p>
+            <BoardAiSettingsForm
+              value={draftBoard}
+              onChange={setDraftBoard}
+              onSave={() => void wizardSaveAi()}
+              saving={boardSettingsSaving}
+              saveLabel="Save & finish"
+            />
+            <div className="flex justify-end border-t border-border pt-2">
+              <button
+                type="button"
+                onClick={async () => {
+                  if (aiDirty && !(await askConfirm({ title: 'Skip AI setup?', message: 'Your AI changes will not be saved. You can configure it later in board settings.', confirmLabel: 'Skip', cancelLabel: 'Keep editing', danger: true }))) return;
+                  closeWizard();
+                }}
+                className="h-8 px-3 border border-border rounded-[3px] text-[11px]"
+              >
+                Skip for now
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

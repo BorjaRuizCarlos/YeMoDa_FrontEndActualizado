@@ -65,6 +65,8 @@ export const chatService = {
       } catch {
         // no-op
       }
+      // 402 = AI quota reached. Throw a recognizable error whose message starts with
+      // "402:" so callers can show the quota/upgrade toast (see utils/aiQuota.ts).
       throw new Error(`${res.status}:${detail}`);
     }
 
