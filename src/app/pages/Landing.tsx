@@ -493,7 +493,7 @@ export default function Landing() {
               Sign in
             </Link>
             <Link
-              to="/login"
+              to="/register"
               className={`rounded-lg px-4 py-2 text-[14px] font-semibold text-white transition-colors ${FOCUS}`}
               style={{ background: ACCENT }}
               onMouseEnter={(e) => (e.currentTarget.style.background = ACCENT_HOVER)}
@@ -566,7 +566,7 @@ export default function Landing() {
                 Sign in
               </Link>
               <Link
-                to="/login"
+                to="/register"
                 onClick={() => setMobileMenuOpen(false)}
                 className={`w-full rounded-lg py-3 text-center text-[15px] font-semibold text-white ${FOCUS}`}
                 style={{ background: ACCENT }}
@@ -604,7 +604,7 @@ export default function Landing() {
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
                 <Link
-                  to="/login"
+                  to="/register"
                   className={`group inline-flex items-center justify-center gap-2 rounded-lg px-6 py-3 text-[15px] font-semibold text-white transition-colors ${FOCUS}`}
                   style={{ background: ACCENT }}
                   onMouseEnter={(e) => (e.currentTarget.style.background = ACCENT_HOVER)}
@@ -777,7 +777,7 @@ export default function Landing() {
           </p>
           <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link
-              to="/login"
+              to="/register"
               className={`group inline-flex w-full items-center justify-center gap-2 rounded-lg px-6 py-3 text-[15px] font-semibold text-white transition-colors sm:w-auto ${FOCUS}`}
               style={{ background: ACCENT }}
               onMouseEnter={(e) => (e.currentTarget.style.background = ACCENT_HOVER)}
