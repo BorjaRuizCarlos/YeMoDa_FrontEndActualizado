@@ -1,47 +1,74 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import { CheckCircle2, Loader2, Crown, RefreshCcw, AlertCircle } from 'lucide-react';
-import { usersService } from '../../services';
+import { projectsService, usersService } from '../../services';
 
 type PremiumStatus = 'loading' | 'success' | 'pending' | 'error';
 
 export default function PaymentSuccess() {
   const [status, setStatus] = useState<PremiumStatus>('loading');
+  const [searchParams] = useSearchParams();
+
+  // Billing is per-project: Stripe's success_url carries ?project=<id>. We confirm the purchase
+  // by polling that project's plan (GET /projects/:id/ai-usage/) until it flips to 'pro' — NOT the
+  // user-level is_premium flag, which a per-project checkout never sets.
+  const projectParam = searchParams.get('project');
+  const projectId = projectParam && /^\d+$/.test(projectParam) ? Number(projectParam) : null;
 
   useEffect(() => {
     let cancelled = false;
+    const ATTEMPTS = 6;
+    const DELAY_MS = 1500;
 
-    const checkPremiumStatus = async () => {
+    const sleep = () => new Promise((resolve) => window.setTimeout(resolve, DELAY_MS));
+
+    const confirmProject = async (id: number) => {
+      for (let i = 0; i < ATTEMPTS; i++) {
+        try {
+          const usage = await projectsService.getAiUsage(id);
+          if (cancelled) return;
+          if (usage.plan === 'pro') {
+            setStatus('success');
+            return;
+          }
+        } catch {
+          // transient (webhook not processed yet / network) — keep polling
+        }
+        await sleep();
+        if (cancelled) return;
+      }
+      if (!cancelled) setStatus('pending');
+    };
+
+    // Legacy fallback when no project id is present in the URL (old user-level flow).
+    const confirmUserLevel = async () => {
       try {
-        const account = await usersService.me();
-        if (cancelled) return;
-
-        if (Boolean(account.is_premium)) {
-          setStatus('success');
-          return;
+        for (let i = 0; i < 2; i++) {
+          const account = await usersService.me();
+          if (cancelled) return;
+          if (Boolean(account.is_premium)) {
+            setStatus('success');
+            return;
+          }
+          await sleep();
+          if (cancelled) return;
         }
-
-        // Webhook propagation can be slightly delayed after Stripe redirect.
-        await new Promise((resolve) => window.setTimeout(resolve, 1500));
-        if (cancelled) return;
-
-        const retryAccount = await usersService.me();
-        if (cancelled) return;
-
-        setStatus(Boolean(retryAccount.is_premium) ? 'success' : 'pending');
+        setStatus('pending');
       } catch {
-        if (!cancelled) {
-          setStatus('error');
-        }
+        if (!cancelled) setStatus('error');
       }
     };
 
-    checkPremiumStatus();
+    if (projectId !== null) {
+      confirmProject(projectId);
+    } else {
+      confirmUserLevel();
+    }
 
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [projectId]);
 
   return (
     <div className="px-4 pb-6 pt-3 max-w-[980px]">
@@ -89,7 +116,7 @@ export default function PaymentSuccess() {
             <RefreshCcw className="w-5 h-5 mt-0.5 text-warning" />
             <div className="w-full">
               <p className="text-[13px] font-medium text-foreground">Payment received, awaiting final confirmation.</p>
-              <p className="text-[11px] text-muted-foreground mt-1">We don't see `is_premium=true` yet. Reload this page in a few seconds or check your profile.</p>
+              <p className="text-[11px] text-muted-foreground mt-1">Stripe is still confirming the payment. Reload this page in a few seconds — the project will switch to Pro automatically.</p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <Link
                   to="/profile"
