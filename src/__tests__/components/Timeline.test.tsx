@@ -54,9 +54,10 @@ describe('Timeline', () => {
       return htmlElement.style.width === '2px' && htmlElement.style.backgroundColor.includes('239, 68, 68');
     }) as HTMLElement[];
 
-    expect(todayMarkers.length).toBeGreaterThan(0);
-    todayMarkers.forEach((marker) => {
-      expect(marker.style.left).toBe('50%');
-    });
+    // The today marker must be ONE continuous line spanning the chart, not one
+    // segment per row + header (regression: it used to render per-row → looked cut).
+    expect(todayMarkers.length).toBe(1);
+    expect(todayMarkers[0].className).toContain('inset-y-0');
+    expect(todayMarkers[0].style.left).toBe('50%');
   });
 });

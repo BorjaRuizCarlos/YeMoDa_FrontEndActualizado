@@ -205,35 +205,12 @@ export function Timeline({ projectId, projectEndDate }: { projectId: number; pro
       </div>
 
       <div className="flex-1 min-h-0 overflow-auto p-4">
-        <div className="min-w-max space-y-3">
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-[360px_minmax(0,1fr)] md:items-start">
-            <div className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">Task</div>
-            <div className="overflow-x-auto scrollbar-app">
-              <div className="relative flex w-full" style={{ minWidth: `${trackMinWidth}px` }}>
-                {showToday && (
-                  <div
-                    className="absolute inset-y-0 z-40"
-                    style={{ left: `${Math.min(100, Math.max(0, todayPct))}%`, width: '2px', backgroundColor: 'rgba(239,68,68,0.95)' }}
-                  />
-                )}
-                {headerBuckets.map((bucket, index) => {
-                  const bucketPct = (bucket.width / range.totalDays) * 100;
-                  return (
-                    <div
-                      key={`${bucket.date.toISOString()}-${index}`}
-                      className="border-r border-border/40 py-1 text-center text-[10px] text-muted-foreground shrink-0"
-                      style={{ width: `${bucketPct}%`, minWidth: `${bucket.width * pxPerDay}px` }}
-                    >
-                      <div className="font-medium">{bucket.label}</div>
-                      <div className="text-[9px] uppercase">{bucket.sublabel}</div>
-                    </div>
-                  );
-                })}
-              </div>
+        <div className="flex min-w-max gap-3">
+          {/* Left: task list (fixed row heights so each card lines up with its bar) */}
+          <div className="flex w-[360px] shrink-0 flex-col gap-2">
+            <div className="flex h-9 items-end text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">
+              Task
             </div>
-          </div>
-
-          <div className="space-y-2">
             {timelineTasks.map((task, index) => {
               const start = getTaskStart(task) as Date;
               const due = getTaskEnd(task) as Date;
@@ -243,6 +220,65 @@ export function Timeline({ projectId, projectEndDate }: { projectId: number; pro
               const boardColumnName = boardColumnNameById.get(task.board_column) ?? 'No board assigned';
               const normalizedStatus = statusName.toLowerCase();
               const isDone = Boolean(task.completed_at) || /(done|closed|complet|terminad|resuelt)/.test(normalizedStatus);
+
+              return (
+                <div key={task.id_task} className="flex h-12 min-w-0 flex-col justify-center rounded-[4px] border border-border/60 bg-surface-secondary/20 px-2 py-1.5">
+                  <div className="flex items-center gap-2 text-[11px]">
+                    <span className="w-5 shrink-0 text-center text-muted-foreground">{index + 1}</span>
+                    {isDone ? (
+                      <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-violet-400" />
+                    ) : (
+                      <Circle className="h-3.5 w-3.5 shrink-0 text-emerald-400" />
+                    )}
+                    <span className="min-w-0 flex-1 truncate text-[12px] font-medium text-foreground">{task.title}</span>
+                    <span className="shrink-0 text-[11px] text-muted-foreground">#{task.id_task}</span>
+                  </div>
+                  <div className="mt-1 flex items-center gap-2 text-[10px] text-muted-foreground min-w-0">
+                    <span className="shrink-0">
+                      {format(start, 'dd MMM yyyy', { locale: enUS })} - {format(due, 'dd MMM yyyy', { locale: enUS })}
+                    </span>
+                    <span>-</span>
+                    <span className="truncate">{firstAssignee}{assigneeExtraCount > 0 ? ` +${assigneeExtraCount}` : ''}</span>
+                    <span>-</span>
+                    <span className="truncate">{boardColumnName}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Right: the chart — one relative column, so the "today" line is a single
+              continuous vertical rule positioned by % of this column's width. */}
+          <div className="relative flex flex-1 flex-col gap-2" style={{ minWidth: `${trackMinWidth}px` }}>
+            {showToday && (
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-y-0 z-40"
+                style={{ left: `${Math.min(100, Math.max(0, todayPct))}%`, width: '2px', backgroundColor: 'rgba(239,68,68,0.95)' }}
+              />
+            )}
+
+            {/* Date axis */}
+            <div className="flex h-9">
+              {headerBuckets.map((bucket, index) => {
+                const bucketPct = (bucket.width / range.totalDays) * 100;
+                return (
+                  <div
+                    key={`${bucket.date.toISOString()}-${index}`}
+                    className="flex flex-col justify-end border-r border-border/40 pb-1 text-center text-[10px] text-muted-foreground shrink-0"
+                    style={{ width: `${bucketPct}%`, minWidth: `${bucket.width * pxPerDay}px` }}
+                  >
+                    <div className="font-medium">{bucket.label}</div>
+                    <div className="text-[9px] uppercase">{bucket.sublabel}</div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Bars */}
+            {timelineTasks.map((task) => {
+              const start = getTaskStart(task) as Date;
+              const due = getTaskEnd(task) as Date;
               const leftDays = daysBetween(range.min, start);
               const widthDays = Math.max(1, daysBetween(start, due) + 1);
               const leftPct = (leftDays / range.totalDays) * 100;
@@ -252,51 +288,18 @@ export function Timeline({ projectId, projectEndDate }: { projectId: number; pro
                 : DEFAULT_BAR_COLOR;
 
               return (
-                <div key={task.id_task} className="grid grid-cols-1 gap-2 md:grid-cols-[360px_minmax(0,1fr)] md:items-center md:gap-3">
-                  <div className="min-w-0 pr-2 rounded-[4px] border border-border/60 bg-surface-secondary/20 px-2 py-1.5">
-                    <div className="flex items-center gap-2 text-[11px]">
-                      <span className="w-5 shrink-0 text-center text-muted-foreground">{index + 1}</span>
-                      {isDone ? (
-                        <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-violet-400" />
-                      ) : (
-                        <Circle className="h-3.5 w-3.5 shrink-0 text-emerald-400" />
-                      )}
-                      <span className="min-w-0 flex-1 truncate text-[12px] font-medium text-foreground">{task.title}</span>
-                      <span className="shrink-0 text-[11px] text-muted-foreground">#{task.id_task}</span>
-                    </div>
-                    <div className="mt-1 flex items-center gap-2 text-[10px] text-muted-foreground min-w-0">
-                      <span className="shrink-0">
-                        {format(start, 'dd MMM yyyy', { locale: enUS })} - {format(due, 'dd MMM yyyy', { locale: enUS })}
-                      </span>
-                      <span>-</span>
-                      <span className="truncate">{firstAssignee}{assigneeExtraCount > 0 ? ` +${assigneeExtraCount}` : ''}</span>
-                      <span>-</span>
-                      <span className="truncate">{boardColumnName}</span>
-                    </div>
-                  </div>
-
+                <div key={task.id_task} className="relative h-12 overflow-hidden rounded-[4px] border border-border/50 bg-surface-secondary/30">
                   <div
-                    className="relative h-9 overflow-hidden rounded-[4px] border border-border/50 bg-surface-secondary/30"
-                    style={{ minWidth: `${trackMinWidth}px` }}
+                    className="absolute top-1/2 h-6 -translate-y-1/2 rounded-[4px] shadow-sm transition-opacity hover:opacity-90"
+                    style={{
+                      left: `${Math.max(0, leftPct)}%`,
+                      width: `max(18px, ${Math.max((100 / range.totalDays), widthPct)}%)`,
+                      backgroundColor: barColor,
+                    }}
+                    title={task.description ? `${task.title}: ${task.description}` : task.title}
                   >
-                    {showToday && (
-                      <div
-                        className="absolute top-0 bottom-0 z-40"
-                        style={{ left: `${Math.min(100, Math.max(0, todayPct))}%`, width: '2px', backgroundColor: 'rgba(239,68,68,0.95)' }}
-                      />
-                    )}
-                    <div
-                      className="absolute top-1.5 h-6 rounded-[4px] shadow-sm transition-opacity hover:opacity-90"
-                      style={{
-                        left: `${Math.max(0, leftPct)}%`,
-                        width: `max(18px, ${Math.max((100 / range.totalDays), widthPct)}%)`,
-                        backgroundColor: barColor,
-                      }}
-                      title={task.description ? `${task.title}: ${task.description}` : task.title}
-                    >
-                      <div className="h-full px-2 text-[10px] leading-6 text-white truncate">
-                        {task.title}
-                      </div>
+                    <div className="h-full px-2 text-[10px] leading-6 text-white truncate">
+                      {task.title}
                     </div>
                   </div>
                 </div>
