@@ -117,6 +117,14 @@ export default function Reports() {
     return projectId != null && accessibleProjectIds.has(projectId);
   };
 
+  // Hoisted once and reused across per-project iterations (health list + ranking)
+  // instead of recomputing taskList.filter(isTaskAccessible) inside every map.
+  const accessibleTasks = useMemo(
+    () => taskList.filter(isTaskAccessible),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [taskList, accessibleProjectIds, boardProjectMap],
+  );
+
   const selectedProjectName = useMemo(
     () => accessibleProjects.find((project) => project.id_project === selectedProject)?.name ?? 'All',
     [accessibleProjects, selectedProject],
@@ -145,7 +153,6 @@ export default function Reports() {
   // ── Per-project health (for hero + ranking) ──
   const projectHealthList = useMemo(() => {
     return inScopeProjects.map((p) => {
-      const accessibleTasks = taskList.filter(isTaskAccessible);
       const progress = computeProjectProgress(p.id_project, accessibleTasks, boardList);
       const health = getProjectHealth(p, progress);
       const overdue = accessibleTasks.filter((t) => {
@@ -156,7 +163,7 @@ export default function Reports() {
       }).length;
       return { project: p, progress, health, overdue };
     });
-  }, [inScopeProjects, taskList, boardList, boardProjectMap, accessibleProjectIds]);
+  }, [inScopeProjects, accessibleTasks, boardList, boardProjectMap]);
 
   // ── Aggregate KPIs ──
   const kpis = useMemo(() => {
@@ -367,7 +374,6 @@ export default function Reports() {
   const projectRanking = useMemo(() => {
     const healthOrder: Record<ProjectHealth, number> = { red: 0, yellow: 1, green: 2 };
     return accessibleProjects.map((project) => {
-      const accessibleTasks = taskList.filter(isTaskAccessible);
       const progress = computeProjectProgress(project.id_project, accessibleTasks, boardList);
       const health = getProjectHealth(project, progress);
       const overdue = accessibleTasks.filter((task) => {
@@ -384,7 +390,7 @@ export default function Reports() {
         return a.progress.percentage - b.progress.percentage;
       })
       .slice(0, 5);
-  }, [accessibleProjects, taskList, boardList, boardProjectMap, accessibleProjectIds]);
+  }, [accessibleProjects, accessibleTasks, boardList, boardProjectMap]);
 
   // ── Project filter pills ──
   const projectDropdown = (

@@ -191,7 +191,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (err instanceof ApiRequestError && err.body?.code === 'email_not_verified') {
         throw err;
       }
-      throw new Error('Incorrect email or password.');
+      // Only treat genuine credential rejections (400/401) as a bad email/password.
+      // Network failures, rate limiting (429) and server errors (5xx) get a distinct,
+      // retryable message. We attach the original error as `cause` so the status is
+      // preserved for callers without relying on the ES2022 Error(cause) constructor.
+      const message = err instanceof ApiRequestError && (err.status === 400 || err.status === 401)
+        ? 'Incorrect email or password.'
+        : 'Service temporarily unavailable, try again.';
+      const mapped = new Error(message);
+      (mapped as Error & { cause?: unknown }).cause = err;
+      throw mapped;
     }
   };
 

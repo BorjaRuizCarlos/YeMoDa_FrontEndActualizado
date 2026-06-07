@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+﻿import { memo, useEffect, useMemo, useState } from 'react';
 import {
   DndContext,
   DragEndEvent,
@@ -75,7 +75,7 @@ function DroppableColumn({ id, children }: { id: string; children: React.ReactNo
   return <div ref={setNodeRef} className="h-full">{children}</div>;
 }
 
-function TaskCard({
+const TaskCard = memo(function TaskCard({
   task,
   onOpen,
   draggable,
@@ -144,7 +144,7 @@ function TaskCard({
       </div>
     </div>
   );
-}
+});
 
 // ── Sortable column item (used in boards config panel) ────────────────────────
 function SortableColumnItem({
@@ -678,6 +678,18 @@ export function ProjectTasksWorkspace({
     const boardColumnIds = new Set((boardColumnsByBoard.get(selectedBoardId) ?? []).map((col) => col.id_column));
     return withTagFilter.filter((task) => boardColumnIds.has(task.board_column));
   }, [tasks, selectedSprintId, selectedTagIds, selectedBoardId, boardColumnsByBoard]);
+
+  // Bucket sprint tasks by their board column once per task-list change, so the kanban
+  // render reads a precomputed array per column instead of re-filtering on every render/drag.
+  const tasksByColumn = useMemo(() => {
+    const map = new Map<number, ApiTask[]>();
+    sprintTasks.forEach((task) => {
+      const existing = map.get(task.board_column);
+      if (existing) existing.push(task);
+      else map.set(task.board_column, [task]);
+    });
+    return map;
+  }, [sprintTasks]);
 
   const backlogTagFilteredTasks = useMemo(() => {
     let result = backlogTasks;
@@ -1572,7 +1584,7 @@ export function ProjectTasksWorkspace({
                     >
                       <div className="grid gap-3 flex-1 min-h-0" style={{ gridTemplateColumns: `repeat(${Math.max(selectedBoardColumns.length, 1)}, minmax(0, 1fr))` }}>
                         {selectedBoardColumns.map((column) => {
-                          const colTasks = sprintTasks.filter((task) => task.board_column === column.id_column);
+                          const colTasks = tasksByColumn.get(column.id_column) ?? [];
                           return (
                             <DroppableColumn key={column.id_column} id={`column-${column.id_column}`}>
                               <div className="h-full rounded-[4px] border border-border bg-surface-secondary/40 p-2 flex flex-col min-h-0">

@@ -143,8 +143,11 @@ export default function Profile() {
     }
   };
 
-  const handlePremiumCheckout = () => {
-    navigate('/plans');
+  // Billing is per-project (the Pro plan is purchased per board's project), so send
+  // users to their projects to open a project's Settings → AI usage instead of a
+  // dead-end account-level /plans page with no project context.
+  const handleViewPlans = () => {
+    navigate('/projects');
   };
 
   return (
@@ -382,14 +385,19 @@ export default function Profile() {
                 <StatusBadge status="success" text="Active" size="sm" variant="pill" />
               </div>
             ) : (
-              <button
-                type="button"
-                onClick={handlePremiumCheckout}
-                className="w-full h-8 px-3 bg-secondary hover:bg-accent text-foreground rounded-[3px] text-[11px] font-medium transition-colors inline-flex items-center justify-center gap-1.5"
-              >
-                <Crown className="w-3.5 h-3.5 text-primary" />
-                View premium plans
-              </button>
+              <div className="space-y-2">
+                <p className="text-[10px] text-muted-foreground">
+                  Premium (Pro) is billed per project. Open a project and go to its AI usage to upgrade that project.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleViewPlans}
+                  className="w-full h-8 px-3 bg-secondary hover:bg-accent text-foreground rounded-[3px] text-[11px] font-medium transition-colors inline-flex items-center justify-center gap-1.5"
+                >
+                  <Crown className="w-3.5 h-3.5 text-primary" />
+                  Upgrade a project to Pro
+                </button>
+              </div>
             )}
           </div>
         </div>

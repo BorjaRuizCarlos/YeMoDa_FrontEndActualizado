@@ -165,16 +165,4 @@ export const githubService = {
   async getPRFiles(repo: string, prNumber: number): Promise<ApiPRFile[]> {
     return api.get<ApiPRFile[]>(`/reviews/pr/files/?repo=${encodeURIComponent(repo)}&pr=${prNumber}`);
   },
-
-  // ─── Admin check (decode JWT without verification) ─────────────────────────
-
-  isAdmin(): boolean {    const token = tokenStore.getAccess();
-    if (!token) return false;
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      return payload.is_admin === true;
-    } catch {
-      return false;
-    }
-  },
 };

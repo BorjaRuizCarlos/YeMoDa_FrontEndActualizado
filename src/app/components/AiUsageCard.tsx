@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router';
 import { Gauge, Bot, Zap, MessageSquare, Loader2, AlertCircle, ArrowUpRight, Crown } from 'lucide-react';
 import { toast } from 'sonner';
@@ -35,9 +35,13 @@ export function AiUsageCard({ projectId }: AiUsageCardProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);
+  // Invalidated on unmount / projectId change so late async responses (including the
+  // post-cancel refetch below) are ignored instead of writing into stale state.
+  const activeRef = useRef(true);
 
   useEffect(() => {
     if (!projectId) return;
+    activeRef.current = true;
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -45,7 +49,7 @@ export function AiUsageCard({ projectId }: AiUsageCardProps) {
       .then((data) => { if (!cancelled) setUsage(data); })
       .catch(() => { if (!cancelled) setError('Could not load AI usage.'); })
       .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
+    return () => { cancelled = true; activeRef.current = false; };
   }, [projectId]);
 
   const isFree = usage?.plan === 'free';
@@ -60,7 +64,10 @@ export function AiUsageCard({ projectId }: AiUsageCardProps) {
       await paymentsService.cancelSubscription(projectId);
       toast.success('Subscription will be cancelled at the end of the billing period.');
       // Refresh usage so the plan badge reflects the change once Stripe confirms.
-      projectsService.getAiUsage(projectId).then(setUsage).catch(() => {});
+      // Guarded so a response arriving after unmount / projectId change is ignored.
+      projectsService.getAiUsage(projectId)
+        .then((data) => { if (activeRef.current) setUsage(data); })
+        .catch(() => {});
     } catch (err) {
       const status = err instanceof ApiRequestError ? err.status : undefined;
       if (status === 403) {

@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
-import { tokenStore } from '../../services';
+import { tokenStore, usersService } from '../../services';
+import type { ApiUserAccount } from '../../services';
 import type { User } from '../context/AuthContext';
 import { mapUserRole } from '../utils/roles';
 
@@ -13,37 +14,14 @@ function readToken(value: string | null | undefined): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
-function parseJwtPayload(token: string): Record<string, unknown> | null {
-  const parts = token.split('.');
-  if (parts.length < 2) return null;
-
-  try {
-    const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-    const padded = b64.padEnd(Math.ceil(b64.length / 4) * 4, '=');
-    const decoded = window.atob(padded);
-    return JSON.parse(decoded) as Record<string, unknown>;
-  } catch {
-    return null;
-  }
-}
-
-function buildUserFromAccessToken(accessToken: string): User | null {
-  const payload = parseJwtPayload(accessToken);
-  if (!payload) return null;
-
-  const id = typeof payload.sub === 'string' ? payload.sub : null;
-  const email = typeof payload.email === 'string' ? payload.email : null;
-  if (!id || !email) return null;
-
-  const fallbackName = email.split('@')[0] || 'User';
-  const systemRoleId = typeof payload.system_role === 'number' ? payload.system_role : null;
-  const systemRoleName = typeof payload.system_role_name === 'string' ? payload.system_role_name : null;
-
+// Build the persisted user from the authenticated /me response (server-verified)
+// rather than from an unsigned, client-decoded JWT in the URL fragment.
+function buildUserFromAccount(account: ApiUserAccount): User {
   return {
-    id,
-    email,
-    name: fallbackName,
-    role: mapUserRole(systemRoleId, systemRoleName),
+    id: String(account.id_user),
+    email: account.email,
+    name: account.username || account.email.split('@')[0] || 'User',
+    role: mapUserRole(account.system_role, account.system_role_name),
   };
 }
 
@@ -94,27 +72,43 @@ export default function GoogleAuthCallback() {
     }
 
     // Only the access token comes in the fragment; the refresh token is an HttpOnly cookie.
+    // Use it purely as a bearer credential — never trust its (unsigned) decoded claims.
     tokenStore.set(accessToken);
     // Strip the tokens from the address bar / history immediately.
     window.history.replaceState(null, '', window.location.pathname);
-    const user = buildUserFromAccessToken(accessToken);
-    if (user) {
-      localStorage.setItem('pip_user', JSON.stringify(user));
-    }
+
     if (needsNickname) {
       localStorage.setItem('pip_needs_nickname', '1');
     } else {
       localStorage.removeItem('pip_needs_nickname');
     }
 
-    setState('success');
-    setMessage('Session ready. Redirecting to the dashboard...');
+    let cancelled = false;
+    let redirectId: number | undefined;
 
-    const redirectId = window.setTimeout(() => {
-      window.location.replace('/dashboard');
-    }, 500);
+    void (async () => {
+      try {
+        // Resolve identity/role from the authenticated /me endpoint, not the JWT payload.
+        const account = await usersService.me();
+        if (cancelled) return;
+        localStorage.setItem('pip_user', JSON.stringify(buildUserFromAccount(account)));
+        setState('success');
+        setMessage('Session ready. Redirecting to the dashboard...');
+        redirectId = window.setTimeout(() => {
+          window.location.replace('/dashboard');
+        }, 500);
+      } catch {
+        if (cancelled) return;
+        tokenStore.clear();
+        setState('error');
+        setMessage('Could not load your account after sign-in. Please try again.');
+      }
+    })();
 
-    return () => window.clearTimeout(redirectId);
+    return () => {
+      cancelled = true;
+      if (redirectId !== undefined) window.clearTimeout(redirectId);
+    };
   }, [searchParams, hashParams]);
 
   return (
