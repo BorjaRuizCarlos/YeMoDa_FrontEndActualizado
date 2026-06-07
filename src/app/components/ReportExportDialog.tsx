@@ -87,7 +87,7 @@ export function ReportExportDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl">
+      <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle className="text-[14px]">Download report</DialogTitle>
           <DialogDescription className="text-[12px]">

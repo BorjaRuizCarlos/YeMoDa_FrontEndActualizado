@@ -87,16 +87,16 @@ export function Topbar() {
       <div className="flex items-center gap-3 flex-1 min-w-0">
         {/* Inline breadcrumbs */}
         {crumbs.length > 0 && (
-          <nav className="flex items-center gap-1 text-[12px] shrink-0" aria-label="Breadcrumb">
+          <nav className="flex items-center gap-1 text-[12px] min-w-0" aria-label="Breadcrumb">
             {crumbs.map((crumb, i) => (
-              <span key={i} className="flex items-center gap-1">
+              <span key={i} className="flex items-center gap-1 min-w-0">
                 {i > 0 && <span className="text-muted-foreground/50">/</span>}
                 {crumb.path ? (
                   <Link to={crumb.path} className="text-muted-foreground hover:text-foreground transition-colors">
                     {crumb.label}
                   </Link>
                 ) : (
-                  <span className="text-foreground font-medium">{crumb.label}</span>
+                  <span className="text-foreground font-medium truncate max-w-[180px]">{crumb.label}</span>
                 )}
               </span>
             ))}
@@ -111,7 +111,7 @@ export function Topbar() {
           onClick={openCommandPalette}
           data-tour="topbar-search"
           aria-label="Search (Ctrl+K)"
-          className="flex items-center gap-2 pl-2 pr-2 py-1 bg-background rounded-[3px] border border-input text-[12px] text-muted-foreground hover:border-foreground/20 transition-colors cursor-pointer w-48 shrink-0"
+          className="flex items-center gap-2 pl-2 pr-2 py-1 bg-background rounded-[3px] border border-input text-[12px] text-muted-foreground hover:border-foreground/20 transition-colors cursor-pointer w-48 min-w-0"
         >
           <Search className="w-3.5 h-3.5 shrink-0" />
           <span className="flex-1 text-left truncate">Search...</span>

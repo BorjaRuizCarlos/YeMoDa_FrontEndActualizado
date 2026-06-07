@@ -140,7 +140,7 @@ export function AssignResponsibleModal({
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 min-w-0">
                       <span className="text-[13px] font-medium text-foreground truncate">
                         {c.name}
                       </span>
@@ -150,7 +150,7 @@ export function AssignResponsibleModal({
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                    <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground min-w-0">
                       <span className="truncate">{c.email}</span>
                       {c.role && (
                         <>

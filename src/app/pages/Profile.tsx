@@ -183,13 +183,13 @@ export default function Profile() {
             </div>
 
             <div className="flex items-center gap-3 mb-4 pb-4 border-b border-border">
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                 <span className="text-primary text-base font-semibold">
                   {(user?.name ?? 'U').charAt(0).toUpperCase()}
                 </span>
               </div>
-              <div>
-                <h3 className="text-[13px] font-semibold text-foreground">{user?.name}</h3>
+              <div className="min-w-0">
+                <h3 className="text-[13px] font-semibold text-foreground truncate">{user?.name}</h3>
                 <p className="text-[10px] text-muted-foreground">Plan: {planLabel}</p>
               </div>
             </div>

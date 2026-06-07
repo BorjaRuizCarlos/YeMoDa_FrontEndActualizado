@@ -468,7 +468,7 @@ export function CodeReviewPanel({ projectId, repoFullName }: CodeReviewPanelProp
                 <div
                   data-cr-diff
                   data-task-id={task.id_task}
-                  className="divide-y divide-border/50 min-h-0 lg:overflow-y-auto lg:border-r lg:border-border"
+                  className="divide-y divide-border/50 min-h-0 min-w-0 lg:overflow-y-auto lg:border-r lg:border-border"
                 >
                 {history?.loading && (
                   <div className="flex items-center gap-2 px-4 py-3 text-[11px] text-muted-foreground">

@@ -1700,9 +1700,9 @@ export function ProjectTasksWorkspace({
                     }`}
                     onClick={() => setSelectedBoardId(board.id_board)}
                   >
-                    <p className="font-medium pr-6">{board.name}</p>
+                    <p className="font-medium pr-6 break-words">{board.name}</p>
                     {board.description && (
-                      <p className={`text-[10px] mt-0.5 ${selectedBoardId === board.id_board ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>{board.description}</p>
+                      <p className={`text-[10px] mt-0.5 break-words ${selectedBoardId === board.id_board ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>{board.description}</p>
                     )}
                     <p className={`text-[9px] mt-1 ${selectedBoardId === board.id_board ? 'text-primary-foreground/60' : 'text-muted-foreground/70'}`}>
                       {(boardColumnsByBoard.get(board.id_board) ?? []).length} columns

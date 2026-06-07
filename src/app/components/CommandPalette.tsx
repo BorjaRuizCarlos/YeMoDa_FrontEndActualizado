@@ -90,7 +90,7 @@ export function CommandPalette() {
                 onSelect={() => runCommand(() => navigate(item.path))}
               >
                 <Icon className="w-4 h-4 text-muted-foreground" />
-                <span>{item.name}</span>
+                <span className="min-w-0 flex-1 truncate">{item.name}</span>
                 <ArrowRight className="ml-auto w-3 h-3 text-muted-foreground/50" />
               </CommandItem>
             );
@@ -109,7 +109,7 @@ export function CommandPalette() {
                 onSelect={() => runCommand(() => navigate(`/projects/${project.id_project}`))}
               >
                 <Briefcase className="w-4 h-4 text-muted-foreground" />
-                <span>{project.name}</span>
+                <span className="min-w-0 flex-1 truncate">{project.name}</span>
                 <ArrowRight className="ml-auto w-3 h-3 text-muted-foreground/50" />
               </CommandItem>
             ))}

@@ -119,7 +119,7 @@ export function CodeDiffViewer({ patch, filename }: CodeDiffViewerProps) {
       {/* File header */}
       <div className="px-3 py-1.5 bg-surface-secondary/50 border-b border-border flex items-center gap-2">
         <span className={`w-2 h-2 rounded-full shrink-0 ${isCode ? 'bg-primary' : 'bg-muted-foreground/40'}`} />
-        <span className="font-mono text-[10px] text-foreground truncate">{filename}</span>
+        <span className="font-mono text-[10px] text-foreground truncate min-w-0">{filename}</span>
       </div>
 
       {parsedLines.length === 0 ? (

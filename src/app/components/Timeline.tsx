@@ -264,8 +264,8 @@ export function Timeline({ projectId, projectEndDate }: { projectId: number; pro
                       <span className="min-w-0 flex-1 truncate text-[12px] font-medium text-foreground">{task.title}</span>
                       <span className="shrink-0 text-[11px] text-muted-foreground">#{task.id_task}</span>
                     </div>
-                    <div className="mt-1 flex items-center gap-2 text-[10px] text-muted-foreground">
-                      <span>
+                    <div className="mt-1 flex items-center gap-2 text-[10px] text-muted-foreground min-w-0">
+                      <span className="shrink-0">
                         {format(start, 'dd MMM yyyy', { locale: enUS })} - {format(due, 'dd MMM yyyy', { locale: enUS })}
                       </span>
                       <span>-</span>

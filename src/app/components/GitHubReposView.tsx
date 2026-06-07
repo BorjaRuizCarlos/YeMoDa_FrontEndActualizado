@@ -299,10 +299,10 @@ export function GitHubReposView({ projectId, canCreateRepos = true }: GitHubRepo
                   ) : (
                     <Unlock className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                   )}
-                  <span className="text-[12px] font-medium text-foreground truncate">
+                  <span className="text-[12px] font-medium text-foreground truncate min-w-0">
                     {repo.name}
                   </span>
-                  <span className="text-[10px] text-muted-foreground truncate hidden sm:block">
+                  <span className="text-[10px] text-muted-foreground truncate hidden sm:block min-w-0">
                     {repo.full_name}
                   </span>
                 </div>

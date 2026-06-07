@@ -334,8 +334,8 @@ export default function Projects() {
         </div>
       ) : viewMode === 'list' ? (
         /* Table view */
-        <div className="bg-card border border-border rounded-[4px] overflow-hidden">
-          <div className="grid grid-cols-[minmax(0,2fr)_minmax(112px,0.9fr)_minmax(110px,1.1fr)_44px_minmax(110px,0.85fr)_minmax(78px,0.6fr)] gap-3 border-b border-border bg-surface-secondary/50 px-4 py-1.5">
+        <div className="bg-card border border-border rounded-[4px] overflow-x-auto">
+          <div className="grid min-w-[640px] grid-cols-[minmax(0,2fr)_minmax(112px,0.9fr)_minmax(110px,1.1fr)_44px_minmax(110px,0.85fr)_minmax(78px,0.6fr)] gap-3 border-b border-border bg-surface-secondary/50 px-4 py-1.5">
             <span className="text-left text-[10px] font-medium text-muted-foreground uppercase tracking-[0.06em]">Project</span>
             <span className="text-left text-[10px] font-medium text-muted-foreground uppercase tracking-[0.06em]">Status</span>
             <span className="text-left text-[10px] font-medium text-muted-foreground uppercase tracking-[0.06em]">Progress</span>
@@ -344,7 +344,7 @@ export default function Projects() {
             <span className="text-left text-[10px] font-medium text-muted-foreground uppercase tracking-[0.06em]">Time left</span>
           </div>
 
-          <div className="overflow-y-auto scrollbar-app max-h-[600px] divide-y divide-border">
+          <div className="overflow-y-auto scrollbar-app max-h-[600px] divide-y divide-border min-w-[640px]">
             {paginatedProjects.map((project, i) => {
               const dl = getProjectsRemainingLabel(project.end_date, project.status);
               const ph = projectHealthMap.get(project.id_project);
@@ -358,7 +358,7 @@ export default function Projects() {
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.25, delay: i * 0.04, ease: 'easeOut' }}
-                  className="grid w-full grid-cols-[minmax(0,2fr)_minmax(112px,0.9fr)_minmax(110px,1.1fr)_44px_minmax(110px,0.85fr)_minmax(78px,0.6fr)] items-center gap-3 px-4 py-1.5 hover:bg-accent/30 transition-colors text-left"
+                  className="grid w-full min-w-[640px] grid-cols-[minmax(0,2fr)_minmax(112px,0.9fr)_minmax(110px,1.1fr)_44px_minmax(110px,0.85fr)_minmax(78px,0.6fr)] items-center gap-3 px-4 py-1.5 hover:bg-accent/30 transition-colors text-left"
                   onClick={() => navigate(`/projects/${project.id_project}`)}
                 >
                   <div className="min-w-0">

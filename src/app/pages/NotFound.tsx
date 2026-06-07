@@ -33,7 +33,7 @@ export default function NotFound() {
         >
           <h2 className="text-lg font-semibold text-foreground mb-2">Page not found</h2>
           <p className="text-sm text-muted-foreground mb-1">
-            The path <code className="px-1.5 py-0.5 bg-muted rounded text-xs font-mono">{location.pathname}</code> does not exist.
+            The path <code className="px-1.5 py-0.5 bg-muted rounded text-xs font-mono break-all">{location.pathname}</code> does not exist.
           </p>
           <p className="text-sm text-muted-foreground mb-8">
             Check the URL or go back to an available section.

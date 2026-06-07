@@ -60,7 +60,7 @@ export function CommandBar({
   return (
     <div
       data-tour={dataTour}
-      className={`flex items-center gap-2 px-4 py-1.5 border-b border-border bg-surface-secondary min-h-[36px] ${className}`}
+      className={`flex flex-wrap items-center gap-2 px-4 py-1.5 border-b border-border bg-surface-secondary min-h-[36px] ${className}`}
     >
       {/* Primary actions (left) */}
       {actions.length > 0 && (

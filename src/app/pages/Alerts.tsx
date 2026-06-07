@@ -301,8 +301,8 @@ export default function Alerts() {
 
                   {/* Content */}
                   <div className="flex-1 min-w-0" onClick={() => setSelectedWarning(isSelected ? null : w.id_warning)}>
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <span className="text-[12px] font-medium text-foreground">{w.message}</span>
+                    <div className="flex items-center gap-2 mb-0.5 min-w-0">
+                      <span className="text-[12px] font-medium text-foreground truncate">{w.message}</span>
                         <StatusBadge
                           status={isActive ? 'warning' : 'success'}
                           text={isActive ? 'Active' : 'Resolved'}

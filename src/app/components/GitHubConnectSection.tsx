@@ -137,7 +137,7 @@ export function GitHubConnectSection() {
     return (
       <div className="space-y-2">
         <div className="flex items-center gap-3 py-2 px-3 border border-border rounded-[4px] bg-accent/20">
-          <div className="w-8 h-8 bg-[#24292e] rounded-full flex items-center justify-center">
+          <div className="w-8 h-8 bg-[#24292e] rounded-full flex items-center justify-center shrink-0">
             <Github className="w-4 h-4 text-white" />
           </div>
           <div className="flex-1 min-w-0">
@@ -146,7 +146,7 @@ export function GitHubConnectSection() {
               <span className="text-[12px] font-medium text-foreground">Connected to GitHub</span>
             </div>
             {githubLogin && (
-              <p className="text-[10px] text-muted-foreground mt-0.5">
+              <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
                 <span className="font-mono text-foreground">{githubLogin}</span>
               </p>
             )}

@@ -79,7 +79,7 @@ export default function GitHubCallback() {
             <h1 className="text-[14px] font-semibold text-foreground mb-1">
               Account connected!
             </h1>
-            <p className="text-[12px] text-muted-foreground mb-1">
+            <p className="text-[12px] text-muted-foreground mb-1 break-words">
               Connected as{" "}
               <span className="font-medium text-foreground">{githubLogin}</span>.
             </p>

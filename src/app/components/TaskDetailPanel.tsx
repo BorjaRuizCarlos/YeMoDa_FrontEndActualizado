@@ -1556,7 +1556,7 @@ export function TaskDetailPanel({
               ) : (
                 <div>
                   <div>
-                    <h2 className="text-[14px] font-semibold text-foreground leading-snug">{task.title}</h2>
+                    <h2 className="text-[14px] font-semibold text-foreground leading-snug break-words">{task.title}</h2>
                   </div>
                   {task.description && (
                     <p className="text-[12px] text-muted-foreground mt-1.5 leading-relaxed">{task.description}</p>
@@ -1569,9 +1569,9 @@ export function TaskDetailPanel({
                 {assignedNames.length > 0 && (
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] text-muted-foreground uppercase tracking-[0.06em]">Assigned</span>
-                    <div className="text-[11px] text-foreground flex items-center gap-1 flex-wrap justify-end max-w-[220px]">
+                    <div className="text-[11px] text-foreground flex items-center gap-1 flex-wrap justify-end max-w-[220px] min-w-0">
                       <User className="w-3 h-3 shrink-0" />
-                      <span className="text-right">{assignedNames.join(', ')}</span>
+                      <span className="text-right break-words min-w-0">{assignedNames.join(', ')}</span>
                     </div>
                   </div>
                 )}
@@ -1790,7 +1790,7 @@ export function TaskDetailPanel({
                               </div>
                             </div>
                           ) : (
-                            <p className="text-[11px] text-muted-foreground leading-relaxed">{c.content}</p>
+                            <p className="text-[11px] text-muted-foreground leading-relaxed break-words">{c.content}</p>
                           )}
                         </div>
                       ))}
@@ -1934,7 +1934,7 @@ export function TaskDetailPanel({
                               <div className="flex items-start justify-between gap-2 flex-1 min-w-0">
                                 <div className="flex items-start gap-1.5 flex-1 min-w-0">
                                   <SevIcon className={`w-3.5 h-3.5 mt-0.5 shrink-0 ${iconColor}`} />
-                                  <p className="text-[11px] text-foreground leading-relaxed">{w.message}</p>
+                                  <p className="text-[11px] text-foreground leading-relaxed break-words">{w.message}</p>
                                 </div>
                                 <button
                                   type="button"
@@ -1983,7 +1983,7 @@ export function TaskDetailPanel({
 
             <div className="px-4 py-3 border-b border-border bg-surface-secondary/20 space-y-2">
               <div className="grid grid-cols-1 lg:grid-cols-[1fr_160px_auto] gap-2 items-center">
-                <div className="h-8 rounded-[4px] border border-border bg-card px-2.5 text-[11px] text-muted-foreground flex items-center truncate">
+                <div className="h-8 rounded-[4px] border border-border bg-card px-2.5 text-[11px] text-muted-foreground flex items-center truncate min-w-0">
                   {aiModalPrompt || 'Loading the fix prompt for this task...'}
                 </div>
                 <select
@@ -2021,7 +2021,7 @@ export function TaskDetailPanel({
                     void handleSelectRepoFile(nextPath);
                   }}
                   disabled={aiRepoFilesLoading || aiSourceLoading}
-                  className="h-8 rounded-[4px] border border-border bg-card px-2 text-[11px]"
+                  className="h-8 rounded-[4px] border border-border bg-card px-2 text-[11px] w-full min-w-0"
                 >
                   <option value="">
                     {aiRepoFilesLoading
@@ -2093,11 +2093,11 @@ export function TaskDetailPanel({
                   {aiSuggestedPatches.length > 0 ? (
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
-                        <label className="text-[10px] text-muted-foreground">Modified file</label>
+                        <label className="text-[10px] text-muted-foreground shrink-0">Modified file</label>
                         <select
                           value={aiSelectedPatchFile}
                           onChange={(e) => setAiSelectedPatchFile(e.target.value)}
-                          className="h-8 rounded-[4px] border border-border bg-card px-2 text-[11px] min-w-[280px]"
+                          className="h-8 rounded-[4px] border border-border bg-card px-2 text-[11px] w-full min-w-0 flex-1"
                         >
                           {aiSuggestedPatches.map((patch) => (
                             <option key={patch.filename} value={patch.filename}>{patch.filename}</option>

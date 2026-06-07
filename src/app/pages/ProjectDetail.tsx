@@ -1046,7 +1046,7 @@ export default function ProjectDetail() {
           if (ok) setShowRolesModal(false);
         }}
       >
-        <DialogContent className="max-w-4xl w-full max-h-[85vh] overflow-y-auto">
+        <DialogContent className="w-full sm:max-w-4xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Roles &amp; permissions</DialogTitle>
           </DialogHeader>

@@ -333,7 +333,7 @@ export function RoleStudio({ projectId, canManage, boardColumns, boards }: RoleS
     const capOrder = capId == null ? Infinity : (colById.get(capId)?.order ?? Infinity);
     const capName = capId == null ? '∞' : colById.get(capId)?.name ?? '';
     return (
-      <div className="flex items-center gap-[2px]" aria-hidden>
+      <div className="flex items-center gap-[2px] overflow-hidden" aria-hidden>
         {sortedCols.map((c) => {
           const reach = capId == null || c.order <= capOrder;
           const isCap = c.id_column === capId;
