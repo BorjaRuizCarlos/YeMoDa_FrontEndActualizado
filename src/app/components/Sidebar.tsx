@@ -9,6 +9,7 @@ import {
   Zap,
   BarChart3,
   Bell,
+  Trophy,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useState } from 'react';
@@ -25,6 +26,7 @@ const navItems: NavItem[] = [
   { name: 'Dashboard', path: '/dashboard', icon: LayoutGrid, group: 'main' },
   { name: 'Backlog', path: '/backlog', icon: ListChecks, group: 'main' },
   { name: 'Projects', path: '/projects', icon: Briefcase, group: 'main' },
+  { name: 'Hackathons', path: '/hackathons', icon: Trophy, group: 'main' },
   { name: 'Reports', path: '/reports', icon: BarChart3, group: 'analytics' },
   { name: 'Alerts', path: '/alerts', icon: Bell, group: 'analytics' },
   { name: 'Profile', path: '/profile', icon: CircleUser, group: 'user' },

@@ -30,6 +30,9 @@ const AzureRet = lazy(() => import('./pages/AzureRet'));
 const PaymentSuccess = lazy(() => import('./pages/PaymentSuccess'));
 const PaymentCancel = lazy(() => import('./pages/PaymentCancel'));
 const Plans = lazy(() => import('./pages/Plans'));
+const Hackathons = lazy(() => import('./pages/Hackathons'));
+const HackathonNew = lazy(() => import('./pages/HackathonNew'));
+const HackathonDetail = lazy(() => import('./pages/HackathonDetail'));
 const GoogleAuthCallback = lazy(() => import('./pages/GoogleAuthCallback'));
 const GitHubAuthCallback = lazy(() => import('./pages/GitHubAuthCallback'));
 
@@ -85,6 +88,9 @@ export const router = createBrowserRouter([
       { path: 'github', element: withSuspense(GitHub) },
       { path: 'azure-ret', element: withSuspense(AzureRet) },
       { path: 'plans', element: withSuspense(Plans) },
+      { path: 'hackathons', element: withSuspense(Hackathons) },
+      { path: 'hackathons/new', element: withSuspense(HackathonNew) },
+      { path: 'hackathons/:id', element: withSuspense(HackathonDetail) },
       { path: 'payment/success', element: withSuspense(PaymentSuccess) },
       { path: 'payment/cancel', element: withSuspense(PaymentCancel) },
     ],

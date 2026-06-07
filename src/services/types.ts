@@ -563,6 +563,83 @@ export interface DevOpsStory {
   [key: string]: unknown;
 }
 
+// ─── Hackathon "Robustness Score" ────────────────────────────────────────────
+
+/** The fixed set of scoring categories shared by the rubric and per-category breakdowns. */
+export type HackathonCategory =
+  | 'security'
+  | 'performance'
+  | 'robustness'
+  | 'correctness'
+  | 'maintainability'
+  | 'tdd';
+
+/** Weights (0–100) for each scoring category. 0 = ignore the category. */
+export type HackathonRubric = Record<HackathonCategory, number>;
+
+export type HackathonProcessingMode = 'normal' | 'batch';
+
+export type HackathonSubmissionStatus =
+  | 'pending'
+  | 'running'
+  | 'batch_pending'
+  | 'done'
+  | 'failed';
+
+export type HackathonFindingSeverity = 'critical' | 'high' | 'medium' | 'low';
+
+export interface Hackathon {
+  id_hackathon: number;
+  name: string;
+  created_by: number;
+  status: string;
+  created_at: string;
+  rubric: HackathonRubric;
+  processing_mode: HackathonProcessingMode;
+  expected_teams: number | null;
+  price_per_team: number;
+  estimated_total: number;
+}
+
+/** A single per-category contribution to a submission's overall score. */
+export interface HackathonScoreEntry {
+  score: number;
+  weight: number;
+}
+
+export interface HackathonFinding {
+  category: string;
+  severity: HackathonFindingSeverity;
+  title: string;
+  file: string;
+  description: string;
+}
+
+export interface HackathonSubmission {
+  id_submission: number;
+  hackathon: number;
+  team_name: string;
+  repo_url: string;
+  ref: string;
+  status: HackathonSubmissionStatus;
+  score: number | null;
+  score_breakdown: Record<string, HackathonScoreEntry> | null;
+  findings: HackathonFinding[] | null;
+  summary: string | null;
+  error: string | null;
+  created_at: string;
+  analyzed_at: string | null;
+}
+
+export interface HackathonEstimate {
+  processing_mode: HackathonProcessingMode;
+  expected_teams: number;
+  normal_price_per_team: number;
+  batch_price_per_team: number;
+  price_per_team: number;
+  estimated_total: number;
+}
+
 // ─── API error shape ─────────────────────────────────────────────────────────
 
 export interface ApiError {
