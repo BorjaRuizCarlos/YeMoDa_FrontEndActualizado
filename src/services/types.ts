@@ -596,6 +596,7 @@ export interface Hackathon {
   created_at: string;
   rubric: HackathonRubric;
   processing_mode: HackathonProcessingMode;
+  verify_findings: boolean;
   expected_teams: number | null;
   price_per_team: number;
   estimated_total: number;
@@ -633,6 +634,7 @@ export interface HackathonSubmission {
 
 export interface HackathonEstimate {
   processing_mode: HackathonProcessingMode;
+  verify_findings: boolean;
   expected_teams: number;
   normal_price_per_team: number;
   batch_price_per_team: number;

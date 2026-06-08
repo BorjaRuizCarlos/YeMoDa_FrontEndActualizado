@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
-import { Trophy, Plus, Loader2, AlertCircle, Users, Calendar, ChevronRight, Layers, Zap } from 'lucide-react';
+import { Trophy, Plus, Loader2, AlertCircle, Users, Calendar, ChevronRight, Layers, Zap, ShieldCheck } from 'lucide-react';
 import { hackathonService } from '../../services';
 import type { Hackathon } from '../../services';
-import { formatHackathonDate, formatPrice } from '../utils/hackathon';
+import { VERIFY_BADGE_LABEL, formatHackathonDate, formatPrice } from '../utils/hackathon';
 
 function ModeBadge({ mode }: { mode: Hackathon['processing_mode'] }) {
   const isBatch = mode === 'batch';
@@ -17,6 +17,18 @@ function ModeBadge({ mode }: { mode: Hackathon['processing_mode'] }) {
     >
       {isBatch ? <Layers className="h-2.5 w-2.5" /> : <Zap className="h-2.5 w-2.5" />}
       {isBatch ? 'Batch' : 'Normal'}
+    </span>
+  );
+}
+
+function VerifyBadge() {
+  return (
+    <span
+      title="High-fidelity verification: critical/high findings are adversarially re-checked."
+      className="inline-flex items-center gap-1 rounded-full border border-success/20 bg-success/10 px-2 py-0.5 text-[10px] font-medium text-success"
+    >
+      <ShieldCheck className="h-2.5 w-2.5" />
+      {VERIFY_BADGE_LABEL}
     </span>
   );
 }
@@ -82,6 +94,7 @@ export default function Hackathons() {
                 <div className="flex items-center gap-2">
                   <h2 className="truncate text-[14px] font-semibold text-foreground">{h.name}</h2>
                   <ModeBadge mode={h.processing_mode} />
+                  {h.verify_findings && <VerifyBadge />}
                 </div>
                 <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
                   <span className="capitalize">{h.status || 'open'}</span>

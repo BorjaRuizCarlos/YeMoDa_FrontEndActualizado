@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import {
   ArrowLeft, Loader2, AlertCircle, RefreshCw, Plus, Github, ExternalLink,
-  ChevronDown, ChevronRight, Layers, Zap, FileWarning,
+  ChevronDown, ChevronRight, Layers, Zap, FileWarning, ShieldCheck,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { hackathonService } from '../../services';
@@ -14,6 +14,7 @@ import {
   SEVERITY_ORDER,
   SEVERITY_LABELS,
   SEVERITY_CHIP_CLASS,
+  VERIFY_BADGE_LABEL,
   categoryLabel,
   formatPrice,
   isSubmissionScoring,
@@ -35,6 +36,18 @@ function ModeBadge({ mode }: { mode: Hackathon['processing_mode'] }) {
     >
       {isBatch ? <Layers className="h-2.5 w-2.5" /> : <Zap className="h-2.5 w-2.5" />}
       {isBatch ? 'Batch' : 'Normal'}
+    </span>
+  );
+}
+
+function VerifyBadge() {
+  return (
+    <span
+      title="High-fidelity verification: critical/high findings are adversarially re-checked."
+      className="inline-flex items-center gap-1 rounded-full border border-success/20 bg-success/10 px-2 py-0.5 text-[10px] font-medium text-success"
+    >
+      <ShieldCheck className="h-2.5 w-2.5" />
+      {VERIFY_BADGE_LABEL}
     </span>
   );
 }
@@ -288,6 +301,7 @@ export default function HackathonDetail() {
             <div className="flex items-center gap-2">
               <h1 className="truncate text-[18px] font-semibold text-foreground">{hackathon.name}</h1>
               <ModeBadge mode={hackathon.processing_mode} />
+              {hackathon.verify_findings && <VerifyBadge />}
             </div>
             <p className="mt-1 text-[11px] capitalize text-muted-foreground">{hackathon.status || 'open'}</p>
           </div>

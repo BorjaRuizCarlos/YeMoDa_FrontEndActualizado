@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { ArrowLeft, Loader2, Sparkles, Layers, Zap, TrendingDown } from 'lucide-react';
+import { ArrowLeft, Loader2, Sparkles, Layers, Zap, TrendingDown, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { hackathonService } from '../../services';
 import type { HackathonEstimate, HackathonProcessingMode, HackathonRubric } from '../../services';
@@ -10,6 +10,7 @@ import {
   DEFAULT_RUBRIC,
   HACKATHON_CATEGORIES,
   PROCESSING_MODES,
+  VERIFY_HELPER,
   formatPrice,
 } from '../utils/hackathon';
 
@@ -18,6 +19,7 @@ export default function HackathonNew() {
 
   const [name, setName] = useState('');
   const [mode, setMode] = useState<HackathonProcessingMode>('normal');
+  const [verify, setVerify] = useState(false);
   const [expectedTeams, setExpectedTeams] = useState('10');
   const [rubric, setRubric] = useState<HackathonRubric>({ ...DEFAULT_RUBRIC });
   const [submitting, setSubmitting] = useState(false);
@@ -25,7 +27,7 @@ export default function HackathonNew() {
   const [quote, setQuote] = useState<HackathonEstimate | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
 
-  // Debounced live quote whenever mode or expected_teams changes.
+  // Debounced live quote whenever mode, verify or expected_teams changes.
   const quoteReqRef = useRef(0);
   useEffect(() => {
     const teams = Number(expectedTeams);
@@ -36,13 +38,13 @@ export default function HackathonNew() {
     const reqId = ++quoteReqRef.current;
     setQuoteLoading(true);
     const timer = setTimeout(() => {
-      hackathonService.estimate({ processing_mode: mode, expected_teams: teams })
+      hackathonService.estimate({ processing_mode: mode, verify_findings: verify, expected_teams: teams })
         .then((data) => { if (reqId === quoteReqRef.current) setQuote(data); })
         .catch(() => { if (reqId === quoteReqRef.current) setQuote(null); })
         .finally(() => { if (reqId === quoteReqRef.current) setQuoteLoading(false); });
     }, 400);
     return () => clearTimeout(timer);
-  }, [mode, expectedTeams]);
+  }, [mode, verify, expectedTeams]);
 
   const setWeight = (cat: keyof HackathonRubric, raw: string) => {
     const n = Math.max(0, Math.min(100, Math.round(Number(raw) || 0)));
@@ -75,6 +77,7 @@ export default function HackathonNew() {
         name: trimmed,
         rubric,
         processing_mode: mode,
+        verify_findings: verify,
         expected_teams: Number.isFinite(teams) && teams >= 0 ? teams : null,
       });
       toast.success('Hackathon created.');
@@ -153,6 +156,39 @@ export default function HackathonNew() {
           </div>
         </div>
 
+        {/* High-fidelity verification */}
+        <div className="rounded-[10px] border border-border bg-card p-4">
+          <button
+            type="button"
+            role="switch"
+            aria-checked={verify}
+            onClick={() => setVerify((v) => !v)}
+            className={`flex w-full items-start gap-3 rounded-[8px] border p-3 text-left transition-colors ${
+              verify
+                ? 'border-primary/50 bg-primary/5 ring-1 ring-primary/20'
+                : 'border-border bg-surface-secondary/40 hover:bg-accent/40'
+            }`}
+          >
+            <span className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${verify ? 'bg-primary/15 text-primary' : 'bg-muted text-muted-foreground'}`}>
+              <ShieldCheck className="h-3.5 w-3.5" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className={`block text-[12px] font-semibold ${verify ? 'text-primary' : 'text-foreground'}`}>
+                High-fidelity verification
+              </span>
+              <span className="mt-0.5 block text-[10px] leading-4 text-muted-foreground">
+                {VERIFY_HELPER}
+              </span>
+            </span>
+            <span
+              aria-hidden="true"
+              className={`mt-0.5 flex h-5 w-9 shrink-0 items-center rounded-full p-0.5 transition-colors ${verify ? 'bg-primary' : 'bg-border'}`}
+            >
+              <span className={`h-4 w-4 rounded-full bg-card shadow-sm transition-transform ${verify ? 'translate-x-4' : 'translate-x-0'}`} />
+            </span>
+          </button>
+        </div>
+
         {/* Expected teams */}
         <div className="rounded-[10px] border border-border bg-card p-4">
           <label htmlFor="hk-teams" className="block text-[11px] font-medium text-foreground mb-1.5">Expected teams</label>
@@ -206,7 +242,7 @@ export default function HackathonNew() {
 
               <div className="flex items-center justify-between border-t border-border pt-2.5">
                 <span className="text-[11px] text-muted-foreground">
-                  Estimated total ({mode}, {quote.expected_teams} team{quote.expected_teams === 1 ? '' : 's'})
+                  Estimated total ({mode}{quote.verify_findings ? ', high fidelity' : ''}, {quote.expected_teams} team{quote.expected_teams === 1 ? '' : 's'})
                 </span>
                 <span className="text-[16px] font-semibold tabular-nums text-foreground">{formatPrice(quote.estimated_total)}</span>
               </div>

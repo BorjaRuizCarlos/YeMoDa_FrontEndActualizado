@@ -53,6 +53,15 @@ export const PROCESSING_MODES: ProcessingModeMeta[] = [
   { value: 'batch', label: 'Batch', helper: '~50% cheaper, finalizes later (up to 24h).' },
 ];
 
+// ─── High-fidelity verification ───────────────────────────────────────────────
+
+/** Short badge label shown when a hackathon has high-fidelity verification enabled. */
+export const VERIFY_BADGE_LABEL = 'High fidelity';
+
+/** Helper copy for the verification toggle on the create form. */
+export const VERIFY_HELPER =
+  'Adversarially re-checks critical/high findings to drop false positives — more accurate, costs more per team.';
+
 // ─── Submission status ────────────────────────────────────────────────────────
 
 /** True while a submission is still being scored (not done, not failed). */

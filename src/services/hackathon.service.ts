@@ -11,6 +11,7 @@ export interface CreateHackathonPayload {
   name: string;
   rubric?: HackathonRubric;
   processing_mode: HackathonProcessingMode;
+  verify_findings?: boolean;
   expected_teams?: number | null;
 }
 
@@ -22,6 +23,7 @@ export interface AddSubmissionPayload {
 
 export interface EstimateHackathonPayload {
   processing_mode: HackathonProcessingMode;
+  verify_findings?: boolean;
   expected_teams: number;
 }
 
