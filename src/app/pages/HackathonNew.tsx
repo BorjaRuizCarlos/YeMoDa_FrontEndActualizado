@@ -53,11 +53,19 @@ export default function HackathonNew() {
     ? Math.round((1 - quote.batch_price_per_team / quote.normal_price_per_team) * 100)
     : 0;
 
+  // Rubric is a 100-point budget: the weights must total exactly 100.
+  const rubricTotal = HACKATHON_CATEGORIES.reduce((sum, cat) => sum + (rubric[cat] || 0), 0);
+  const rubricValid = rubricTotal === 100;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = name.trim();
     if (!trimmed) {
       toast.error('Please enter a hackathon name.');
+      return;
+    }
+    if (rubricTotal !== 100) {
+      toast.error(`Rubric weights must total 100 (currently ${rubricTotal}).`);
       return;
     }
     const teams = Number(expectedTeams);
@@ -210,8 +218,15 @@ export default function HackathonNew() {
 
         {/* Rubric */}
         <div className="rounded-[10px] border border-border bg-card p-4">
-          <p className="text-[11px] font-medium text-foreground">Rubric weights</p>
-          <p className="mt-0.5 mb-3 text-[10px] text-muted-foreground">0 = ignore this category.</p>
+          <div className="flex items-center justify-between">
+            <p className="text-[11px] font-medium text-foreground">Rubric weights</p>
+            <span className={`text-[11px] font-semibold tabular-nums ${rubricValid ? 'text-success' : 'text-destructive'}`}>
+              {rubricTotal} / 100
+            </span>
+          </div>
+          <p className="mt-0.5 mb-3 text-[10px] text-muted-foreground">
+            Distribute 100 points across the categories — they must total exactly 100. Set a category to 0 to ignore it.
+          </p>
           <div className="space-y-3">
             {HACKATHON_CATEGORIES.map((cat) => (
               <div key={cat} className="flex items-center gap-3">
@@ -240,6 +255,13 @@ export default function HackathonNew() {
               </div>
             ))}
           </div>
+          {!rubricValid && (
+            <p className="mt-3 text-[10px] font-medium text-destructive">
+              {rubricTotal > 100
+                ? `${rubricTotal - 100} point${rubricTotal - 100 === 1 ? '' : 's'} over — remove weight to reach 100.`
+                : `${100 - rubricTotal} point${100 - rubricTotal === 1 ? '' : 's'} left to allocate.`}
+            </p>
+          )}
         </div>
 
         <div className="flex items-center justify-end gap-2">
@@ -251,7 +273,8 @@ export default function HackathonNew() {
           </Link>
           <button
             type="submit"
-            disabled={submitting}
+            disabled={submitting || !rubricValid}
+            title={!rubricValid ? 'Rubric weights must total 100' : undefined}
             className="inline-flex h-9 items-center justify-center gap-2 rounded-[5px] bg-primary px-5 text-[12px] font-semibold text-primary-foreground transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
           >
             {submitting && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
