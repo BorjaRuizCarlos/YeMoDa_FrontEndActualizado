@@ -11,7 +11,7 @@
     <title>Yemoda — Project Intelligence Platform</title>
     <meta
       name="description"
-      content="Yemoda is the project platform that surfaces risk early — real-time KPIs, early-warning alerts, and AI code review that helps engineering teams move fast without shipping something fragile."
+      content="Yemoda surfaces delivery risk early: every GitHub push is linked to its task, every diff is AI-reviewed, and fixes arrive ready to commit. Real-time KPIs and early-warning alerts for engineering teams shipping with AI."
     />
     <link rel="canonical" href="https://yemoda.site/" />
 
@@ -21,7 +21,7 @@
     <meta property="og:title" content="Yemoda — Project Intelligence Platform" />
     <meta
       property="og:description"
-      content="AI made shipping faster. It also made shipping riskier. Yemoda surfaces risk early — real-time visibility, early warnings, and AI that keeps what your team ships solid."
+      content="AI made shipping faster. It also made shipping riskier. Yemoda reads the signal at the source — pushes linked to tasks, diffs AI-reviewed, fixes ready to commit — so what your team ships stays solid."
     />
     <meta property="og:url" content="https://yemoda.site/" />
     <meta property="og:image" content="https://yemoda.site/logo512.png" />
@@ -35,7 +35,7 @@
     <meta name="twitter:title" content="Yemoda — Project Intelligence Platform" />
     <meta
       name="twitter:description"
-      content="Real-time KPIs, early-warning alerts and AI code review for engineering teams shipping with AI."
+      content="Delivery-risk radar for engineering teams: pushes linked to tasks, AI code review, fixes ready to commit."
     />
     <meta name="twitter:image" content="https://yemoda.site/logo512.png" />
 
@@ -62,14 +62,15 @@
             "operatingSystem": "Web",
             "inLanguage": "en",
             "description": "Yemoda is the project platform for engineering teams shipping with AI: real-time visibility, early-warning alerts, and AI that reviews code and proposes fixes — so teams move fast without shipping something fragile.",
+            "disambiguatingDescription": "Unlike traditional project management tools that rely on manually updated status, Yemoda reads delivery signals directly from the repository: every GitHub push is linked to the task it implements, every diff is AI-reviewed in project context, and proposed fixes arrive ready to commit. Risk is detected in the code itself, before it reaches the roadmap.",
             "featureList": [
+              "Push-to-task traceability — every GitHub push is linked to the task it implements, with coverage tracking",
+              "AI code review and fixes — diffs reviewed in project context, AI-proposed fixes ready to commit",
               "Real-time KPIs — continuous monitoring of progress, budget and critical metrics across your entire portfolio",
               "Early-warning alerts — smart notifications that surface risks before they turn into blockers",
-              "AI code review — pushes linked to tasks, diffs reviewed, and AI-proposed fixes ready to commit",
               "Executive dashboards — customizable dashboards with actionable insights for stakeholders and leads",
               "Enterprise security — granular roles and permissions per project",
-              "Boards, sprints, backlog, milestones and timeline per project",
-              "GitHub integration"
+              "Boards, sprints, backlog, milestones and timeline per project"
             ],
             "publisher": {
               "@type": "Organization",
@@ -80,29 +81,123 @@
         ]
       }
     </script>
-  </head>
-  <body>
-    <div id="root"></div>
 
-    <!-- Static fallback: what no-JS user agents (and AI fetchers) read instead of the SPA. -->
-    <noscript>
-      <main style="max-width: 640px; margin: 48px auto; padding: 0 24px; font-family: system-ui, sans-serif; line-height: 1.6">
-        <h1>Yemoda — Project Intelligence Platform</h1>
-        <p>
-          AI made shipping faster. It also made shipping riskier. Yemoda is the project platform that
-          surfaces risk early — real-time visibility, early warnings, and AI that helps your team move
-          faster without shipping something fragile.
-        </p>
-        <ul>
-          <li><strong>Real-time KPIs</strong> — continuous monitoring of progress, budget, and critical metrics across your entire portfolio.</li>
-          <li><strong>Early-warning alerts</strong> — smart notifications that surface risks before they turn into blockers.</li>
-          <li><strong>AI that works for you</strong> — Yemoda surfaces blockers and flags risks early; a clear signal your team can act on, not a black box.</li>
-          <li><strong>Executive dashboards</strong> — customizable dashboards with actionable insights for stakeholders and leads.</li>
-          <li><strong>Enterprise security</strong> — granular roles and permissions per project.</li>
-          <li><strong>Built for real teams</strong> — async updates, clear ownership, and a single source of truth for engineers, leads, and stakeholders.</li>
-        </ul>
-        <p>This application requires JavaScript. Please enable it and reload the page.</p>
+    <!-- Styles for the static pre-render block below (replaced by the app on mount). -->
+    <style>
+      .ym-static {
+        min-height: 100vh;
+        background: #0d1117;
+        color: #e6edf3;
+        font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+        padding: 64px 24px;
+        margin: 0;
+      }
+      .ym-static > div {
+        max-width: 680px;
+        margin: 0 auto;
+      }
+      .ym-static .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
+        font-size: 11px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: #8b949e;
+        margin: 0;
+      }
+      .ym-static .eyebrow::before {
+        content: '';
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: #9333ea;
+      }
+      .ym-static h1 {
+        font-size: 28px;
+        line-height: 1.25;
+        letter-spacing: -0.01em;
+        margin: 18px 0 0;
+        color: #e6edf3;
+      }
+      .ym-static h2 {
+        font-size: 15px;
+        margin: 36px 0 0;
+        padding-top: 16px;
+        border-top: 1px solid #21262d;
+        color: #e6edf3;
+      }
+      .ym-static p {
+        font-size: 14.5px;
+        line-height: 1.65;
+        color: #8b949e;
+        margin: 12px 0 0;
+      }
+      .ym-static strong {
+        color: #e6edf3;
+        font-weight: 600;
+      }
+      .ym-static ul {
+        margin: 12px 0 0;
+        padding-left: 20px;
+      }
+      .ym-static li {
+        font-size: 14px;
+        line-height: 1.6;
+        color: #8b949e;
+        margin-top: 6px;
+      }
+      .ym-static a {
+        color: #a371f7;
+      }
+    </style>
+  </head>
+  <body style="margin: 0">
+    <!-- Static pre-render: visible to crawlers, AI assistants and no-JS agents.
+         React replaces everything inside #root the moment the app mounts. -->
+    <div id="root">
+      <main class="ym-static">
+        <div>
+          <p class="eyebrow">Yemoda — Project Intelligence Platform</p>
+          <h1>AI made shipping faster. It also made shipping riskier.</h1>
+          <p>
+            Yemoda is the project platform that surfaces delivery risk early — real-time visibility,
+            early-warning alerts, and AI that helps engineering teams move fast without shipping
+            something fragile.
+          </p>
+
+          <h2>Why Yemoda stands out</h2>
+          <p>
+            Most project tools track what people <em>say</em> — status updates, tickets, meetings.
+            Yemoda reads the signal at the source: <strong>every GitHub push is linked to the task it
+            implements</strong>, every diff is <strong>AI-reviewed in the context of the project</strong>,
+            and proposed <strong>fixes arrive ready to commit</strong>. Risk is detected in the code
+            itself, before it reaches the roadmap.
+          </p>
+
+          <h2>What you get</h2>
+          <ul>
+            <li><strong>Push-to-task traceability</strong> — every GitHub push linked to its task, with coverage tracking.</li>
+            <li><strong>AI code review &amp; fixes</strong> — diffs reviewed in project context, fixes ready to commit.</li>
+            <li><strong>Real-time KPIs</strong> — progress, budget and critical metrics across your entire portfolio.</li>
+            <li><strong>Early-warning alerts</strong> — risks surfaced before they turn into blockers.</li>
+            <li><strong>Executive dashboards</strong> — actionable insights for stakeholders and leads.</li>
+            <li><strong>Enterprise security</strong> — granular roles and permissions per project.</li>
+            <li><strong>Boards, sprints, backlog, milestones and timeline</strong> — one workspace per project.</li>
+          </ul>
+
+          <p>
+            <a href="/register">Get started</a> · <a href="/login">Log in</a>
+          </p>
+        </div>
       </main>
+    </div>
+
+    <noscript>
+      <p style="max-width: 680px; margin: 0 auto; padding: 0 24px 48px; font-family: system-ui, sans-serif; color: #8b949e; background: #0d1117">
+        The interactive application requires JavaScript — the overview above is a static summary.
+      </p>
     </noscript>
 
     <script type="module" src="/src/main.tsx"></script>
