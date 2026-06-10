@@ -313,7 +313,7 @@ function InstrumentCluster() {
         </span>
         <div className="min-w-0 flex-1">
           <p className="truncate text-[12px] font-medium" style={{ color: INK }}>
-            <span style={MONO}>atlas-api</span> · test coverage dropped
+            <span style={MONO}>atlas-api</span> · 3 tasks overdue — sprint at risk
           </p>
           <p className="text-[11px]" style={{ color: MUTED }}>
             {resolved ? 'Flagged early — owner assigned, back on track' : 'Early warning raised before the sprint slips'}
@@ -361,9 +361,9 @@ export default function Landing() {
   ];
 
   const trust = [
-    'AI that works for your team',
-    "Designed for today's challenges",
-    'Up and running in minutes',
+    'Connects to GitHub in minutes',
+    'Adopt it one project at a time',
+    'Signals, not status meetings',
   ];
 
   const thesis: { dot: string; title: string; desc: string }[] = [
@@ -375,12 +375,12 @@ export default function Landing() {
     {
       dot: ST_RED,
       title: 'Risk grew right alongside it',
-      desc: 'New vulnerabilities slip in, context gets lost, and blockers surface only once it is too late to course-correct.',
+      desc: 'Fragile changes slip in, context gets lost, and blockers surface only once it is too late to course-correct.',
     },
     {
       dot: ST_GREEN,
       title: 'We make it robust',
-      desc: 'Yemoda keeps AI-assisted teams fast — surfacing risk early so what they ship stays solid, secure, and complete.',
+      desc: 'Yemoda keeps AI-assisted teams fast — surfacing risk early so what they ship stays solid, reviewed, and complete.',
     },
   ];
 
@@ -397,62 +397,70 @@ export default function Landing() {
     },
     {
       icon: Brain,
-      title: 'AI tools that add friction',
-      desc: 'Complex AI features that require setup, disrupt workflows, and feel like extra work rather than help.',
+      title: 'AI bolted on, not built in',
+      desc: 'Assistants that demand setup and never see your delivery context — extra work on top, no signal underneath.',
     },
   ];
 
   const features: { icon: Icon; key: string; description: string }[] = [
     {
-      icon: BarChart3,
-      key: 'Real-time KPIs',
-      description: 'Continuous monitoring of progress, budget, and critical metrics across your entire portfolio.',
+      icon: GitBranch,
+      key: 'Push-to-task traceability',
+      description:
+        'Every GitHub push is linked to the task it implements, with coverage tracking — you see what actually shipped, not what the ticket says.',
+    },
+    {
+      icon: Brain,
+      key: 'AI code review & fixes',
+      description:
+        'Diffs reviewed in the context of the task and the project, with AI-proposed fixes that arrive ready to commit. A clear signal, not a black box.',
     },
     {
       icon: Bell,
       key: 'Early-warning alerts',
-      description: 'Smart notifications that surface risks before they turn into blockers for your team.',
+      description: 'Overdue work, slipping sprints, projects drifting to at-risk — flagged the moment it happens, not at the retro.',
     },
     {
-      icon: Brain,
-      key: 'AI that works for you',
-      description: 'Yemoda surfaces blockers and flags risks early — a clear signal your team can act on, not a black box.',
-    },
-    {
-      icon: Shield,
-      key: 'Enterprise security',
-      description: 'Granular roles and permissions per project to safeguard sensitive business data.',
+      icon: BarChart3,
+      key: 'Real-time KPIs',
+      description: 'Progress, budget, and health computed live from the work — refreshed as tasks move, not as meetings happen.',
     },
     {
       icon: TrendingUp,
       key: 'Executive dashboards',
-      description: 'Customizable dashboards with actionable insights tailored for stakeholders and leads.',
+      description: 'Portfolio KPIs and per-project health, presented plainly for stakeholders and leads.',
+    },
+    {
+      icon: Shield,
+      key: 'Per-project roles & permissions',
+      description: 'Granular access control on every project — each member sees exactly what their role allows.',
     },
     {
       icon: Users,
-      key: 'Built for real teams',
-      description: 'Async updates, clear ownership, and a single source of truth — for engineers, leads, and stakeholders alike.',
+      key: 'A full workspace, included',
+      description:
+        'Boards, sprints, backlog, milestones and timeline — everything a project needs, adopted one project at a time. No rip-and-replace.',
     },
   ];
 
   const steps: { number: string; icon: Icon; title: string; description: string }[] = [
     {
       number: '01',
-      icon: Layers,
-      title: 'Set up your projects',
-      description: 'Import or create projects with timelines, budgets, and assigned teams in minutes.',
+      icon: GitBranch,
+      title: 'Connect your repo',
+      description: 'Link GitHub and create your project — no process change, no rip-and-replace. Yemoda starts reading the signal in minutes.',
     },
     {
       number: '02',
-      icon: GitBranch,
-      title: 'Monitor in real time',
-      description: 'Visualize KPIs, sprint progress, and deviations with automatically updated dashboards.',
+      icon: Layers,
+      title: 'See the real state of work',
+      description: 'Pushes link to tasks automatically; KPIs, sprint progress, and deviations update without anyone filing a status report.',
     },
     {
       number: '03',
       icon: Zap,
-      title: 'Act with confidence',
-      description: 'AI surfaces blockers early so your team can respond — clear, actionable signals, not noise.',
+      title: 'Act before it breaks',
+      description: 'AI reviews diffs, flags risk early, and proposes fixes ready to commit — clear signals, not noise.',
     },
   ];
 
@@ -594,8 +602,8 @@ export default function Landing() {
                 <span style={{ color: ACCENT }}>riskier.</span>
               </h1>
               <p className="mt-6 max-w-xl text-[17px] leading-relaxed" style={{ color: MUTED }}>
-                Yemoda is the project platform that surfaces risk early — real-time visibility, early warnings,
-                and AI that helps your team move faster without shipping something fragile.
+                Connect your repo and Yemoda shows you which projects are at risk — and why. Every GitHub
+                push is linked to its task, diffs are AI-reviewed, and fixes arrive ready to commit.
               </p>
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -665,8 +673,8 @@ export default function Landing() {
       {/* ── 01 · The problem ────────────────────────────────────────────────── */}
       <RailBlock index="01">
         <ChapterHead
-          title="Most project tools were built for managers, not teams"
-          caption="The result? Visibility gaps, late surprises, and AI features nobody actually uses."
+          title="The faster you ship, the later you find out"
+          caption="AI-era speed widened the gap between what happens in the code and what the team can see — and most tools only close it with more meetings."
         />
         <div className="mt-8 grid gap-px overflow-hidden rounded-2xl border md:grid-cols-3" style={{ borderColor: LINE, background: LINE }}>
           {painPoints.map((p) => (
@@ -701,8 +709,8 @@ export default function Landing() {
       {/* ── 03 · Capabilities (features as a spec sheet) ─────────────────────── */}
       <RailBlock id="features" index="03">
         <ChapterHead
-          title="Built for the problems engineering teams face today"
-          caption="Too many status meetings, blockers caught too late, AI tools that feel like extra work. Yemoda solves all three."
+          title="Signals from the source, not from status updates"
+          caption="Most project tools track what people say in tickets and meetings. Yemoda reads the work itself — and the warning arrives with a fix ready to commit."
         />
         <div className="mt-8 border-t" style={{ borderColor: LINE }}>
           {features.map((feature) => (
@@ -742,7 +750,7 @@ export default function Landing() {
 
       {/* ── 05 · How it works ───────────────────────────────────────────────── */}
       <RailBlock id="how-it-works" index="05">
-        <ChapterHead title="Up and running in 3 steps" caption="From setup to actionable intelligence in minutes." />
+        <ChapterHead title="Up and running in 3 steps" caption="From connect to first signal in minutes." />
         <div className="mt-8 grid gap-4 md:grid-cols-3">
           {steps.map((step) => (
             <div key={step.number} className="rounded-2xl border p-6" style={{ borderColor: LINE, background: SURFACE }}>
@@ -763,10 +771,10 @@ export default function Landing() {
       <section className="px-6 pb-24">
         <div className="mx-auto max-w-4xl rounded-3xl border px-8 py-16 text-center sm:px-16" style={{ borderColor: LINE, background: SURFACE }}>
           <h2 className="text-3xl font-semibold tracking-[-0.02em] sm:text-4xl" style={{ ...DISPLAY, color: INK }}>
-            Give your team the clarity they need to ship.
+            Know which project is slipping — before the standup does.
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-[15px] leading-relaxed" style={{ color: MUTED }}>
-            No steep learning curve, no AI black boxes — just real insights your whole team can act on from day one.
+            No AI black boxes, no rip-and-replace — connect GitHub and get signals your whole team can act on from day one.
           </p>
           <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link
