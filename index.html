@@ -1,27 +1,110 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/logo192.png" />
+    <link rel="manifest" href="/manifest.json" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Project Intelligence Platform — Gestión inteligente de proyectos con KPIs en tiempo real, alertas tempranas y análisis predictivo con IA." />
-    <meta name="theme-color" content="#C97B6E" />
+    <meta name="theme-color" content="#0D1117" />
+
+    <title>Yemoda — Project Intelligence Platform</title>
+    <meta
+      name="description"
+      content="Yemoda is the project platform that surfaces risk early — real-time KPIs, early-warning alerts, and AI code review that helps engineering teams move fast without shipping something fragile."
+    />
+    <link rel="canonical" href="https://yemoda.site/" />
 
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="Project Intelligence Platform" />
-    <meta property="og:description" content="Centraliza información, monitorea KPIs y toma decisiones basadas en análisis predictivo. Todo en una sola plataforma." />
-    <meta property="og:site_name" content="Project Intelligence" />
+    <meta property="og:site_name" content="Yemoda" />
+    <meta property="og:title" content="Yemoda — Project Intelligence Platform" />
+    <meta
+      property="og:description"
+      content="AI made shipping faster. It also made shipping riskier. Yemoda surfaces risk early — real-time visibility, early warnings, and AI that keeps what your team ships solid."
+    />
+    <meta property="og:url" content="https://yemoda.site/" />
+    <meta property="og:image" content="https://yemoda.site/logo512.png" />
+    <meta property="og:image:width" content="512" />
+    <meta property="og:image:height" content="512" />
+    <meta property="og:image:alt" content="Yemoda logo" />
+    <meta property="og:locale" content="en_US" />
 
     <!-- Twitter Card -->
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Project Intelligence Platform" />
-    <meta name="twitter:description" content="Gestión inteligente de proyectos con KPIs, alertas y análisis predictivo." />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Yemoda — Project Intelligence Platform" />
+    <meta
+      name="twitter:description"
+      content="Real-time KPIs, early-warning alerts and AI code review for engineering teams shipping with AI."
+    />
+    <meta name="twitter:image" content="https://yemoda.site/logo512.png" />
 
-    <title>Project Intelligence Platform</title>
+    <!-- Structured data — readable by crawlers and AI assistants without executing JS.
+         (JSON-LD blocks are never executed, so the strict CSP script-src is unaffected.) -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebSite",
+            "@id": "https://yemoda.site/#website",
+            "url": "https://yemoda.site/",
+            "name": "Yemoda",
+            "inLanguage": "en"
+          },
+          {
+            "@type": "SoftwareApplication",
+            "name": "Yemoda",
+            "alternateName": "Project Intelligence Platform",
+            "url": "https://yemoda.site/",
+            "applicationCategory": "BusinessApplication",
+            "applicationSubCategory": "Project management",
+            "operatingSystem": "Web",
+            "inLanguage": "en",
+            "description": "Yemoda is the project platform for engineering teams shipping with AI: real-time visibility, early-warning alerts, and AI that reviews code and proposes fixes — so teams move fast without shipping something fragile.",
+            "featureList": [
+              "Real-time KPIs — continuous monitoring of progress, budget and critical metrics across your entire portfolio",
+              "Early-warning alerts — smart notifications that surface risks before they turn into blockers",
+              "AI code review — pushes linked to tasks, diffs reviewed, and AI-proposed fixes ready to commit",
+              "Executive dashboards — customizable dashboards with actionable insights for stakeholders and leads",
+              "Enterprise security — granular roles and permissions per project",
+              "Boards, sprints, backlog, milestones and timeline per project",
+              "GitHub integration"
+            ],
+            "publisher": {
+              "@type": "Organization",
+              "name": "Yemoda",
+              "url": "https://yemoda.site/"
+            }
+          }
+        ]
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
+
+    <!-- Static fallback: what no-JS user agents (and AI fetchers) read instead of the SPA. -->
+    <noscript>
+      <main style="max-width: 640px; margin: 48px auto; padding: 0 24px; font-family: system-ui, sans-serif; line-height: 1.6">
+        <h1>Yemoda — Project Intelligence Platform</h1>
+        <p>
+          AI made shipping faster. It also made shipping riskier. Yemoda is the project platform that
+          surfaces risk early — real-time visibility, early warnings, and AI that helps your team move
+          faster without shipping something fragile.
+        </p>
+        <ul>
+          <li><strong>Real-time KPIs</strong> — continuous monitoring of progress, budget, and critical metrics across your entire portfolio.</li>
+          <li><strong>Early-warning alerts</strong> — smart notifications that surface risks before they turn into blockers.</li>
+          <li><strong>AI that works for you</strong> — Yemoda surfaces blockers and flags risks early; a clear signal your team can act on, not a black box.</li>
+          <li><strong>Executive dashboards</strong> — customizable dashboards with actionable insights for stakeholders and leads.</li>
+          <li><strong>Enterprise security</strong> — granular roles and permissions per project.</li>
+          <li><strong>Built for real teams</strong> — async updates, clear ownership, and a single source of truth for engineers, leads, and stakeholders.</li>
+        </ul>
+        <p>This application requires JavaScript. Please enable it and reload the page.</p>
+      </main>
+    </noscript>
+
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
