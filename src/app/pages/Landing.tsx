@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, type ReactNode } from 'react';
+import { useState, useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import {
   BarChart3,
@@ -8,11 +8,8 @@ import {
   TrendingUp,
   Users,
   ArrowRight,
-  Zap,
   GitBranch,
-  Layers,
   ChevronRight,
-  Clock,
   AlertTriangle,
   CheckCircle2,
   Check,
@@ -20,6 +17,7 @@ import {
   X,
   type LucideIcon,
 } from 'lucide-react';
+import { motion } from 'motion/react';
 import {
   DashboardShowcase,
   CodeReviewShowcase,
@@ -141,12 +139,11 @@ function DemoReset({ children }: { children: ReactNode }) {
   return <div style={{ fontFamily: 'var(--font-family)' }}>{children}</div>;
 }
 
-// The measure rail's scroll thread: as the reader scrolls, a purple thread
-// descends the rail like a plumb line — the index lights when the thread enters
-// the chapter, the end dot when it completes it. Scroll-linked (not autonomous),
-// and stilled entirely under prefers-reduced-motion (static accent look instead).
-// Isolated in its own component so scroll-driven state never re-renders the
-// chapter content (the demo racks are heavy).
+// The rail column for one chapter: a mono index, a transparent spacer that the
+// global ThreadCanvas measures (and draws through), and the chapter's end dot.
+// The index lights purple when the thread head enters the chapter, the dot when
+// it completes it. Lighting state lives here — isolated from the chapter content
+// (the demo racks are heavy) so scroll updates never re-render children.
 function RailThread({ index, accent }: { index: string; accent: boolean }) {
   const reduced = usePrefersReducedMotion();
   const ref = useRef<HTMLDivElement | null>(null);
@@ -161,7 +158,7 @@ function RailThread({ index, accent }: { index: string; accent: boolean }) {
       raf = 0;
       const rect = node.getBoundingClientRect();
       if (rect.height <= 0) return;
-      // The thread head rides just below the viewport's midline.
+      // Same head anchor as ThreadCanvas, so lighting tracks the drawn trace.
       const head = window.innerHeight * 0.58;
       setProgress(Math.min(1, Math.max(0, (head - rect.top) / rect.height)));
     };
@@ -178,34 +175,24 @@ function RailThread({ index, accent }: { index: string; accent: boolean }) {
     };
   }, [reduced]);
 
-  // Reduced motion keeps the calm static rail: accent chapters purple, rest hairline.
+  // Reduced motion keeps the calm static rail: accent chapters purple, rest faint.
   const fill = reduced ? (accent ? 1 : 0) : progress;
   const reached = fill > 0.02;
   const done = fill >= 0.985;
 
   return (
     <div ref={ref} className="relative flex flex-col items-center pt-1" aria-hidden="true">
+      {/* Solid bg masks the trace passing behind the label. */}
       <span
-        className="text-[11px] font-medium tracking-[0.16em] transition-colors duration-300"
-        style={{ ...MONO, color: reached ? ACCENT : FAINT }}
+        className="relative z-10 px-0.5 py-0.5 text-[11px] font-medium tracking-[0.16em] transition-colors duration-300"
+        style={{ ...MONO, color: reached ? ACCENT : FAINT, background: BG }}
       >
         {index}
       </span>
-      <span className="relative mt-3 w-px flex-1" style={{ background: LINE }}>
-        <span
-          className="absolute left-0 top-0 w-px"
-          style={{ height: `${fill * 100}%`, background: 'rgba(147,51,234,0.6)' }}
-        />
-        {/* The thread's head — a small bead riding the line while the chapter is in view. */}
-        {!reduced && fill > 0 && fill < 1 && (
-          <span
-            className="absolute left-1/2 h-[5px] w-[5px] -translate-x-1/2 -translate-y-1/2 rounded-full"
-            style={{ top: `${fill * 100}%`, background: ACCENT }}
-          />
-        )}
-      </span>
+      {/* Invisible spacer — the ThreadCanvas measures this to route the trace. */}
+      <span data-rail-line className="mt-1 w-px flex-1" />
       <span
-        className="mt-2 h-1.5 w-1.5 rounded-full transition-colors duration-300"
+        className="relative z-10 mt-2 h-1.5 w-1.5 rounded-full transition-colors duration-300"
         style={{ background: done ? ACCENT : LINE_STRONG }}
       />
     </div>
@@ -241,6 +228,163 @@ function RailBlock({
 // keeps its own AppFrame chrome. DemoReset preserves the demos' internal font + metrics.
 function DemoRack({ children }: { children: ReactNode }) {
   return <div className="dark mt-7">{children}</div>;
+}
+
+// Scroll-into-view entrance (opacity + small rise), reduced-motion aware.
+// Used for chapter heads, table rows and cards so the page reveals as it's read.
+function Reveal({
+  children,
+  delay = 0,
+  className,
+  style,
+}: {
+  children: ReactNode;
+  delay?: number;
+  className?: string;
+  style?: CSSProperties;
+}) {
+  const reduced = usePrefersReducedMotion();
+  if (reduced)
+    return (
+      <div className={className} style={style}>
+        {children}
+      </div>
+    );
+  return (
+    <motion.div
+      className={className}
+      style={style}
+      initial={{ opacity: 0, y: 10 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-60px' }}
+      transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1], delay }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+// ── The thread ──────────────────────────────────────────────────────────────────
+// One continuous SVG trace for the whole chapter run: it enters from the page's
+// left edge, curves into the measure rail, descends through every chapter, and
+// finally curves across to plug into the CTA card — like a signal trace on a
+// plotter. The purple stroke draws itself as the reader scrolls (head anchored at
+// ~58% of the viewport), with a bead riding the tip. Geometry is measured from
+// the [data-rail-line] spacers + [data-thread-end] target, and rebuilt on resize.
+// Scroll updates mutate the DOM directly (dashoffset / bead position) so nothing
+// re-renders per frame. Reduced motion: only the static hairline track is drawn.
+function ThreadCanvas({ children }: { children: ReactNode }) {
+  const reduced = usePrefersReducedMotion();
+  const ref = useRef<HTMLDivElement | null>(null);
+  const progRef = useRef<SVGPathElement | null>(null);
+  const beadRef = useRef<SVGCircleElement | null>(null);
+  const [geom, setGeom] = useState<{ w: number; h: number; d: string } | null>(null);
+
+  useEffect(() => {
+    const c = ref.current;
+    if (!c) return;
+    const build = () => {
+      const cRect = c.getBoundingClientRect();
+      const rails = Array.from(c.querySelectorAll('[data-rail-line]')) as HTMLElement[];
+      if (rails.length === 0) {
+        setGeom(null);
+        return;
+      }
+      const segs = rails.map((r) => {
+        const rect = r.getBoundingClientRect();
+        return {
+          x: rect.left + rect.width / 2 - cRect.left,
+          top: rect.top - cRect.top,
+          bottom: rect.bottom - cRect.top,
+        };
+      });
+      const x = segs[0].x;
+      const firstTop = segs[0].top;
+      const lastBottom = segs[segs.length - 1].bottom;
+      const yEntry = Math.max(8, firstTop - 48);
+      let d = `M 0 ${yEntry}`;
+      d += ` C ${x * 0.6} ${yEntry}, ${x} ${yEntry + (firstTop - yEntry) * 0.4}, ${x} ${firstTop}`;
+      d += ` L ${x} ${lastBottom}`;
+      const end = c.querySelector('[data-thread-end]') as HTMLElement | null;
+      if (end) {
+        const eRect = end.getBoundingClientRect();
+        const ex = eRect.left + eRect.width / 2 - cRect.left;
+        const ey = eRect.top - cRect.top;
+        d += ` C ${x} ${lastBottom + (ey - lastBottom) * 0.6}, ${ex} ${lastBottom + (ey - lastBottom) * 0.4}, ${ex} ${ey}`;
+      }
+      setGeom({ w: cRect.width, h: cRect.height, d });
+    };
+    build();
+    const ro = new ResizeObserver(build);
+    ro.observe(c);
+    return () => ro.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (reduced || !geom) return;
+    const c = ref.current;
+    const prog = progRef.current;
+    const bead = beadRef.current;
+    if (!c || !prog || !bead) return;
+    const total = prog.getTotalLength();
+    prog.style.strokeDasharray = `${total}`;
+    prog.style.strokeDashoffset = `${total}`;
+    prog.style.visibility = 'visible';
+    let raf = 0;
+    const update = () => {
+      raf = 0;
+      const rect = c.getBoundingClientRect();
+      const head = window.innerHeight * 0.58;
+      const p = Math.min(1, Math.max(0, (head - rect.top) / rect.height));
+      const len = p * total;
+      prog.style.strokeDashoffset = `${total - len}`;
+      const pt = prog.getPointAtLength(len);
+      bead.setAttribute('cx', `${pt.x}`);
+      bead.setAttribute('cy', `${pt.y}`);
+      bead.style.opacity = p > 0.002 && p < 0.998 ? '1' : '0';
+    };
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(update);
+    };
+    update();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    return () => {
+      if (raf) cancelAnimationFrame(raf);
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+    };
+  }, [geom, reduced]);
+
+  return (
+    <div ref={ref} className="relative">
+      {geom && (
+        <svg
+          className="pointer-events-none absolute left-0 top-0"
+          width={geom.w}
+          height={geom.h}
+          viewBox={`0 0 ${geom.w} ${geom.h}`}
+          fill="none"
+          aria-hidden="true"
+        >
+          <path d={geom.d} stroke={LINE} strokeWidth="1" />
+          {!reduced && (
+            <>
+              <path
+                ref={progRef}
+                d={geom.d}
+                stroke="rgba(147,51,234,0.65)"
+                strokeWidth="1.5"
+                style={{ visibility: 'hidden' }}
+              />
+              <circle ref={beadRef} r="2.5" fill={ACCENT} style={{ opacity: 0 }} />
+            </>
+          )}
+        </svg>
+      )}
+      {children}
+    </div>
+  );
 }
 
 function ChapterHead({ title, caption }: { title: string; caption: string }) {
@@ -362,9 +506,17 @@ function InstrumentCluster() {
         </div>
       </div>
 
-      {/* Early-warning row — surfaced amber, then resolved emerald */}
-      <div
-        className="mt-4 flex items-center gap-3 rounded-xl border px-3.5 py-3 transition-colors duration-500"
+      {/* Early-warning row — surfaced amber, then resolved emerald. Click replays
+          the sequence (scroll/idle users get the one automatic run). */}
+      <button
+        type="button"
+        onClick={() => {
+          if (reduced || !resolved) return;
+          setResolved(false);
+          window.setTimeout(() => setResolved(true), 1400);
+        }}
+        title="Replay the early-warning sequence"
+        className={`mt-4 flex w-full items-center gap-3 rounded-xl border px-3.5 py-3 text-left transition-colors duration-500 ${FOCUS}`}
         style={{
           borderColor: resolved ? 'rgba(63,185,80,0.35)' : 'rgba(227,179,65,0.35)',
           background: resolved ? 'rgba(63,185,80,0.08)' : 'rgba(227,179,65,0.08)',
@@ -391,7 +543,7 @@ function InstrumentCluster() {
         >
           {resolved ? 'Resolved' : 'At risk'}
         </span>
-      </div>
+      </button>
     </div>
   );
 }
@@ -446,24 +598,6 @@ export default function Landing() {
     },
   ];
 
-  const painPoints: { icon: Icon; title: string; desc: string }[] = [
-    {
-      icon: Clock,
-      title: 'Too many status meetings',
-      desc: 'Hours lost chasing updates that should be visible to the whole team automatically.',
-    },
-    {
-      icon: AlertTriangle,
-      title: 'Blockers caught too late',
-      desc: "Issues surface only when it's too late to course-correct — delays become inevitable.",
-    },
-    {
-      icon: Brain,
-      title: 'AI bolted on, not built in',
-      desc: 'Assistants that demand setup and never see your delivery context — extra work on top, no signal underneath.',
-    },
-  ];
-
   const features: { icon: Icon; key: string; description: string }[] = [
     {
       icon: GitBranch,
@@ -505,22 +639,19 @@ export default function Landing() {
     },
   ];
 
-  const steps: { number: string; icon: Icon; title: string; description: string }[] = [
+  const steps: { number: string; title: string; description: string }[] = [
     {
       number: '01',
-      icon: GitBranch,
       title: 'Connect your repo',
       description: 'Link GitHub and create your project — no process change, no rip-and-replace. Yemoda starts reading the signal in minutes.',
     },
     {
       number: '02',
-      icon: Layers,
       title: 'See the real state of work',
       description: 'Pushes link to tasks automatically; KPIs, sprint progress, and deviations update without anyone filing a status report.',
     },
     {
       number: '03',
-      icon: Zap,
       title: 'Act before it breaks',
       description: 'AI reviews diffs, flags risk early, and proposes fixes ready to commit — clear signals, not noise.',
     },
@@ -732,32 +863,18 @@ export default function Landing() {
 
       <div className="h-16" />
 
-      {/* ── 01 · The problem ────────────────────────────────────────────────── */}
-      <RailBlock index="01">
-        <ChapterHead
-          title="The faster you ship, the later you find out"
-          caption="AI-era speed widened the gap between what happens in the code and what the team can see — and most tools only close it with more meetings."
-        />
-        <div className="mt-8 grid gap-px overflow-hidden rounded-2xl border md:grid-cols-3" style={{ borderColor: LINE, background: LINE }}>
-          {painPoints.map((p) => (
-            <div key={p.title} className="p-6" style={{ background: SURFACE }}>
-              <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg border" style={{ borderColor: LINE, color: ACCENT }}>
-                <p.icon className="h-5 w-5" />
-              </span>
-              <h3 className="mt-4 text-[15px] font-semibold" style={{ ...DISPLAY, color: INK }}>{p.title}</h3>
-              <p className="mt-2 text-[13px] leading-relaxed" style={{ color: MUTED }}>{p.desc}</p>
-            </div>
-          ))}
-        </div>
-      </RailBlock>
-
-      {/* ── 02 · The AI workflow — the differentiator leads (Code review + AI fix) ── */}
-      <RailBlock id="demo" index="02" accent>
-        <Eyebrow>The AI workflow</Eyebrow>
-        <p className="mt-3 max-w-xl text-[15px] leading-relaxed" style={{ color: MUTED }}>
-          Code review connected to your tasks, and AI that proposes — then commits — patch diffs via GitHub.
-          This is the part your tracker can’t do.
-        </p>
+      {/* The chapter run lives inside the ThreadCanvas: one continuous trace enters
+          from the left edge, rides the measure rail, and plugs into the CTA card. */}
+      <ThreadCanvas>
+      {/* ── 01 · The AI workflow — the differentiator leads (Code review + AI fix) ── */}
+      <RailBlock id="demo" index="01" accent>
+        <Reveal>
+          <Eyebrow>The AI workflow</Eyebrow>
+          <p className="mt-3 max-w-xl text-[15px] leading-relaxed" style={{ color: MUTED }}>
+            Code review connected to your tasks, and AI that proposes — then commits — patch diffs via GitHub.
+            This is the part your tracker can’t do.
+          </p>
+        </Reveal>
         <DemoRack>
           <DemoReset>
             <CodeReviewShowcase />
@@ -769,17 +886,20 @@ export default function Landing() {
         </DemoRack>
       </RailBlock>
 
-      {/* ── 03 · Capabilities (features as a spec sheet) ─────────────────────── */}
-      <RailBlock id="features" index="03">
-        <ChapterHead
-          title="Signals from the source, not from status updates"
-          caption="Most project tools track what people say in tickets and meetings. Yemoda reads the work itself — and the warning arrives with a fix ready to commit."
-        />
+      {/* ── 02 · Capabilities (features as a spec sheet) ─────────────────────── */}
+      <RailBlock id="features" index="02">
+        <Reveal>
+          <ChapterHead
+            title="Signals from the source, not from status updates"
+            caption="Most project tools track what people say in tickets and meetings. Yemoda reads the work itself — and the warning arrives with a fix ready to commit."
+          />
+        </Reveal>
         <div className="mt-8 border-t" style={{ borderColor: LINE }}>
-          {features.map((feature) => (
-            <div
+          {features.map((feature, i) => (
+            <Reveal
               key={feature.key}
-              className="grid items-start gap-2 border-b py-5 sm:grid-cols-[minmax(0,15rem)_1fr] sm:gap-8"
+              delay={Math.min(i * 0.05, 0.25)}
+              className="grid items-start gap-2 border-b py-5 transition-colors hover:bg-white/[0.02] sm:grid-cols-[minmax(0,15rem)_1fr] sm:gap-8"
               style={{ borderColor: LINE }}
             >
               <div className="flex items-center gap-3">
@@ -789,17 +909,19 @@ export default function Landing() {
                 </span>
               </div>
               <p className="text-[15px] leading-relaxed" style={{ color: MUTED }}>{feature.description}</p>
-            </div>
+            </Reveal>
           ))}
         </div>
       </RailBlock>
 
-      {/* ── 04 · The workspace, included (Dashboard + Project detail) ─────────── */}
-      <RailBlock index="04" accent>
-        <Eyebrow>The workspace, included</Eyebrow>
-        <p className="mt-3 max-w-xl text-[15px] leading-relaxed" style={{ color: MUTED }}>
-          Portfolio health, project workspaces, sprints and timelines — the rest of the platform, live below.
-        </p>
+      {/* ── 03 · The workspace, included (Dashboard + Project detail) ─────────── */}
+      <RailBlock index="03" accent>
+        <Reveal>
+          <Eyebrow>The workspace, included</Eyebrow>
+          <p className="mt-3 max-w-xl text-[15px] leading-relaxed" style={{ color: MUTED }}>
+            Portfolio health, project workspaces, sprints and timelines — the rest of the platform, live below.
+          </p>
+        </Reveal>
         <DemoRack>
           <DemoReset>
             <DashboardShowcase />
@@ -811,52 +933,65 @@ export default function Landing() {
         </DemoRack>
       </RailBlock>
 
-      {/* ── 05 · How it works ───────────────────────────────────────────────── */}
-      <RailBlock id="how-it-works" index="05">
-        <ChapterHead title="Up and running in 3 steps" caption="From connect to first signal in minutes." />
-        <div className="mt-8 grid gap-4 md:grid-cols-3">
-          {steps.map((step) => (
-            <div key={step.number} className="rounded-2xl border p-6" style={{ borderColor: LINE, background: SURFACE }}>
-              <div className="flex items-center justify-between">
-                <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl border" style={{ borderColor: LINE, color: ACCENT }}>
-                  <step.icon className="h-5 w-5" />
+      {/* ── 04 · How it works — editorial rows, same spec-sheet voice as 02 ──── */}
+      <RailBlock id="how-it-works" index="04">
+        <Reveal>
+          <ChapterHead title="Up and running in 3 steps" caption="From connect to first signal in minutes." />
+        </Reveal>
+        <div className="mt-8 border-t" style={{ borderColor: LINE }}>
+          {steps.map((step, i) => (
+            <Reveal
+              key={step.number}
+              delay={i * 0.07}
+              className="grid items-start gap-2 border-b py-5 transition-colors hover:bg-white/[0.02] sm:grid-cols-[minmax(0,15rem)_1fr] sm:gap-8"
+              style={{ borderColor: LINE }}
+            >
+              <div className="flex items-baseline gap-3">
+                <span className="text-[12px] font-semibold tracking-[0.12em]" style={{ ...MONO, color: ACCENT }}>
+                  {step.number}
                 </span>
-                <span className="text-[13px] font-semibold tracking-[0.12em]" style={{ ...MONO, color: FAINT }}>{step.number}</span>
+                <h3 className="text-[14px] font-semibold" style={{ ...DISPLAY, color: INK }}>{step.title}</h3>
               </div>
-              <h3 className="mt-4 text-[15px] font-semibold" style={{ ...DISPLAY, color: INK }}>{step.title}</h3>
-              <p className="mt-2 text-[13px] leading-relaxed" style={{ color: MUTED }}>{step.description}</p>
-            </div>
+              <p className="text-[15px] leading-relaxed" style={{ color: MUTED }}>{step.description}</p>
+            </Reveal>
           ))}
         </div>
       </RailBlock>
 
-      {/* ── Final CTA ───────────────────────────────────────────────────────── */}
+      {/* ── Final CTA — the thread plugs into this card ─────────────────────── */}
       <section className="px-6 pb-24">
-        <div className="mx-auto max-w-4xl rounded-3xl border px-8 py-16 text-center sm:px-16" style={{ borderColor: LINE, background: SURFACE }}>
-          <h2 className="text-3xl font-semibold tracking-[-0.02em] sm:text-4xl" style={{ ...DISPLAY, color: INK }}>
-            Know which project is slipping — before the standup does.
-          </h2>
-          <p className="mx-auto mt-4 max-w-xl text-[15px] leading-relaxed" style={{ color: MUTED }}>
-            No AI black boxes, no rip-and-replace — connect GitHub and get signals your whole team can act on from day one.
-          </p>
-          <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Link
-              to="/register"
-              className={`group inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#9333EA] px-6 py-3 text-[15px] font-semibold text-white transition-colors hover:bg-[#A855F7] sm:w-auto ${FOCUS}`}
-            >
-              Get started
-              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
-            </Link>
-            <Link
-              to="/login"
-              className={`inline-flex w-full items-center justify-center gap-2 rounded-lg border px-6 py-3 text-[15px] font-medium transition-colors hover:bg-white/[0.04] sm:w-auto ${FOCUS}`}
-              style={{ borderColor: LINE_STRONG, color: INK }}
-            >
-              Sign in
-            </Link>
-          </div>
+        <div
+          data-thread-end
+          className="mx-auto max-w-4xl rounded-3xl border px-8 py-16 text-center sm:px-16"
+          style={{ borderColor: LINE, background: SURFACE }}
+        >
+          <Reveal>
+            <h2 className="text-3xl font-semibold tracking-[-0.02em] sm:text-4xl" style={{ ...DISPLAY, color: INK }}>
+              Know which project is slipping — before the standup does.
+            </h2>
+            <p className="mx-auto mt-4 max-w-xl text-[15px] leading-relaxed" style={{ color: MUTED }}>
+              No AI black boxes, no rip-and-replace — connect GitHub and get signals your whole team can act on from day one.
+            </p>
+            <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
+              <Link
+                to="/register"
+                className={`group inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#9333EA] px-6 py-3 text-[15px] font-semibold text-white transition-colors hover:bg-[#A855F7] sm:w-auto ${FOCUS}`}
+              >
+                Get started
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+              </Link>
+              <Link
+                to="/login"
+                className={`inline-flex w-full items-center justify-center gap-2 rounded-lg border px-6 py-3 text-[15px] font-medium transition-colors hover:bg-white/[0.04] sm:w-auto ${FOCUS}`}
+                style={{ borderColor: LINE_STRONG, color: INK }}
+              >
+                Sign in
+              </Link>
+            </div>
+          </Reveal>
         </div>
       </section>
+      </ThreadCanvas>
 
       {/* ── Footer ──────────────────────────────────────────────────────────── */}
       <footer className="border-t" style={{ borderColor: LINE }} role="contentinfo">
