@@ -141,6 +141,77 @@ function DemoReset({ children }: { children: ReactNode }) {
   return <div style={{ fontFamily: 'var(--font-family)' }}>{children}</div>;
 }
 
+// The measure rail's scroll thread: as the reader scrolls, a purple thread
+// descends the rail like a plumb line — the index lights when the thread enters
+// the chapter, the end dot when it completes it. Scroll-linked (not autonomous),
+// and stilled entirely under prefers-reduced-motion (static accent look instead).
+// Isolated in its own component so scroll-driven state never re-renders the
+// chapter content (the demo racks are heavy).
+function RailThread({ index, accent }: { index: string; accent: boolean }) {
+  const reduced = usePrefersReducedMotion();
+  const ref = useRef<HTMLDivElement | null>(null);
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    if (reduced) return;
+    const node = ref.current;
+    if (!node) return;
+    let raf = 0;
+    const update = () => {
+      raf = 0;
+      const rect = node.getBoundingClientRect();
+      if (rect.height <= 0) return;
+      // The thread head rides just below the viewport's midline.
+      const head = window.innerHeight * 0.58;
+      setProgress(Math.min(1, Math.max(0, (head - rect.top) / rect.height)));
+    };
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(update);
+    };
+    update();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    return () => {
+      if (raf) cancelAnimationFrame(raf);
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+    };
+  }, [reduced]);
+
+  // Reduced motion keeps the calm static rail: accent chapters purple, rest hairline.
+  const fill = reduced ? (accent ? 1 : 0) : progress;
+  const reached = fill > 0.02;
+  const done = fill >= 0.985;
+
+  return (
+    <div ref={ref} className="relative flex flex-col items-center pt-1" aria-hidden="true">
+      <span
+        className="text-[11px] font-medium tracking-[0.16em] transition-colors duration-300"
+        style={{ ...MONO, color: reached ? ACCENT : FAINT }}
+      >
+        {index}
+      </span>
+      <span className="relative mt-3 w-px flex-1" style={{ background: LINE }}>
+        <span
+          className="absolute left-0 top-0 w-px"
+          style={{ height: `${fill * 100}%`, background: 'rgba(147,51,234,0.6)' }}
+        />
+        {/* The thread's head — a small bead riding the line while the chapter is in view. */}
+        {!reduced && fill > 0 && fill < 1 && (
+          <span
+            className="absolute left-1/2 h-[5px] w-[5px] -translate-x-1/2 -translate-y-1/2 rounded-full"
+            style={{ top: `${fill * 100}%`, background: ACCENT }}
+          />
+        )}
+      </span>
+      <span
+        className="mt-2 h-1.5 w-1.5 rounded-full transition-colors duration-300"
+        style={{ background: done ? ACCENT : LINE_STRONG }}
+      />
+    </div>
+  );
+}
+
 // A numbered chapter laid against the left "measure rail" — the page's calibrated
 // scale. Section content hangs off the rail like readings off an instrument.
 function RailBlock({
@@ -158,16 +229,7 @@ function RailBlock({
     <section id={id} className="relative scroll-mt-28">
       <div className="mx-auto max-w-6xl px-6">
         <div className="grid grid-cols-[1.75rem_1fr] gap-x-4 sm:grid-cols-[4rem_1fr] sm:gap-x-8">
-          <div className="relative flex flex-col items-center pt-1" aria-hidden="true">
-            <span className="text-[11px] font-medium tracking-[0.16em]" style={{ ...MONO, color: FAINT }}>
-              {index}
-            </span>
-            <span className="mt-3 w-px flex-1" style={{ background: accent ? 'rgba(147,51,234,0.5)' : LINE }} />
-            <span
-              className="mt-2 h-1.5 w-1.5 rounded-full"
-              style={{ background: accent ? ACCENT : LINE_STRONG }}
-            />
-          </div>
+          <RailThread index={index} accent={accent} />
           <div className="min-w-0 pb-24 pt-1">{children}</div>
         </div>
       </div>
@@ -689,19 +751,20 @@ export default function Landing() {
         </div>
       </RailBlock>
 
-      {/* ── 02 · Product workspace (Dashboard + Project detail) ──────────────── */}
-      <RailBlock index="02" accent>
-        <Eyebrow>Product workspace</Eyebrow>
+      {/* ── 02 · The AI workflow — the differentiator leads (Code review + AI fix) ── */}
+      <RailBlock id="demo" index="02" accent>
+        <Eyebrow>The AI workflow</Eyebrow>
         <p className="mt-3 max-w-xl text-[15px] leading-relaxed" style={{ color: MUTED }}>
-          Portfolio health, project workspaces, sprints and timelines — explore the live console below.
+          Code review connected to your tasks, and AI that proposes — then commits — patch diffs via GitHub.
+          This is the part your tracker can’t do.
         </p>
         <DemoRack>
           <DemoReset>
-            <DashboardShowcase />
+            <CodeReviewShowcase />
           </DemoReset>
           <div className="h-px" style={{ background: LINE }} aria-hidden="true" />
           <DemoReset>
-            <ProjectDetailShowcase />
+            <AiFixShowcase />
           </DemoReset>
         </DemoRack>
       </RailBlock>
@@ -731,19 +794,19 @@ export default function Landing() {
         </div>
       </RailBlock>
 
-      {/* ── 04 · The AI workflow (Code review + AI fix) ──────────────────────── */}
+      {/* ── 04 · The workspace, included (Dashboard + Project detail) ─────────── */}
       <RailBlock index="04" accent>
-        <Eyebrow>The AI workflow</Eyebrow>
+        <Eyebrow>The workspace, included</Eyebrow>
         <p className="mt-3 max-w-xl text-[15px] leading-relaxed" style={{ color: MUTED }}>
-          Code review connected to your tasks, and AI that proposes — then commits — patch diffs via GitHub.
+          Portfolio health, project workspaces, sprints and timelines — the rest of the platform, live below.
         </p>
         <DemoRack>
           <DemoReset>
-            <CodeReviewShowcase />
+            <DashboardShowcase />
           </DemoReset>
           <div className="h-px" style={{ background: LINE }} aria-hidden="true" />
           <DemoReset>
-            <AiFixShowcase />
+            <ProjectDetailShowcase />
           </DemoReset>
         </DemoRack>
       </RailBlock>

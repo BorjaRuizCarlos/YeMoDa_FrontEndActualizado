@@ -895,7 +895,7 @@ export function DashboardShowcase() {
   const [activeView, setActiveView] = useState<DemoView>('dashboard');
 
   return (
-    <section id="demo" className="container mx-auto px-6 py-24 max-w-6xl scroll-mt-16">
+    <section className="container mx-auto px-6 py-24 max-w-6xl scroll-mt-16">
       <div className="flex flex-col items-center gap-10">
         {/* Text */}
         <motion.div
