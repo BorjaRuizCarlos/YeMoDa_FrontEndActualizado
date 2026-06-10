@@ -82,7 +82,7 @@ export default function Plans() {
       )}
 
       <div className="relative overflow-hidden rounded-[10px] border border-primary/30 bg-card p-5 shadow-sm ring-1 ring-primary/10">
-        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary/80 via-primary to-accent" />
+        <div className="absolute inset-x-0 top-0 h-1 bg-primary" />
 
         <div className="mb-4 inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[10px] font-medium text-primary">
           <Sparkles className="h-3 w-3" />

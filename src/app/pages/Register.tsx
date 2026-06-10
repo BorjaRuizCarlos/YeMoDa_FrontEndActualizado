@@ -242,7 +242,7 @@ export default function Register() {
                           <div
                             key={i}
                             className={`h-0.5 flex-1 rounded-full transition-colors ${
-                              i < passwordStrength ? strengthColors[passwordStrength] : 'bg-input'
+                              i < passwordStrength ? strengthColors[passwordStrength] : 'bg-border'
                             }`}
                           />
                         ))}

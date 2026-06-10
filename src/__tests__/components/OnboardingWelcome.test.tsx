@@ -31,7 +31,7 @@ describe('OnboardingWelcome', () => {
       </MemoryRouter>,
     );
     expect(await screen.findByText(/Welcome to Yemoda/)).toBeInTheDocument();
-    expect(screen.getByText(/get started/i)).toBeInTheDocument();
+    expect(screen.getByText(/start setup/i)).toBeInTheDocument();
   });
 
   it('stays hidden (and marks done) for users who already have projects', async () => {

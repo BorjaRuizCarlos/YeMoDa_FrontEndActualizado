@@ -30,8 +30,7 @@ import {
 // ── Design tokens — dark canvas + the brand PURPLE accent ──────────────────────
 // The accent is the brand primary (matches the demos). Generic-AI tells are gone:
 // no gradient headline, no glass pill nav, no ambient glow — the structure carries it.
-const ACCENT = '#9333EA'; // brand purple (dark) — CTAs, highlights, marks
-const ACCENT_HOVER = '#A855F7';
+const ACCENT = '#9333EA'; // brand purple (dark) — CTAs, highlights, marks (hover: #A855F7 via Tailwind classes)
 const INK = '#E6EDF3'; // primary text
 const MUTED = '#8B949E'; // secondary text
 const FAINT = '#6E7681'; // tertiary (rail indices, footer meta)
@@ -163,7 +162,7 @@ function RailBlock({
             <span className="text-[11px] font-medium tracking-[0.16em]" style={{ ...MONO, color: FAINT }}>
               {index}
             </span>
-            <span className="mt-3 w-px flex-1" style={{ background: accent ? 'rgba(147,51,234,0.35)' : LINE }} />
+            <span className="mt-3 w-px flex-1" style={{ background: accent ? 'rgba(147,51,234,0.5)' : LINE }} />
             <span
               className="mt-2 h-1.5 w-1.5 rounded-full"
               style={{ background: accent ? ACCENT : LINE_STRONG }}
@@ -185,7 +184,7 @@ function DemoRack({ children }: { children: ReactNode }) {
 function ChapterHead({ title, caption }: { title: string; caption: string }) {
   return (
     <div className="max-w-2xl">
-      <h2 className="text-2xl font-semibold tracking-[-0.02em] sm:text-3xl" style={{ ...DISPLAY, color: INK }}>
+      <h2 className="text-2xl font-semibold tracking-[-0.02em] sm:text-3xl lg:text-4xl" style={{ ...DISPLAY, color: INK }}>
         {title}
       </h2>
       <p className="mt-3 text-[15px] leading-relaxed" style={{ color: MUTED }}>
@@ -230,7 +229,7 @@ function InstrumentCluster() {
 
   return (
     <div
-      className="rounded-2xl border p-5 shadow-[0_30px_80px_-30px_rgba(0,0,0,0.8)]"
+      className="rounded-2xl border p-4 shadow-[0_30px_80px_-30px_rgba(0,0,0,0.8)] sm:p-5"
       style={{ borderColor: LINE, background: SURFACE }}
     >
       {/* Header */}
@@ -254,10 +253,10 @@ function InstrumentCluster() {
         {kpis.map((k, i) => (
           <div
             key={k.label}
-            className="px-4 py-3.5"
+            className="px-3 py-3 sm:px-4 sm:py-3.5"
             style={{ borderLeft: i === 0 ? undefined : `1px solid ${LINE}`, background: SURFACE2 }}
           >
-            <span ref={k.ref} className="text-[26px] font-semibold leading-none" style={{ ...NUM, color: INK }}>
+            <span ref={k.ref} className="text-[22px] font-semibold leading-none sm:text-[26px]" style={{ ...NUM, color: INK }}>
               {String(k.value).padStart(2, '0')}
             </span>
             <div className="mt-1.5 flex items-center gap-1.5">
@@ -494,10 +493,7 @@ export default function Landing() {
             </Link>
             <Link
               to="/register"
-              className={`rounded-lg px-4 py-2 text-[14px] font-semibold text-white transition-colors ${FOCUS}`}
-              style={{ background: ACCENT }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = ACCENT_HOVER)}
-              onMouseLeave={(e) => (e.currentTarget.style.background = ACCENT)}
+              className={`rounded-lg bg-[#9333EA] px-4 py-2 text-[14px] font-semibold text-white transition-colors hover:bg-[#A855F7] ${FOCUS}`}
             >
               Get started
             </Link>
@@ -605,10 +601,7 @@ export default function Landing() {
               <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
                 <Link
                   to="/register"
-                  className={`group inline-flex items-center justify-center gap-2 rounded-lg px-6 py-3 text-[15px] font-semibold text-white transition-colors ${FOCUS}`}
-                  style={{ background: ACCENT }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = ACCENT_HOVER)}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = ACCENT)}
+                  className={`group inline-flex items-center justify-center gap-2 rounded-lg bg-[#9333EA] px-6 py-3 text-[15px] font-semibold text-white transition-colors hover:bg-[#A855F7] ${FOCUS}`}
                 >
                   Get started
                   <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
@@ -778,10 +771,7 @@ export default function Landing() {
           <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link
               to="/register"
-              className={`group inline-flex w-full items-center justify-center gap-2 rounded-lg px-6 py-3 text-[15px] font-semibold text-white transition-colors sm:w-auto ${FOCUS}`}
-              style={{ background: ACCENT }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = ACCENT_HOVER)}
-              onMouseLeave={(e) => (e.currentTarget.style.background = ACCENT)}
+              className={`group inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#9333EA] px-6 py-3 text-[15px] font-semibold text-white transition-colors hover:bg-[#A855F7] sm:w-auto ${FOCUS}`}
             >
               Get started
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />

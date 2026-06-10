@@ -65,7 +65,7 @@ export function AppLayout() {
   if (mustChooseNickname) {
     return (
       <div className="fixed inset-0 z-[130] flex items-center justify-center bg-background px-6">
-        <div className="w-full max-w-md rounded-[10px] border border-border bg-card p-6 shadow-xl">
+        <div className="w-full max-w-md rounded-[6px] border border-border bg-card p-6 shadow-xl">
           <h2 className="text-[18px] font-semibold text-foreground">Choose your nickname</h2>
           <p className="mt-2 text-[13px] leading-6 text-muted-foreground">
             To continue, set the name people will see on your profile. Duplicate nicknames are not allowed.

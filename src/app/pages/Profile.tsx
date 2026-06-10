@@ -79,6 +79,16 @@ export default function Profile() {
 
   const planLabel = useMemo(() => (isPremium ? 'Premium' : 'Free'), [isPremium]);
 
+  // Close the change-password modal with the Escape key while it is open.
+  useEffect(() => {
+    if (!showSecurityModal) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowSecurityModal(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [showSecurityModal]);
+
   const resetEditingState = () => {
     setFormData({
       name: user?.name || '',
@@ -404,8 +414,17 @@ export default function Profile() {
       </div>
 
       {showSecurityModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-6">
-          <div className="bg-card border border-border rounded-[4px] p-5 max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-6"
+          onClick={() => setShowSecurityModal(false)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Update password"
+            className="bg-card border border-border rounded-[4px] p-5 max-w-md w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
               <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="text-[13px] font-semibold text-foreground">Update password</h2>

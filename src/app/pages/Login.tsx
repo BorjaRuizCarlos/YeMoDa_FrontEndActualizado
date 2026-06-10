@@ -185,9 +185,9 @@ export default function Login() {
 
             {/* Account blocked — email verification required */}
             {emailBlocked && (
-              <div className="rounded-[3px] border border-destructive/30 bg-destructive/5 px-3 py-2.5 flex items-start gap-2.5">
+              <div className="rounded-[3px] border border-warning/30 bg-warning/5 px-3 py-2.5 flex items-start gap-2.5">
                 <div className="flex-1 min-w-0">
-                  <p className="text-[12px] font-medium text-foreground mb-0.5">Account locked</p>
+                  <p className="text-[12px] font-medium text-warning mb-0.5">Account locked</p>
                   <p className="text-[11px] text-muted-foreground">More than 7 days have passed without verifying your email. Verify your account to continue.</p>
                 </div>
                 <LoadingButton

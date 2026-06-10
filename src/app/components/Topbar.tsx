@@ -111,7 +111,7 @@ export function Topbar() {
           onClick={openCommandPalette}
           data-tour="topbar-search"
           aria-label="Search (Ctrl+K)"
-          className="flex items-center gap-2 pl-2 pr-2 py-1 bg-background rounded-[3px] border border-input text-[12px] text-muted-foreground hover:border-foreground/20 transition-colors cursor-pointer w-48 min-w-0"
+          className="flex items-center gap-2 pl-2 pr-2 py-1 bg-background rounded-[3px] border border-input text-[12px] text-muted-foreground hover:border-foreground/20 transition-colors cursor-pointer w-36 md:w-48 min-w-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
         >
           <Search className="w-3.5 h-3.5 shrink-0" />
           <span className="flex-1 text-left truncate">Search...</span>
@@ -131,7 +131,7 @@ export function Topbar() {
               data-tour="topbar-help"
               onClick={() => replayTour(location.pathname)}
               aria-label="Replay tips for this page"
-              className="p-1.5 rounded-[3px] hover:bg-accent transition-colors"
+              className="p-1.5 rounded-[3px] hover:bg-accent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             >
               <HelpCircle className="w-4 h-4 text-muted-foreground" />
             </button>
@@ -150,7 +150,7 @@ export function Topbar() {
             <button
               onClick={toggleTheme}
               aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-              className="p-1.5 rounded-[3px] hover:bg-accent transition-colors"
+              className="p-1.5 rounded-[3px] hover:bg-accent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             >
               {theme === 'dark' ? (
                 <Sun className="w-4 h-4 text-muted-foreground" />
@@ -170,12 +170,12 @@ export function Topbar() {
           <div className="relative" ref={userMenuRef}>
             <button
               onClick={() => setShowUserMenu(!showUserMenu)}
-              className="flex items-center gap-1.5 pl-1.5 pr-1 py-1 rounded-[3px] hover:bg-accent transition-colors"
+              className="flex items-center gap-1.5 pl-1.5 pr-1 py-1 rounded-[3px] hover:bg-accent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
               aria-label="User menu"
               aria-expanded={showUserMenu}
             >
               <div className="w-6 h-6 rounded-full bg-primary/90 flex items-center justify-center shrink-0">
-                <span className="text-[10px] font-semibold text-white">
+                <span className="text-[10px] font-semibold text-primary-foreground">
                   {user.name.charAt(0).toUpperCase()}
                 </span>
               </div>

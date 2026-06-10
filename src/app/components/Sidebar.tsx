@@ -60,7 +60,7 @@ export function Sidebar() {
       <Link
         to={item.path}
         data-tour={`nav-${item.path.replace('/', '')}`}
-        className={`relative flex items-center gap-2.5 transition-colors duration-100 select-none
+        className={`relative flex items-center gap-2.5 transition-colors duration-100 select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring
           ${collapsed ? 'justify-center px-0 py-2 mx-1 rounded-[3px]' : 'px-3 py-[6px] mx-1.5 rounded-[3px]'}
           ${
             isActive
@@ -119,7 +119,7 @@ export function Sidebar() {
         }`}
       >
         <div className="flex items-center justify-center w-7 h-7 rounded-[3px] bg-primary shrink-0">
-          <Zap className="w-4 h-4 text-white" />
+          <Zap className="w-4 h-4 text-primary-foreground" />
         </div>
         {!collapsed && (
           <div className="flex-1 min-w-0">
@@ -165,7 +165,7 @@ export function Sidebar() {
         {user && !collapsed && (
           <div className="px-3 py-2.5 flex items-center gap-2.5">
             <div className="w-7 h-7 rounded-full bg-primary/90 flex items-center justify-center shrink-0">
-              <span className="text-[11px] font-semibold text-white">
+              <span className="text-[11px] font-semibold text-primary-foreground">
                 {user.name.charAt(0).toUpperCase()}
               </span>
             </div>
@@ -182,7 +182,7 @@ export function Sidebar() {
             <TooltipTrigger asChild>
               <div className="flex justify-center py-2.5">
                 <div className="w-7 h-7 rounded-full bg-primary/90 flex items-center justify-center cursor-default">
-                  <span className="text-[11px] font-semibold text-white">
+                  <span className="text-[11px] font-semibold text-primary-foreground">
                     {user.name.charAt(0).toUpperCase()}
                   </span>
                 </div>
@@ -201,7 +201,7 @@ export function Sidebar() {
               <button
                 onClick={toggleCollapsed}
                 aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-                className="p-1.5 rounded-[3px] hover:bg-sidebar-accent transition-colors text-sidebar-muted hover:text-sidebar-foreground"
+                className="p-1.5 rounded-[3px] hover:bg-sidebar-accent transition-colors text-sidebar-muted hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
               >
                 {collapsed ? (
                   <ChevronRight className="w-3.5 h-3.5" />

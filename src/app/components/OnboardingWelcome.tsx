@@ -1,19 +1,64 @@
-import { useEffect, useState, type ComponentType } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router';
-import { Sparkles, Github, FolderPlus, Users, ArrowRight, Check, X, Loader2 } from 'lucide-react';
+import { ArrowRight, Check, Github, Loader2, X, Zap } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { projectsService, githubService } from '../../services';
 import { hasSeen, markSeen, WELCOME_ID } from '../utils/onboarding';
 
+// ── Forced-dark instrument palette ──────────────────────────────────────────────
+// The welcome is a "commissioning console": it deliberately keeps the landing's
+// dark instrument voice (same hexes as Landing.tsx + tours.css) regardless of the
+// app theme, so landing → first run → tours read as one continuous panel.
+const BG = '#0D1117';
+const LINE = '#21262D';
+const INK = '#E6EDF3';
+const MUTED = '#8B949E';
+const FAINT = '#6E7681';
+const ACCENT = '#9333EA';
+const ST_GREEN = '#3FB950';
+const ST_AMBER = '#E3B341';
+
+const MONO = { fontFamily: 'var(--font-mono-lp, var(--font-mono, monospace))' } as const;
+const DISPLAY = { fontFamily: 'var(--font-display, var(--font-family))' } as const;
+
+const pad = (n: number) => String(n).padStart(2, '0');
+
+const FOCUS =
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9333EA] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0D1117]';
+
 interface Step {
-  icon: ComponentType<{ className?: string }>;
+  id: string;
+  /** Short label on the left step rail. */
+  rail: string;
+  /** Mono kicker above the title. */
+  kicker: string;
   title: string;
   body: string;
 }
 
-// Linear-style first-run intro. Only shown to brand-new users (no projects yet) who
-// haven't completed it. Mounted in AppLayout so it floats over the app and survives
-// navigation (so step 3 can route the user to Projects while staying open).
+// A hairline "readout" row: mono label on the left, content to the right.
+function ReadoutRow({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div
+      className="mt-5 flex items-center gap-4 rounded-[6px] border px-3.5 py-2.5"
+      style={{ borderColor: LINE }}
+    >
+      <span
+        className="shrink-0 text-[9.5px] font-medium uppercase tracking-[0.16em]"
+        style={{ ...MONO, color: FAINT }}
+      >
+        {label}
+      </span>
+      {children}
+    </div>
+  );
+}
+
+// First-run intro, restyled as the brand's "commissioning console" — the numbered
+// step rail + mono readouts continue the landing's instrument-panel language. Only
+// shown to brand-new users (no projects yet) who haven't completed it. Mounted in
+// AppLayout so it floats over the app and survives navigation (so the last step can
+// route the user to Projects while staying open).
 export function OnboardingWelcome() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -68,29 +113,36 @@ export function OnboardingWelcome() {
   const firstName = user.name?.split(' ')[0] ?? '';
   const steps: Step[] = [
     {
-      icon: Sparkles,
+      id: 'hello',
+      rail: 'Welcome',
+      kicker: 'System online',
       title: firstName ? `Welcome to Yemoda, ${firstName}` : 'Welcome to Yemoda',
-      body: 'Project intelligence for engineering teams — real-time health, early-warning alerts, and AI that reviews code and proposes fixes. Let’s get you set up in under a minute.',
+      body: 'Project intelligence for engineering teams — one panel that reads your projects like instruments. Setup takes under a minute.',
     },
     {
-      icon: Github,
+      id: 'github',
+      rail: 'Link GitHub',
+      kicker: 'Signal input',
       title: 'Connect GitHub',
-      body: 'This is where Yemoda shines: it links pushes to tasks, reviews diffs, and proposes AI fixes you can commit. Connect your account to unlock the full workflow.',
+      body: 'This is where Yemoda shines: pushes link to tasks, diffs get reviewed, and AI fixes arrive ready to commit.',
     },
     {
-      icon: FolderPlus,
+      id: 'project',
+      rail: 'First project',
+      kicker: 'Workspace',
       title: 'Create your first project',
-      body: 'Projects hold your boards, sprints, timeline, code review and team. Create one to start tracking real work.',
+      body: 'A project holds your boards, sprints, timeline, code review and team. Create one and the instruments start reading.',
     },
     {
-      icon: Users,
-      title: 'Invite your team',
-      body: 'Yemoda is better together. Open any project’s Team tab to invite teammates and assign a role per project.',
+      id: 'team',
+      rail: 'Invite team',
+      kicker: 'Crew',
+      title: 'Bring the team aboard',
+      body: 'Roles are set per project. Open any project’s Team tab to invite teammates and decide what each one can touch.',
     },
   ];
 
   const current = steps[step];
-  const Icon = current.icon;
   const isLast = step === steps.length - 1;
 
   const finish = () => {
@@ -126,92 +178,242 @@ export function OnboardingWelcome() {
 
   const primaryLabel =
     step === 0
-      ? 'Let’s get started'
+      ? 'Start setup'
       : step === 1
         ? ghConnected
           ? 'Connected — continue'
           : 'Connect GitHub'
         : step === 2
           ? 'Next'
-          : 'Finish & go to Projects';
+          : 'Finish & open Projects';
 
-  const secondary = step === 1 || step === 2 ? (step === 1 ? 'Skip for now' : 'Later') : null;
+  const secondary = step === 1 ? 'Skip for now' : step === 2 ? 'Later' : null;
+
+  const ghStatusColor = ghConnected === null ? FAINT : ghConnected ? ST_GREEN : ST_AMBER;
 
   return (
-    <div className="fixed inset-0 z-[125] flex items-center justify-center bg-background/80 px-6 backdrop-blur-sm">
-      <div className="relative w-full max-w-md rounded-[12px] border border-border bg-card p-6 shadow-2xl">
-        <button
-          type="button"
-          onClick={finish}
-          aria-label="Skip onboarding"
-          className="absolute right-3 top-3 rounded-[4px] p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+    <div
+      className="fixed inset-0 z-[125] flex items-center justify-center bg-[#010409]/85 px-4 sm:px-6"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Welcome to Yemoda"
+    >
+      <div
+        className="ym-console-in relative w-full max-w-[640px] overflow-hidden rounded-[10px] border shadow-[0_40px_120px_-24px_rgba(0,0,0,0.9)]"
+        style={{ background: BG, borderColor: LINE }}
+      >
+        {/* ── Console header: brand · step counter · close · progress scan-line ── */}
+        <div
+          className="relative flex items-center justify-between gap-3 border-b px-4 py-2.5 sm:px-5"
+          style={{ borderColor: LINE }}
         >
-          <X className="h-4 w-4" />
-        </button>
-
-        <span className="inline-flex h-11 w-11 items-center justify-center rounded-[10px] bg-primary/10 text-primary">
-          <Icon className="h-5 w-5" />
-        </span>
-
-        <h2 className="mt-4 text-[18px] font-semibold text-foreground">{current.title}</h2>
-        <p className="mt-2 text-[13px] leading-6 text-muted-foreground">{current.body}</p>
-
-        {step === 1 && ghConnected && (
-          <p className="mt-3 inline-flex items-center gap-1.5 rounded-[4px] bg-success/10 px-2 py-1 text-[12px] font-medium text-success">
-            <Check className="h-3.5 w-3.5" /> GitHub is connected
-          </p>
-        )}
-
-        {/* Progress dots */}
-        <div className="mt-6 flex items-center gap-1.5" aria-hidden="true">
-          {steps.map((_, i) => (
-            <span
-              key={i}
-              className={`h-1.5 rounded-full transition-all ${
-                i === step ? 'w-5 bg-primary' : i < step ? 'w-1.5 bg-primary/50' : 'w-1.5 bg-border'
-              }`}
-            />
-          ))}
-        </div>
-
-        {/* Footer */}
-        <div className="mt-5 flex items-center justify-between gap-3">
-          <button
-            type="button"
-            onClick={finish}
-            className="text-[12px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+          <span
+            className="flex min-w-0 items-center gap-2 text-[10px] font-medium uppercase tracking-[0.18em]"
+            style={{ ...MONO, color: MUTED }}
           >
-            Skip tour
-          </button>
-
-          <div className="flex items-center gap-2">
-            {secondary && (
-              <button
-                type="button"
-                onClick={() => setStep(step + 1)}
-                className="h-9 rounded-[6px] border border-border bg-card px-3.5 text-[12px] font-medium text-foreground transition-colors hover:bg-surface-secondary"
-              >
-                {secondary}
-              </button>
-            )}
+            <Zap className="h-3 w-3 shrink-0" style={{ color: ACCENT }} aria-hidden="true" />
+            <span className="truncate">
+              Yemoda <span style={{ color: FAINT }}>/ first run</span>
+            </span>
+          </span>
+          <span className="flex shrink-0 items-center gap-3">
+            <span
+              className="text-[10px] uppercase tracking-[0.14em]"
+              style={{ ...MONO, color: FAINT, fontVariantNumeric: 'tabular-nums' }}
+            >
+              Step {pad(step + 1)}/{pad(steps.length)}
+            </span>
             <button
               type="button"
-              onClick={handlePrimary}
-              disabled={redirecting}
-              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-[6px] bg-primary px-4 text-[12px] font-semibold text-primary-foreground transition-colors hover:bg-primary-hover disabled:opacity-60"
+              onClick={finish}
+              aria-label="Skip onboarding"
+              className={`rounded-[4px] p-1 text-[#6E7681] transition-colors hover:bg-white/[0.06] hover:text-[#E6EDF3] ${FOCUS}`}
             >
-              {redirecting ? (
-                <>
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> Redirecting…
-                </>
-              ) : (
-                <>
-                  {primaryLabel}
-                  {!isLast && step !== 1 && <ArrowRight className="h-3.5 w-3.5" />}
-                  {step === 1 && !ghConnected && <Github className="h-3.5 w-3.5" />}
-                </>
-              )}
+              <X className="h-3.5 w-3.5" />
             </button>
+          </span>
+          {/* Progress scan-line riding the header's bottom hairline */}
+          <span className="absolute inset-x-0 -bottom-px h-px" aria-hidden="true">
+            <span
+              className="block h-full transition-all duration-500 ease-out"
+              style={{ width: `${((step + 1) / steps.length) * 100}%`, background: ACCENT }}
+            />
+          </span>
+        </div>
+
+        <div className="grid sm:grid-cols-[188px_minmax(0,1fr)]">
+          {/* ── Step rail (desktop) — the landing's measure rail, repurposed ── */}
+          <ol className="hidden border-r py-3 sm:block" style={{ borderColor: LINE }}>
+            {steps.map((s, i) => {
+              const done = i < step;
+              const active = i === step;
+              return (
+                <li
+                  key={s.id}
+                  aria-current={active ? 'step' : undefined}
+                  className="relative flex items-center gap-2.5 px-4 py-2.5"
+                >
+                  {active && (
+                    <span
+                      className="absolute left-0 top-1/2 h-5 w-[2px] -translate-y-1/2"
+                      style={{ background: ACCENT }}
+                      aria-hidden="true"
+                    />
+                  )}
+                  <span
+                    className="w-5 shrink-0 text-[10px]"
+                    style={{
+                      ...MONO,
+                      color: done || active ? ACCENT : FAINT,
+                      fontVariantNumeric: 'tabular-nums',
+                    }}
+                  >
+                    {pad(i + 1)}
+                  </span>
+                  <span
+                    className="min-w-0 truncate text-[12px]"
+                    style={{ color: active ? INK : done ? MUTED : FAINT, fontWeight: active ? 500 : 400 }}
+                  >
+                    {s.rail}
+                  </span>
+                  <span className="ml-auto shrink-0" aria-hidden="true">
+                    {done ? (
+                      <Check className="h-3 w-3" style={{ color: ACCENT }} />
+                    ) : active ? (
+                      <span className="ym-pulse block h-1.5 w-1.5 rounded-full" style={{ background: ACCENT }} />
+                    ) : null}
+                  </span>
+                </li>
+              );
+            })}
+          </ol>
+
+          {/* ── Step content (keyed so each step re-enters) ── */}
+          <div key={current.id} className="ym-step-in flex flex-col px-5 pb-5 pt-5 sm:px-6">
+            <p
+              className="text-[10px] font-medium uppercase tracking-[0.18em]"
+              style={{ ...MONO, color: ACCENT }}
+            >
+              {current.kicker}
+            </p>
+            <h2
+              className="mt-2 text-[19px] font-semibold leading-snug tracking-[-0.01em]"
+              style={{ ...DISPLAY, color: INK }}
+            >
+              {current.title}
+            </h2>
+            <p className="mt-2 text-[12.5px] leading-relaxed" style={{ color: MUTED }}>
+              {current.body}
+            </p>
+
+            {/* Step extras — spec rows and readouts, never badge pills. */}
+            {step === 0 && (
+              <dl className="mt-5 border-t" style={{ borderColor: LINE }}>
+                {[
+                  ['Scope', 'Projects, sprints, boards, milestones, timeline'],
+                  ['Signal', 'GitHub pushes linked to tasks · AI review & fixes'],
+                  ['Watchdog', 'Early-warning alerts before work becomes a blocker'],
+                ].map(([k, v]) => (
+                  <div key={k} className="flex gap-4 border-b py-2" style={{ borderColor: LINE }}>
+                    <dt
+                      className="w-[72px] shrink-0 pt-[3px] text-[9.5px] font-medium uppercase tracking-[0.16em]"
+                      style={{ ...MONO, color: FAINT }}
+                    >
+                      {k}
+                    </dt>
+                    <dd className="min-w-0 text-[12px] leading-relaxed" style={{ color: MUTED }}>
+                      {v}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            )}
+
+            {step === 1 && (
+              <ReadoutRow label="Signal">
+                <span
+                  className="flex min-w-0 items-center gap-2 text-[11px] tracking-[0.06em]"
+                  style={{ ...MONO, color: INK }}
+                >
+                  <Github className="h-3.5 w-3.5 shrink-0" style={{ color: MUTED }} aria-hidden="true" />
+                  GITHUB
+                </span>
+                <span
+                  className="ml-auto flex shrink-0 items-center gap-1.5 text-[10px] uppercase tracking-[0.14em]"
+                  style={{ ...MONO, color: ghStatusColor }}
+                >
+                  <span
+                    className={`h-1.5 w-1.5 rounded-full ${ghConnected === null ? 'ym-pulse' : ''}`}
+                    style={{ background: ghStatusColor }}
+                    aria-hidden="true"
+                  />
+                  {ghConnected === null ? 'Checking' : ghConnected ? 'Linked' : 'Not linked'}
+                </span>
+              </ReadoutRow>
+            )}
+
+            {step === 2 && (
+              <ReadoutRow label="Path">
+                <span className="min-w-0 truncate text-[11.5px]" style={{ ...MONO, color: MUTED }}>
+                  Projects <span style={{ color: FAINT }}>→</span> New project
+                </span>
+              </ReadoutRow>
+            )}
+
+            {step === 3 && (
+              <ReadoutRow label="Path">
+                <span className="min-w-0 truncate text-[11.5px]" style={{ ...MONO, color: MUTED }}>
+                  Open a project <span style={{ color: FAINT }}>→</span> Team{' '}
+                  <span style={{ color: FAINT }}>→</span> Invite
+                </span>
+              </ReadoutRow>
+            )}
+
+            {/* ── Footer ── */}
+            <div
+              className="mt-6 flex items-center justify-between gap-3 border-t pt-4"
+              style={{ borderColor: LINE }}
+            >
+              <button
+                type="button"
+                onClick={finish}
+                className={`rounded-[4px] text-[10px] font-medium uppercase tracking-[0.14em] text-[#6E7681] transition-colors hover:text-[#E6EDF3] ${FOCUS}`}
+                style={MONO}
+              >
+                Skip intro
+              </button>
+
+              <div className="flex items-center gap-2">
+                {secondary && (
+                  <button
+                    type="button"
+                    onClick={() => setStep(step + 1)}
+                    className={`h-9 rounded-[6px] border border-[#30363D] px-3.5 text-[12px] font-medium text-[#E6EDF3] transition-colors hover:bg-white/[0.06] ${FOCUS}`}
+                  >
+                    {secondary}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={handlePrimary}
+                  disabled={redirecting}
+                  autoFocus
+                  className={`inline-flex h-9 items-center justify-center gap-1.5 rounded-[6px] bg-[#9333EA] px-4 text-[12px] font-semibold text-white transition-colors hover:bg-[#A855F7] disabled:opacity-60 ${FOCUS}`}
+                >
+                  {redirecting ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" /> Redirecting…
+                    </>
+                  ) : (
+                    <>
+                      {primaryLabel}
+                      {!isLast && step !== 1 && <ArrowRight className="h-3.5 w-3.5" />}
+                      {step === 1 && !ghConnected && <Github className="h-3.5 w-3.5" />}
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>

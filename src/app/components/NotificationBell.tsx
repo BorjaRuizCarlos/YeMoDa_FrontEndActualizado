@@ -62,11 +62,11 @@ export function NotificationBell() {
       <button
         onClick={() => setOpen(!open)}
         aria-label="Notifications"
-        className="relative p-1.5 rounded-[3px] hover:bg-accent transition-colors"
+        className="relative p-1.5 rounded-[3px] hover:bg-accent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
       >
         <Bell className="w-4 h-4 text-muted-foreground" />
         {activeWarnings.length > 0 && (
-          <span className="absolute -top-1 -right-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[9px] leading-none font-bold text-white text-center">
+          <span className="absolute -top-1 -right-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[9px] leading-none font-bold text-destructive-foreground text-center">
             {activeWarnings.length > 99 ? '99+' : activeWarnings.length}
           </span>
         )}
@@ -122,7 +122,7 @@ export function NotificationBell() {
                     title="Delete alert"
                     onClick={(e) => void handleDelete(w.id_warning, e)}
                     disabled={deletingId === w.id_warning}
-                    className="mt-0.5 shrink-0 opacity-0 group-hover:opacity-100 h-5 w-5 rounded-[3px] bg-destructive/10 border border-destructive/30 text-destructive inline-flex items-center justify-center transition-opacity disabled:opacity-50"
+                    className="mt-0.5 shrink-0 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 h-5 w-5 rounded-[3px] bg-destructive/10 border border-destructive/30 text-destructive inline-flex items-center justify-center transition-opacity disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                   >
                     {deletingId === w.id_warning ? (
                       <Loader2 className="w-3 h-3 animate-spin" />

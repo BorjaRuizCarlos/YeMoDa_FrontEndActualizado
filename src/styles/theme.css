@@ -72,12 +72,6 @@
   --ai-accent: #8250DF;
   --ai-accent-foreground: #FFFFFF;
 
-  /* ── Landing hero accents (scoped — do not affect app --primary) ── */
-  --hero-purple: #7b39fc;
-  --hero-purple-hover: #8f54ff;
-  --hero-dark: #2b2344;
-  --hero-dark-hover: #3a3057;
-
   /* ── Borders & inputs ── */
   --border: #D0D7DE;
   --border-subtle: #E8EAED;
@@ -150,12 +144,6 @@
   /* ── AI ── */
   --ai-accent: #A371F7;
   --ai-accent-foreground: #FFFFFF;
-
-  /* ── Landing hero accents (shared across themes — hero is always dark) ── */
-  --hero-purple: #7b39fc;
-  --hero-purple-hover: #8f54ff;
-  --hero-dark: #2b2344;
-  --hero-dark-hover: #3a3057;
 
   /* ── Borders ── */
   --border: #30363D;

@@ -1,25 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
-import { Trophy, Plus, Loader2, AlertCircle, Users, Calendar, ChevronRight, Layers, Zap, ShieldCheck } from 'lucide-react';
+import { Trophy, Plus, Loader2, AlertCircle, Users, Calendar, ChevronRight, ShieldCheck } from 'lucide-react';
 import { hackathonService } from '../../services';
 import type { Hackathon } from '../../services';
+import { ModeBadge } from '../components/ModeBadge';
 import { VERIFY_BADGE_LABEL, formatHackathonDate, formatPrice } from '../utils/hackathon';
-
-function ModeBadge({ mode }: { mode: Hackathon['processing_mode'] }) {
-  const isBatch = mode === 'batch';
-  return (
-    <span
-      className={
-        isBatch
-          ? 'inline-flex items-center gap-1 rounded-full border border-info/20 bg-info/10 px-2 py-0.5 text-[10px] font-medium text-info'
-          : 'inline-flex items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary'
-      }
-    >
-      {isBatch ? <Layers className="h-2.5 w-2.5" /> : <Zap className="h-2.5 w-2.5" />}
-      {isBatch ? 'Batch' : 'Normal'}
-    </span>
-  );
-}
 
 function VerifyBadge() {
   return (

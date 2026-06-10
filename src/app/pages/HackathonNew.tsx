@@ -139,10 +139,10 @@ export default function HackathonNew() {
                   type="button"
                   onClick={() => setMode(m.value)}
                   aria-pressed={active}
-                  className={`flex flex-col items-start gap-1 rounded-[8px] border p-3 text-left transition-colors ${
+                  className={`flex flex-col items-start gap-1 rounded-[8px] border border-l-2 p-3 text-left transition-colors ${
                     active
-                      ? 'border-primary/50 bg-primary/5 ring-1 ring-primary/20'
-                      : 'border-border bg-surface-secondary/40 hover:bg-accent/40'
+                      ? 'border-primary border-l-primary bg-primary/5'
+                      : 'border-border border-l-border bg-surface-secondary/40 hover:bg-accent/40'
                   }`}
                 >
                   <span className={`flex items-center gap-1.5 text-[12px] font-semibold ${active ? 'text-primary' : 'text-foreground'}`}>
@@ -163,10 +163,10 @@ export default function HackathonNew() {
             role="switch"
             aria-checked={verify}
             onClick={() => setVerify((v) => !v)}
-            className={`flex w-full items-start gap-3 rounded-[8px] border p-3 text-left transition-colors ${
+            className={`flex w-full items-start gap-3 rounded-[8px] border border-l-2 p-3 text-left transition-colors ${
               verify
-                ? 'border-primary/50 bg-primary/5 ring-1 ring-primary/20'
-                : 'border-border bg-surface-secondary/40 hover:bg-accent/40'
+                ? 'border-primary border-l-primary bg-primary/5'
+                : 'border-border border-l-border bg-surface-secondary/40 hover:bg-accent/40'
             }`}
           >
             <span className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${verify ? 'bg-primary/15 text-primary' : 'bg-muted text-muted-foreground'}`}>

@@ -2,12 +2,13 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import {
   ArrowLeft, Loader2, AlertCircle, RefreshCw, Plus, Github, ExternalLink,
-  ChevronDown, ChevronRight, Layers, Zap, FileWarning, ShieldCheck,
+  ChevronDown, ChevronRight, FileWarning, ShieldCheck,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { hackathonService } from '../../services';
 import type { Hackathon, HackathonSubmission, HackathonFindingSeverity } from '../../services';
 import { ApiRequestError } from '../../services/api';
+import { ModeBadge } from '../components/ModeBadge';
 import { ProgressBar } from '../components/ProgressBar';
 import {
   HACKATHON_CATEGORIES,
@@ -23,22 +24,6 @@ import {
 } from '../utils/hackathon';
 
 const GITHUB_REPO_RE = /^https:\/\/github\.com\/[^/\s]+\/[^/\s]+\/?$/;
-
-function ModeBadge({ mode }: { mode: Hackathon['processing_mode'] }) {
-  const isBatch = mode === 'batch';
-  return (
-    <span
-      className={
-        isBatch
-          ? 'inline-flex items-center gap-1 rounded-full border border-info/20 bg-info/10 px-2 py-0.5 text-[10px] font-medium text-info'
-          : 'inline-flex items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary'
-      }
-    >
-      {isBatch ? <Layers className="h-2.5 w-2.5" /> : <Zap className="h-2.5 w-2.5" />}
-      {isBatch ? 'Batch' : 'Normal'}
-    </span>
-  );
-}
 
 function VerifyBadge() {
   return (
@@ -282,7 +267,9 @@ export default function HackathonDetail() {
     );
   }
 
-  const rubricEntries = HACKATHON_CATEGORIES.map((c) => ({ cat: c, weight: hackathon.rubric?.[c] ?? 0 }));
+  const rubricEntries = HACKATHON_CATEGORIES
+    .map((c) => ({ cat: c, weight: hackathon.rubric?.[c] ?? 0 }))
+    .filter(({ weight }) => weight > 0);
 
   return (
     <div className="px-4 pb-10 pt-3 max-w-[960px] mx-auto flex flex-col gap-4">
@@ -322,11 +309,7 @@ export default function HackathonDetail() {
           {rubricEntries.map(({ cat, weight }) => (
             <span
               key={cat}
-              className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium ${
-                weight > 0
-                  ? 'border-border bg-surface-secondary/60 text-foreground'
-                  : 'border-border/60 bg-transparent text-muted-foreground/60'
-              }`}
+              className="inline-flex items-center gap-1 rounded-full border border-border bg-surface-secondary/60 px-2 py-0.5 text-[10px] font-medium text-foreground"
             >
               {categoryLabel(cat)}
               <span className="tabular-nums">{weight}</span>
