@@ -265,14 +265,15 @@ function Reveal({
 }
 
 // ── The thread ──────────────────────────────────────────────────────────────────
-// One continuous SVG trace for the whole chapter run: it enters from the page's
-// left edge, curves into the measure rail, descends through every chapter, and
-// finally curves across to plug into the CTA card — like a signal trace on a
-// plotter. The purple stroke draws itself as the reader scrolls (head anchored at
-// ~58% of the viewport), with a bead riding the tip. Geometry is measured from
-// the [data-rail-line] spacers + [data-thread-end] target, and rebuilt on resize.
-// Scroll updates mutate the DOM directly (dashoffset / bead position) so nothing
-// re-renders per frame. Reduced motion: only the static hairline track is drawn.
+// One continuous SVG trace for the whole chapter run: it sweeps in from the
+// page's RIGHT edge, curves across into the measure rail on the left, then
+// descends like a real plumb thread — pinned at each chapter's index and dot,
+// bowing gently to alternating sides in between — and finally curves across to
+// plug into the CTA card. The purple stroke draws itself as the reader scrolls
+// (head anchored at ~58% of the viewport), with a bead riding the tip. Geometry
+// is measured from the [data-rail-line] spacers + [data-thread-end] target, and
+// rebuilt on resize. Scroll updates mutate the DOM directly (dashoffset / bead
+// position) so nothing re-renders per frame. Reduced motion: static track only.
 function ThreadCanvas({ children }: { children: ReactNode }) {
   const reduced = usePrefersReducedMotion();
   const ref = useRef<HTMLDivElement | null>(null);
@@ -299,12 +300,21 @@ function ThreadCanvas({ children }: { children: ReactNode }) {
         };
       });
       const x = segs[0].x;
+      const W = cRect.width;
       const firstTop = segs[0].top;
       const lastBottom = segs[segs.length - 1].bottom;
-      const yEntry = Math.max(8, firstTop - 48);
-      let d = `M 0 ${yEntry}`;
-      d += ` C ${x * 0.6} ${yEntry}, ${x} ${yEntry + (firstTop - yEntry) * 0.4}, ${x} ${firstTop}`;
-      d += ` L ${x} ${lastBottom}`;
+      // Sweep in from the right edge, landing on the rail with a vertical tangent.
+      const yEntry = Math.max(8, firstTop - 110);
+      let d = `M ${W + 2} ${yEntry}`;
+      d += ` C ${W * 0.5} ${yEntry + 6}, ${x} ${Math.max(yEntry + 12, firstTop - 70)}, ${x} ${firstTop}`;
+      // Descend pinned at each chapter's ends, bowing to alternating sides between.
+      const maxBow = x < 50 ? 14 : 26;
+      segs.forEach((s, i) => {
+        const h = s.bottom - s.top;
+        const b = (i % 2 === 0 ? 1 : -1) * Math.min(maxBow, Math.max(8, h * 0.05));
+        d += ` C ${x + b} ${s.top + h * 0.3}, ${x + b} ${s.top + h * 0.7}, ${x} ${s.bottom}`;
+        if (i < segs.length - 1) d += ` L ${x} ${segs[i + 1].top}`;
+      });
       const end = c.querySelector('[data-thread-end]') as HTMLElement | null;
       if (end) {
         const eRect = end.getBoundingClientRect();
@@ -377,7 +387,7 @@ function ThreadCanvas({ children }: { children: ReactNode }) {
                 strokeWidth="1.5"
                 style={{ visibility: 'hidden' }}
               />
-              <circle ref={beadRef} r="2.5" fill={ACCENT} style={{ opacity: 0 }} />
+              <circle ref={beadRef} r="3" fill={ACCENT} style={{ opacity: 0 }} />
             </>
           )}
         </svg>
@@ -861,11 +871,11 @@ export default function Landing() {
         </div>
       </section>
 
-      <div className="h-16" />
-
-      {/* The chapter run lives inside the ThreadCanvas: one continuous trace enters
-          from the left edge, rides the measure rail, and plugs into the CTA card. */}
+      {/* The chapter run lives inside the ThreadCanvas: one continuous trace sweeps
+          in from the right edge, rides the measure rail, and plugs into the CTA card.
+          The spacer below is part of the canvas so the entry sweep has room. */}
       <ThreadCanvas>
+      <div className="h-24" />
       {/* ── 01 · The AI workflow — the differentiator leads (Code review + AI fix) ── */}
       <RailBlock id="demo" index="01" accent>
         <Reveal>
