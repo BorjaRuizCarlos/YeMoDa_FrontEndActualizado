@@ -471,6 +471,7 @@ export interface ChatRequestPayload {
   messages: ChatMessage[];
   context_type?: 'ai_fix' | 'code_review' | string;
   context_data?: Record<string, unknown>;
+  max_tokens?: number;
 }
 
 export interface ChatResponsePayload {

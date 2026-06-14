@@ -58,12 +58,91 @@ const LANGUAGE_BY_EXTENSION: Record<string, string> = {
   java: 'java',
   cs: 'csharp',
 };
-const AI_FIX_DIFF_INSTRUCTION = [
-  'RESPOND ONLY IN UNIFIED DIFF FORMAT (git patch).',
-  'Include diff --git headers, a/ and b/ paths, and @@ blocks for each modified file.',
-  'Do not add any explanation outside the diff.',
-  'If there are no changes, respond exactly: NO_CHANGES.',
+const AI_FIX_FILES_INSTRUCTION = [
+  'Respond ONLY with a single valid JSON object, with no text outside the JSON and no markdown fences.',
+  'Shape: {"files":[{"path":"relative/path","action":"create|modify|delete","content":"FULL file content"}]}',
+  'You MAY create new files and modify existing ones. "content" must be the COMPLETE final file (not a diff).',
+  'For "delete" you may omit "content". Use repository-root-relative paths.',
+  'If no changes are needed, respond exactly: {"files":[]}.',
 ].join('\n');
+
+// A .ipynb is large JSON (base64 cell outputs); sending it whole overflows the model context and
+// surfaces as a 502. Keep only cell sources, and cap any oversized file before it reaches the AI.
+const AI_MAX_FILE_CONTENT_CHARS = 100_000;
+
+function stripNotebookForAi(content: string): string {
+  try {
+    const nb = JSON.parse(content) as { cells?: unknown };
+    if (!nb || !Array.isArray(nb.cells)) return content;
+    const parts: string[] = [];
+    for (const cell of nb.cells as Array<Record<string, unknown>>) {
+      if (!cell || typeof cell !== 'object') continue;
+      const src = Array.isArray(cell.source)
+        ? cell.source.join('')
+        : typeof cell.source === 'string' ? cell.source : '';
+      if (!src.trim()) continue;
+      const cellType = typeof cell.cell_type === 'string' ? cell.cell_type : 'code';
+      parts.push(`# ===== ${cellType} cell =====\n${src}`);
+    }
+    return parts.join('\n\n');
+  } catch {
+    return content;
+  }
+}
+
+function sanitizeFileContentForAi(path: string, content: string): string {
+  if (!content) return content;
+  let out = content;
+  if (path.toLowerCase().endsWith('.ipynb')) out = stripNotebookForAi(content);
+  if (out.length > AI_MAX_FILE_CONTENT_CHARS) {
+    out = `${out.slice(0, AI_MAX_FILE_CONTENT_CHARS)}\n\n... [truncated for AI: file too large] ...`;
+  }
+  return out;
+}
+
+type AiFileAction = 'create' | 'modify' | 'delete';
+
+interface AiFileChange {
+  path: string;
+  action: AiFileAction;
+  content: string;
+}
+
+/**
+ * Parse the AI's JSON file-list response ({"files":[{path, action, content}]}).
+ * Returns the (possibly empty) list, or null when the response is not a file-list
+ * (so callers can fall back to the legacy diff/whole-content handling).
+ */
+export function parseAiFileList(raw: string): AiFileChange[] | null {
+  if (!raw || !raw.trim()) return null;
+  let text = raw.trim();
+  const fence = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fence) text = fence[1].trim();
+  const start = text.indexOf('{');
+  const end = text.lastIndexOf('}');
+  if (start === -1 || end === -1 || end <= start) return null;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text.slice(start, end + 1));
+  } catch {
+    return null;
+  }
+  if (!parsed || typeof parsed !== 'object') return null;
+  const files = (parsed as Record<string, unknown>).files;
+  if (!Array.isArray(files)) return null;
+  const result: AiFileChange[] = [];
+  for (const item of files) {
+    if (!item || typeof item !== 'object') continue;
+    const rec = item as Record<string, unknown>;
+    const path = typeof rec.path === 'string' ? rec.path.trim() : '';
+    if (!path) continue;
+    const rawAction = typeof rec.action === 'string' ? rec.action.toLowerCase() : 'modify';
+    const action: AiFileAction = rawAction === 'create' || rawAction === 'delete' ? rawAction : 'modify';
+    const content = typeof rec.content === 'string' ? rec.content : '';
+    result.push({ path, action, content });
+  }
+  return result;
+}
 
 function formatCommentTimestamp(value: string) {
   const parsed = new Date(value);
@@ -187,7 +266,7 @@ function parseAiDiff(diffText: string): AiFilePatch[] {
   return files;
 }
 
-function applyUnifiedPatchToContent(originalContent: string, patch: string): string {
+export function applyUnifiedPatchToContent(originalContent: string, patch: string): string {
   const source = originalContent.replace(/\r\n/g, '\n');
   const sourceLines = source.split('\n');
   const patchLines = patch.replace(/\r\n/g, '\n').split('\n');
@@ -476,6 +555,8 @@ export function TaskDetailPanel({
   const [aiSuggestedContent, setAiSuggestedContent] = useState('');
   const [aiSuggestedPatches, setAiSuggestedPatches] = useState<AiFilePatch[]>([]);
   const [aiSelectedPatchFile, setAiSelectedPatchFile] = useState('');
+  const [aiSuggestedFiles, setAiSuggestedFiles] = useState<AiFileChange[]>([]);
+  const [aiSelectedFile, setAiSelectedFile] = useState('');
   const [aiModalPrompt, setAiModalPrompt] = useState('');
   const [committingAiFix, setCommittingAiFix] = useState(false);
   const [taskForm, setTaskForm] = useState({
@@ -597,7 +678,10 @@ export function TaskDetailPanel({
   }, [aiModels]);
 
   useEffect(() => {
-    setAiSuggestedPatches(parseAiDiff(aiSuggestedContent));
+    const fileList = parseAiFileList(aiSuggestedContent);
+    setAiSuggestedFiles(fileList ?? []);
+    // Only fall back to legacy diff parsing when the response is NOT a JSON file-list.
+    setAiSuggestedPatches(fileList ? [] : parseAiDiff(aiSuggestedContent));
   }, [aiSuggestedContent]);
 
   useEffect(() => {
@@ -610,6 +694,24 @@ export function TaskDetailPanel({
       return aiSuggestedPatches[0].filename;
     });
   }, [aiSuggestedPatches]);
+
+  useEffect(() => {
+    if (aiSuggestedFiles.length === 0) {
+      setAiSelectedFile('');
+      return;
+    }
+    setAiSelectedFile((current) => {
+      if (current && aiSuggestedFiles.some((file) => file.path === current)) return current;
+      return aiSuggestedFiles[0].path;
+    });
+  }, [aiSuggestedFiles]);
+
+  // True when the AI replied with the JSON file-list contract (even if the list is empty). In that
+  // mode the commit path uses aiSuggestedFiles directly and the legacy diff/whole-file path is off.
+  const aiIsFileListResponse = useMemo(
+    () => parseAiFileList(aiSuggestedContent) !== null,
+    [aiSuggestedContent],
+  );
 
   const buildRefCandidates = (ref: string): string[] => {
     const candidates = [ref.trim(), 'main', 'master', ''];
@@ -634,6 +736,26 @@ export function TaskDetailPanel({
       }
     }
     throw lastError ?? new Error('Could not fetch repository contents.');
+  };
+
+  // The commit endpoint requires a branch that already exists on the remote; it can't create one.
+  // aiSourceBranch may be stale (a merged/deleted task push_ref from history), which would 400 the
+  // commit — fatal for a brand-new file. Resolve to a real branch: keep the preferred one if it
+  // exists, else fall back to main/master, else the first branch the repo actually has.
+  const resolveCommitBranch = async (preferred: string): Promise<string> => {
+    const fallback = preferred || 'main';
+    if (!repoFullName) return fallback;
+    try {
+      const branches = await githubService.getBranches(repoFullName);
+      const names = branches.map((b) => b.name).filter(Boolean);
+      if (names.length === 0) return fallback;
+      if (names.includes(fallback)) return fallback;
+      if (names.includes('main')) return 'main';
+      if (names.includes('master')) return 'master';
+      return names[0];
+    } catch {
+      return fallback;
+    }
   };
 
   const extractDirectoryEntries = (content: Awaited<ReturnType<typeof githubService.getContents>>) => {
@@ -782,9 +904,12 @@ export function TaskDetailPanel({
       }
 
       const basePrompt = aiModalPrompt.trim() || `Analyze and propose fixes for the task ${task.title}`;
-      const promptToSend = `${basePrompt}\n\n${AI_FIX_DIFF_INSTRUCTION}`;
+      const promptToSend = `${basePrompt}\n\n${AI_FIX_FILES_INSTRUCTION}`;
       const payload = {
         model: aiModel || undefined,
+        // Creating several whole files (e.g. scaffolding a frontend) needs more room than the
+        // 4096 default, which would truncate the JSON file-list and make it unparseable.
+        max_tokens: 16384,
         messages: [{ role: 'user' as const, content: promptToSend }],
         context_type: 'ai_fix',
         context_data: {
@@ -795,7 +920,8 @@ export function TaskDetailPanel({
           file_path: aiSourcePath,
           repo_file_index: aiRepoFiles,
           warnings: activeWarningsPayload,
-          file_content: aiSourceContent,
+          // Notebooks/large files are stripped + capped so they don't overflow the model context (502).
+          file_content: sanitizeFileContentForAi(aiSourcePath, aiSourceContent),
           diff: latestDiff,
         },
       };
@@ -803,12 +929,20 @@ export function TaskDetailPanel({
       const response = await chatService.send(payload);
       if (activeTaskIdRef.current !== taskId) return; // task switched mid-request: discard the stale AI response
       const raw = response || '';
-      const extracted = extractBestCodeCandidate(raw);
-      setAiSuggestedContent(extracted || raw); // show extracted code or full response
-      const finalResult = extracted || raw.trim();
-      if (!finalResult.trim()) {
-        toast.error('The AI did not return applicable code. Retry or change the model.');
+      const fileList = parseAiFileList(raw);
+      let finalResult: string;
+      if (fileList) {
+        // New JSON file-list format: keep the raw JSON so the effect populates aiSuggestedFiles.
+        setAiSuggestedContent(raw);
+        finalResult = raw.trim();
       } else {
+        // Legacy fallback: the model returned a diff or plain code.
+        const extracted = extractBestCodeCandidate(raw);
+        setAiSuggestedContent(extracted || raw);
+        finalResult = extracted || raw.trim();
+      }
+
+      if (finalResult.trim()) {
         try {
           await tasksService.createAiReviewResult({
             task: task.id_task,
@@ -821,7 +955,13 @@ export function TaskDetailPanel({
         }
       }
 
-      toast.success('Response received from AI.');
+      if (fileList && fileList.length === 0) {
+        toast.info('The AI reported that no file changes are needed.');
+      } else if (!finalResult.trim()) {
+        toast.error('The AI did not return applicable code. Retry or change the model.');
+      } else {
+        toast.success('Response received from AI.');
+      }
     } catch (err) {
       if (handleAiQuotaError(err, navigate, projectId)) return;
       const detail = err instanceof ApiRequestError
@@ -853,6 +993,7 @@ export function TaskDetailPanel({
     setShowAiCodeModal(true);
     setAiSuggestedContent('');
     setAiSuggestedPatches([]);
+    setAiSuggestedFiles([]);
     setAiSourceLoading(true);
     setAiRepoFiles([]);
 
@@ -936,21 +1077,50 @@ export function TaskDetailPanel({
 
     setCommittingAiFix(true);
     try {
-      if (aiSuggestedPatches.length > 0) {
+      // Resolve a branch that exists on the remote once, up front: all three paths commit to it,
+      // and a stale aiSourceBranch would otherwise 400 the commit (fatal for new files).
+      const commitBranch = await resolveCommitBranch(aiSourceBranch || 'main');
+
+      if (aiIsFileListResponse) {
+        // New JSON file-list contract: the model returns full file contents (create/modify) or
+        // deletions. These map straight to the commit endpoint, which supports brand-new paths.
+        const filesToCommit: Array<{ path: string; content?: string; deleted?: boolean }> = aiSuggestedFiles
+          .filter((file) => file.path)
+          .map((file) => file.action === 'delete'
+            ? { path: file.path, deleted: true }
+            : { path: file.path, content: file.content ?? '' });
+        if (filesToCommit.length === 0) {
+          toast.info('The AI reported no changes to apply.');
+          return;
+        }
+        await githubService.commitChanges({
+          repo: repoFullName,
+          branch: commitBranch,
+          message: `feat: ai changes task #${task.id_task} (${filesToCommit.length} file(s))`,
+          files: filesToCommit,
+        });
+      } else if (aiSuggestedPatches.length > 0) {
         const filesToCommit: Array<{ path: string; content: string }> = [];
-        let resolvedBranch = aiSourceBranch || 'main';
 
         for (const patchItem of aiSuggestedPatches) {
           const targetPath = patchItem.filename.trim();
           if (!targetPath) continue;
 
-          const { result, resolvedRef } = await getContentsWithRefFallback(targetPath, resolvedBranch);
-          const fileData = Array.isArray(result) ? result.find((item) => item.type === 'file') : result;
-          if (!fileData || fileData.type !== 'file') {
-            throw new Error(`Could not fetch the base file to apply the diff: ${targetPath}`);
+          // 404 on every ref candidate means the file doesn't exist in the repo yet: the AI is
+          // creating it. Apply the patch against empty content — the commit endpoint (Git Data
+          // API) creates brand-new paths without needing a sha.
+          let currentContent = '';
+          try {
+            const { result } = await getContentsWithRefFallback(targetPath, commitBranch);
+            const fileData = Array.isArray(result) ? result.find((item) => item.type === 'file') : result;
+            if (!fileData || fileData.type !== 'file') {
+              throw new Error(`Could not fetch the base file to apply the diff: ${targetPath}`);
+            }
+            currentContent = decodeGitHubContent(fileData.content);
+          } catch (err) {
+            if (!(err instanceof ApiRequestError && err.status === 404)) throw err;
           }
 
-          const currentContent = decodeGitHubContent(fileData.content);
           let updatedContent = '';
           try {
             updatedContent = applyUnifiedPatchToContent(currentContent, patchItem.patch);
@@ -962,7 +1132,6 @@ export function TaskDetailPanel({
             // Skip files the patch leaves unchanged so we never push a no-op commit.
             filesToCommit.push({ path: targetPath, content: updatedContent });
           }
-          if (resolvedRef) resolvedBranch = resolvedRef;
         }
 
         if (filesToCommit.length === 0) {
@@ -972,7 +1141,7 @@ export function TaskDetailPanel({
 
         await githubService.commitChanges({
           repo: repoFullName,
-          branch: resolvedBranch,
+          branch: commitBranch,
           message: `feat: ai fix task #${task.id_task} (${filesToCommit.length} files)`,
           files: filesToCommit,
         });
@@ -986,7 +1155,7 @@ export function TaskDetailPanel({
         }
         await githubService.commitChanges({
           repo: repoFullName,
-          branch: aiSourceBranch || 'main',
+          branch: commitBranch,
           message: `feat: ai fix task #${task.id_task}`,
           files: [{ path: aiSourcePath, content: aiSuggestedContent }],
         });
@@ -1088,6 +1257,7 @@ export function TaskDetailPanel({
     setAiModalPrompt('');
     setAiSuggestedContent('');
     setAiSuggestedPatches([]);
+    setAiSuggestedFiles([]);
     setAiSourcePath('');
     setAiSourceContent('');
     setAiSourceBranch('main');
@@ -2031,10 +2201,11 @@ export function TaskDetailPanel({
                         : 'No files available'}
                   </option>
                   {aiRepoFiles.map((filePath) => {
-                    const hasPatch = aiSuggestedPatches.some((patch) => patch.filename === filePath);
+                    const hasChange = aiSuggestedPatches.some((patch) => patch.filename === filePath)
+                      || aiSuggestedFiles.some((file) => file.path === filePath);
                     return (
                       <option key={filePath} value={filePath}>
-                        {hasPatch ? `[CHANGED] ${filePath}` : filePath}
+                        {hasChange ? `[CHANGED] ${filePath}` : filePath}
                       </option>
                     );
                   })}
@@ -2086,11 +2257,40 @@ export function TaskDetailPanel({
               </div>
               <div className="min-h-0 flex flex-col">
                 <div className="px-3 py-2 border-b border-border bg-surface-secondary/30 text-[10px] text-muted-foreground flex items-center justify-between">
-                  <span>AI response (proposed code)</span>
-                  {aiSuggestedPatches.length > 0 && <span className="text-[10px] text-warning">{aiSuggestedPatches.length} file(s) with detected changes</span>}
+                  <span>AI response (proposed changes)</span>
+                  {aiSuggestedFiles.length > 0
+                    ? <span className="text-[10px] text-warning">{aiSuggestedFiles.length} file(s) proposed</span>
+                    : aiSuggestedPatches.length > 0 && <span className="text-[10px] text-warning">{aiSuggestedPatches.length} file(s) with detected changes</span>}
                 </div>
                 <div className="flex-1 min-h-0 bg-card p-3 overflow-auto">
-                  {aiSuggestedPatches.length > 0 ? (
+                  {aiSuggestedFiles.length > 0 ? (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <label className="text-[10px] text-muted-foreground shrink-0">File</label>
+                        <select
+                          value={aiSelectedFile}
+                          onChange={(e) => setAiSelectedFile(e.target.value)}
+                          className="h-8 rounded-[4px] border border-border bg-card px-2 text-[11px] w-full min-w-0 flex-1"
+                        >
+                          {aiSuggestedFiles.map((file) => (
+                            <option key={file.path} value={file.path}>
+                              [{file.action.toUpperCase()}] {file.path}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      {(() => {
+                        const selected = aiSuggestedFiles.find((file) => file.path === aiSelectedFile) ?? aiSuggestedFiles[0];
+                        if (!selected) return <p className="text-[11px] text-muted-foreground">No file selected.</p>;
+                        if (selected.action === 'delete') {
+                          return <p className="text-[11px] text-destructive">This file will be deleted: {selected.path}</p>;
+                        }
+                        return (
+                          <pre className="text-[11px] font-mono text-foreground whitespace-pre-wrap">{selected.content || '(empty file)'}</pre>
+                        );
+                      })()}
+                    </div>
+                  ) : aiSuggestedPatches.length > 0 ? (
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
                         <label className="text-[10px] text-muted-foreground shrink-0">Modified file</label>
@@ -2123,7 +2323,9 @@ export function TaskDetailPanel({
               <button
                 type="button"
                 onClick={() => void handleCommitAiFix()}
-                disabled={committingAiFix || !aiSuggestedContent.trim() || aiSuggestedContent.trim().toUpperCase() === 'NO_CHANGES' || (aiSuggestedPatches.length === 0 && (!aiSourcePath || aiSuggestedContent === aiSourceContent))}
+                disabled={committingAiFix || (aiIsFileListResponse
+                  ? aiSuggestedFiles.length === 0
+                  : (!aiSuggestedContent.trim() || aiSuggestedContent.trim().toUpperCase() === 'NO_CHANGES' || (aiSuggestedPatches.length === 0 && (!aiSourcePath || aiSuggestedContent === aiSourceContent))))}
                 className="h-8 px-3 bg-primary text-primary-foreground rounded-[4px] text-[11px] inline-flex items-center gap-1.5 disabled:opacity-50"
               >
                 {committingAiFix ? <Loader2 className="w-3 h-3 animate-spin" /> : <GitCommit className="w-3 h-3" />}

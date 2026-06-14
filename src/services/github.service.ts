@@ -126,7 +126,9 @@ export const githubService = {
 
   /** GET /api/github/branches/ → list repository branches */
   async getBranches(repo: string): Promise<ApiGithubBranch[]> {
-    return api.get<ApiGithubBranch[]>(`/github/branches/?repo=${encodeURIComponent(repo)}`);
+    // The backend wraps the list as {branches: [{name, sha}]}; unwrap to the bare array.
+    const res = await api.get<{ branches?: ApiGithubBranch[] }>(`/github/branches/?repo=${encodeURIComponent(repo)}`);
+    return res.branches ?? [];
   },
 
   /** POST /api/github/commit/ → commit one or more file changes */
