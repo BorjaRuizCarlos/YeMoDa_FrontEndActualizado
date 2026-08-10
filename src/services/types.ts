@@ -331,6 +331,64 @@ export interface GitHubRepo {
   created_at: string;
   user: number;
   project: number | null;
+  /**
+   * False until a push for this repo has reached Yemoda. The list shows a "waiting for first
+   * push" badge while it is false, so a repo connected while the GitHub App is not subscribed
+   * to push events looks pending rather than silently healthy.
+   */
+  has_received_push?: boolean;
+}
+
+// ─── Connecting an existing repository ───────────────────────────────────────
+
+/**
+ * A repository the caller may connect: the intersection of "they can reach it on GitHub" and
+ * "a GitHub App installation covers it". The backend returns only that intersection.
+ */
+export interface ConnectableRepo {
+  github_repo_id: number | null;
+  full_name: string;
+  name: string;
+  owner: string;
+  private: boolean;
+  html_url: string;
+  default_branch: string;
+  /** Write access, required to connect. Rows without it are shown disabled. */
+  can_push: boolean;
+  /** Admin access, required only to sync members as collaborators. */
+  is_admin: boolean;
+  linked_to_this_project: boolean;
+  linked_elsewhere: boolean;
+}
+
+export interface ConnectableReposResponse {
+  repos: ConnectableRepo[];
+  /** How many GitHub App installations the caller has (personal account + orgs). */
+  installations: number;
+  /** True when GitHub reported more repos than the single page we fetched. */
+  truncated: boolean;
+  linked_count: number;
+  max_repos: number;
+}
+
+export interface ConnectRepoResponse {
+  id_project_repo: number;
+  project: number;
+  repo_full_name: string;
+  created_at: string;
+  repository: {
+    github_repo_id: number | null;
+    full_name: string;
+    private: boolean;
+    html_url: string;
+    default_branch: string;
+  };
+  collaborator_sync: {
+    status: 'ok' | 'skipped';
+    reason?: string;
+    results: Array<{ github_login: string; result: string }>;
+  };
+  awaiting_first_push: boolean;
 }
 
 export interface GitHubWebhook {

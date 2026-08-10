@@ -18,6 +18,8 @@ import type {
   ApiGithubBranch,
   GitHubCommitPayload,
   GitHubCommitResponse,
+  ConnectableReposResponse,
+  ConnectRepoResponse,
 } from './types';
 
 // Per-user localStorage key for repos cache only
@@ -147,6 +149,33 @@ export const githubService = {
   /** DELETE /api/github/repos/{id}/ → unlink repo from YeMoDa */
   async deleteRepo(idRepo: number): Promise<void> {
     return api.delete(`/github/repos/${idRepo}/`);
+  },
+
+  // ─── Connecting an existing repository ────────────────────────────────────
+
+  /**
+   * GET /api/github/repos/connectable/ → repos this user may connect to the project.
+   * Live from GitHub, not from Yemoda's database: the intersection of what the user can reach
+   * and what a GitHub App installation covers.
+   */
+  async listConnectableRepos(projectId: number): Promise<ConnectableReposResponse> {
+    return api.get<ConnectableReposResponse>(`/github/repos/connectable/?project_id=${projectId}`);
+  },
+
+  /**
+   * POST /api/projects/{id}/repos/ → connect an existing repository.
+   * The backend verifies the App is installed AND that the caller has write access before it
+   * writes anything; failures come back with a `code` the UI maps to a specific message.
+   */
+  async connectRepo(projectId: number, repoFullName: string): Promise<ConnectRepoResponse> {
+    return api.post<ConnectRepoResponse>(`/projects/${projectId}/repos/`, {
+      repo_full_name: repoFullName,
+    });
+  },
+
+  /** DELETE /api/projects/{id}/repos/{repoId}/ → disconnect. Nothing is changed on GitHub. */
+  async disconnectProjectRepo(projectId: number, projectRepoId: number): Promise<void> {
+    return api.delete(`/projects/${projectId}/repos/${projectRepoId}/`);
   },
 
   // ─── Branch creation ──────────────────────────────────────────────────────

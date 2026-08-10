@@ -1,10 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Github, Plus, ExternalLink, Lock, Unlock, X, Trash2, Loader2 } from 'lucide-react';
+import { Github, Plus, ExternalLink, Lock, Unlock, X, Trash2, Loader2, Link2, Clock3 } from 'lucide-react';
 import { toast } from 'sonner';
 import { githubService } from '../../services/github.service';
 import { ApiRequestError } from '../../services/api';
 import { useAuth } from '../context/AuthContext';
+import { ConnectRepoPanel } from './ConnectRepoPanel';
 import type { GitHubRepo } from '../../services/types';
+
+/** Which tab of the repository modal is showing. */
+type RepoModalMode = 'create' | 'connect';
 
 interface CreateRepoForm {
   name: string;
@@ -102,8 +106,10 @@ export function GitHubReposView({ projectId, canCreateRepos = true }: GitHubRepo
     toast.info('GitHub session disconnected');
   };
 
-  // Create repo modal
+  // Repository modal — creating a new repo and connecting an existing one are two tabs of the
+  // same dialog, since both answer "attach a repo to this project".
   const [showModal, setShowModal] = useState(false);
+  const [modalMode, setModalMode] = useState<RepoModalMode>('create');
   const [form, setForm] = useState<CreateRepoForm>({
     name: '',
     description: '',
@@ -114,6 +120,19 @@ export function GitHubReposView({ projectId, canCreateRepos = true }: GitHubRepo
 
   const resetForm = () =>
     setForm({ name: '', description: '', private: true, auto_init: true });
+
+  const openRepoModal = (mode: RepoModalMode) => {
+    if (!canCreateRepos) {
+      toast.error('Your project role cannot manage repositories.');
+      return;
+    }
+    if (!connected) {
+      toast.error('Connect your GitHub account first.');
+      return;
+    }
+    setModalMode(mode);
+    setShowModal(true);
+  };
 
   const handleCreateRepo = async () => {
     const repoNameError = validateRepoName(form.name);
@@ -232,30 +251,30 @@ export function GitHubReposView({ projectId, canCreateRepos = true }: GitHubRepo
             </p>
           </div>
         </div>
-        <button
-          onClick={() => {
-            if (!canCreateRepos) {
-              toast.error('Your project role can only view repositories.');
-              return;
-            }
-            if (!connected) {
-              toast.error('You must connect your GitHub account before creating a repository.');
-              return;
-            }
-            setShowModal(true);
-          }}
-          disabled={!canCreateRepos}
-          className="flex items-center gap-1.5 px-2.5 py-1 bg-primary hover:bg-primary-hover text-primary-foreground rounded-[3px] text-[11px] font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <Plus className="w-3 h-3" />
-          New repo
-        </button>
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => openRepoModal('connect')}
+            disabled={!canCreateRepos}
+            className="flex items-center gap-1.5 px-2.5 py-1 border border-border bg-card hover:bg-surface-secondary text-foreground rounded-[3px] text-[11px] font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Link2 className="w-3 h-3" />
+            Connect existing
+          </button>
+          <button
+            onClick={() => openRepoModal('create')}
+            disabled={!canCreateRepos}
+            className="flex items-center gap-1.5 px-2.5 py-1 bg-primary hover:bg-primary-hover text-primary-foreground rounded-[3px] text-[11px] font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Plus className="w-3 h-3" />
+            New repo
+          </button>
+        </div>
       </div>
 
       {/* Repos list */}
       <div className="bg-card border border-border rounded-[4px] p-4 mt-2">
         <h2 className="text-[12px] font-semibold text-foreground mb-3 pb-2.5 border-b border-border">
-          Created repositories
+          Project repositories
         </h2>
 
         {loadingRepos ? (
@@ -267,22 +286,21 @@ export function GitHubReposView({ projectId, canCreateRepos = true }: GitHubRepo
           <div className="flex flex-col items-center py-8 gap-2 text-center">
             <Github className="w-6 h-6 text-muted-foreground/40" />
             <p className="text-[12px] text-muted-foreground">No repositories associated with this project.</p>
-            <button
-              onClick={() => {
-                if (!canCreateRepos) {
-                  toast.error('Your project role can only view repositories.');
-                  return;
-                }
-                if (!connected) {
-                  toast.error('You must connect your GitHub account before creating a repository.');
-                  return;
-                }
-                setShowModal(true);
-              }}
-              className="text-[11px] text-primary hover:underline mt-1"
-            >
-              Create the first one
-            </button>
+            <div className="flex items-center gap-3 mt-1">
+              <button
+                onClick={() => openRepoModal('connect')}
+                className="text-[11px] text-primary hover:underline"
+              >
+                Connect an existing one
+              </button>
+              <span className="text-[10px] text-muted-foreground/60">or</span>
+              <button
+                onClick={() => openRepoModal('create')}
+                className="text-[11px] text-primary hover:underline"
+              >
+                Create a new one
+              </button>
+            </div>
           </div>
         ) : (
           <div className="space-y-1.5">
@@ -305,6 +323,18 @@ export function GitHubReposView({ projectId, canCreateRepos = true }: GitHubRepo
                   <span className="text-[10px] text-muted-foreground truncate hidden sm:block min-w-0">
                     {repo.full_name}
                   </span>
+                  {/* Nothing has arrived from GitHub yet. Shown so a repo connected while the
+                      App is not subscribed to push events reads as pending, rather than looking
+                      healthy while silently never being reviewed. */}
+                  {repo.has_received_push === false && (
+                    <span
+                      title="Connected. Yemoda has not received a push for this repository yet."
+                      className="inline-flex items-center gap-1 shrink-0 px-1.5 py-0.5 rounded-[3px] border border-border bg-surface-secondary text-[9px] text-muted-foreground"
+                    >
+                      <Clock3 className="w-2.5 h-2.5" />
+                      Waiting for first push
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-center gap-2 ml-3 shrink-0">
                   <a
@@ -340,11 +370,11 @@ export function GitHubReposView({ projectId, canCreateRepos = true }: GitHubRepo
       {/* Create Repo Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-card border border-border rounded-[6px] p-5 w-full max-w-sm shadow-xl mx-4">
-            <div className="flex items-center justify-between mb-4">
+          <div className="bg-card border border-border rounded-[6px] p-5 w-full max-w-md shadow-xl mx-4">
+            <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <Github className="w-4 h-4 text-foreground" />
-                <h3 className="text-[13px] font-semibold text-foreground">New repository</h3>
+                <h3 className="text-[13px] font-semibold text-foreground">Add a repository</h3>
               </div>
               <button
                 onClick={() => { setShowModal(false); resetForm(); }}
@@ -354,6 +384,43 @@ export function GitHubReposView({ projectId, canCreateRepos = true }: GitHubRepo
               </button>
             </div>
 
+            {/* Both ways to attach a repo live in one dialog, so the choice is visible instead of
+                hidden behind two buttons the user has to notice separately. */}
+            <div
+              role="tablist"
+              aria-label="How to add a repository"
+              className="flex gap-1 mb-4 border-b border-border"
+            >
+              {(['connect', 'create'] as RepoModalMode[]).map((mode) => (
+                <button
+                  key={mode}
+                  role="tab"
+                  type="button"
+                  aria-selected={modalMode === mode}
+                  onClick={() => setModalMode(mode)}
+                  className={`px-3 py-1.5 text-[11px] font-medium transition-colors border-b-2 -mb-px ${
+                    modalMode === mode
+                      ? 'border-primary text-foreground'
+                      : 'border-transparent text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {mode === 'connect' ? 'Connect existing' : 'Create new'}
+                </button>
+              ))}
+            </div>
+
+            {modalMode === 'connect' && (
+              <ConnectRepoPanel
+                projectId={projectId}
+                onConnected={() => {
+                  setShowModal(false);
+                  void fetchRepos();
+                }}
+              />
+            )}
+
+            {modalMode === 'create' && (
+              <>
             <div className="space-y-3">
 
               {/* Repo name */}
@@ -432,6 +499,8 @@ export function GitHubReposView({ projectId, canCreateRepos = true }: GitHubRepo
                 {creating ? 'Creating...' : 'Create repository'}
               </button>
             </div>
+              </>
+            )}
           </div>
         </div>
       )}
