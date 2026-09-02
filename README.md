@@ -89,3 +89,34 @@ La UI respeta las capacidades reales del proyecto (vía `GET /api/projects/{id}/
 - Las exportaciones **CSV y XLSX neutralizan fórmulas** (prefijo `'` en celdas que empiezan con `= + - @`) para evitar inyección de fórmulas en Excel/Sheets.
 - Los tokens de OAuth y de verificación de email se limpian de la URL (`history.replaceState`).
 - Los `href` derivados de datos validan el esquema (`https?:`) antes de renderizarse.
+
+---
+
+## Educación / Aprendizaje
+
+La sección de aprendizaje vive en la ruta `/education` y está pensada para que el equipo pueda añadir contenido sin escribir HTML cada vez.
+
+- El contenido principal está en `src/app/data/educationContent.ts`.
+- Cada tema tiene su lista de subtemas y cada subtema incluye un bloque de texto en formato markdown simple.
+- Para agregar una lección, basta con añadir un nuevo objeto dentro de `educationTopics`.
+- La UI renderiza automáticamente títulos, listas, citas y bloques de código, así que el equipo solo se encarga del contenido.
+
+Ejemplo de estructura:
+
+```ts
+{
+  id: 'javascript',
+  title: 'JavaScript moderno',
+  description: 'Conceptos clave para la web.',
+  subtopics: [
+    {
+      id: 'async-await',
+      title: 'Async / Await',
+      summary: 'Cómo manejar tareas asíncronas.',
+      content: '## Async / Await\n\n...'
+    }
+  ]
+}
+```
+
+Cuando quieras evolucionar esto hacia un CMS real, la siguiente fase ideal es mover ese contenido a Markdown/JSON en un backend o un panel administrativo.

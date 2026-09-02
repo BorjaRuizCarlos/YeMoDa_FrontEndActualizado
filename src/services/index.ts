@@ -10,6 +10,7 @@ export { usersService } from './users.service';
 export { chatService } from './chat.service';
 export { projectRolesService } from './projectRoles.service';
 export { hackathonService } from './hackathon.service';
+export { educationService, EDUCATION_MOCK_MODE } from './education.service';
 export type * from './types';
 
 // Re-export specific service payload types used by consumers
@@ -17,3 +18,4 @@ export type { CreateTaskPayload, UpdateTaskPayload } from './tasks.service';
 export type { UpsertProjectRolePayload } from './projectRoles.service';
 export type { CreateProjectPayload, UpdateProjectPayload } from './projects.service';
 export type { CreateHackathonPayload, AddSubmissionPayload, EstimateHackathonPayload } from './hackathon.service';
+export type { EducationContentResponse, UpdateSubtopicPayload } from './education.service';

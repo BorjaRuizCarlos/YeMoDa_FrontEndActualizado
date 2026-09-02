@@ -33,6 +33,7 @@ const Plans = lazy(() => import('./pages/Plans'));
 const Hackathons = lazy(() => import('./pages/Hackathons'));
 const HackathonNew = lazy(() => import('./pages/HackathonNew'));
 const HackathonDetail = lazy(() => import('./pages/HackathonDetail'));
+const Education = lazy(() => import('./pages/Education'));
 const GoogleAuthCallback = lazy(() => import('./pages/GoogleAuthCallback'));
 const GitHubAuthCallback = lazy(() => import('./pages/GitHubAuthCallback'));
 
@@ -85,6 +86,7 @@ export const router = createBrowserRouter([
       { path: 'settings', element: withSuspense(Settings) },
       { path: 'reports', element: withSuspense(Reports) },
       { path: 'alerts', element: withSuspense(Alerts) },
+      { path: 'education', element: withSuspense(Education) },
       { path: 'github', element: withSuspense(GitHub) },
       { path: 'azure-ret', element: withSuspense(AzureRet) },
       { path: 'plans', element: withSuspense(Plans) },

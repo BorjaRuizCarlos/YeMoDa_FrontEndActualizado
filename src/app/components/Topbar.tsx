@@ -19,6 +19,7 @@ const routeLabels: Record<string, string> = {
   logs: 'Logs',
   reports: 'Reports',
   alerts: 'Alerts',
+  education: 'Education',
 };
 
 export function Topbar() {
