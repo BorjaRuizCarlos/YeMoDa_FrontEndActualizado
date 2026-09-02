@@ -19,6 +19,7 @@ import {
   ListChecks,
   CircleUser,
   SlidersHorizontal,
+  GraduationCap,
   Moon,
   Sun,
   LogOut,
@@ -37,6 +38,7 @@ const navCommands: NavCommand[] = [
   { name: 'Dashboard', path: '/dashboard', icon: LayoutGrid, keywords: 'inicio home overview resumen' },
   { name: 'Projects', path: '/projects', icon: Briefcase, keywords: 'projects lista list' },
   { name: 'Backlog', path: '/backlog', icon: ListChecks, keywords: 'tareas tasks kanban board' },
+  { name: 'Education', path: '/education', icon: GraduationCap, keywords: 'educacion aprender learn temas cursos' },
   { name: 'Profile', path: '/profile', icon: CircleUser, keywords: 'perfil profile usuario user' },
   { name: 'Settings', path: '/settings', icon: SlidersHorizontal, keywords: 'settings ajustes preferences' },
 ];
