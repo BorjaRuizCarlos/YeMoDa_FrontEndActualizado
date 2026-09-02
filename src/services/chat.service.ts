@@ -9,16 +9,22 @@ function resolveChatText(payload: ChatResponsePayload): string {
   return (payload.message ?? payload.response ?? payload.content ?? '').trim();
 }
 
+export interface ChatSendResult {
+  text: string;
+  /** Anthropic stop_reason: "max_tokens" means the response was cut off (truncated). */
+  finishReason: string | null;
+}
+
 export const chatService = {
   /** GET /api/chat/models */
   async getModels(): Promise<ChatModelsResponse> {
     return api.get<ChatModelsResponse>('/chat/models');
   },
 
-  /** POST /api/chat/ */
-  async send(payload: ChatRequestPayload): Promise<string> {
+  /** POST /api/chat/ — returns the text plus the finish_reason so callers can detect truncation. */
+  async send(payload: ChatRequestPayload): Promise<ChatSendResult> {
     const data = await api.post<ChatResponsePayload>('/chat/', payload);
-    return resolveChatText(data);
+    return { text: resolveChatText(data), finishReason: data.finish_reason ?? null };
   },
 
   /**

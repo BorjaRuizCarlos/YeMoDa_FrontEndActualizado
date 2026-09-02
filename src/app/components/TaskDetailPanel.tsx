@@ -193,19 +193,11 @@ function extractBestCodeCandidate(content: string): string {
 }
 
 function decodeGitHubContent(content?: string): string {
-  if (!content) return '';
-  const compact = content.replace(/\n/g, '').trim();
-  const looksBase64 = compact.length > 0
-    && compact.length % 4 === 0
-    && /^[A-Za-z0-9+/=]+$/.test(compact);
-
-  if (!looksBase64) return content;
-
-  try {
-    return atob(compact);
-  } catch {
-    return content;
-  }
+  // The backend's /github/contents/ endpoint already base64-decodes file content and returns
+  // UTF-8 text, so we must NOT decode again. The old heuristic re-ran atob() on any plaintext that
+  // happened to look base64 (e.g. "test", "main", length % 4 === 0 strings), silently corrupting
+  // both the diff base and the no-op comparison. Trust the backend's decoded text.
+  return content ?? '';
 }
 
 function escapeHtml(value: string): string {
@@ -908,8 +900,9 @@ export function TaskDetailPanel({
       const payload = {
         model: aiModel || undefined,
         // Creating several whole files (e.g. scaffolding a frontend) needs more room than the
-        // 4096 default, which would truncate the JSON file-list and make it unparseable.
-        max_tokens: 16384,
+        // 4096 default, which would truncate the JSON file-list and make it unparseable. 32K stays
+        // within Haiku 4.5's 64K output ceiling; truncation beyond that is caught via finish_reason.
+        max_tokens: 32000,
         messages: [{ role: 'user' as const, content: promptToSend }],
         context_type: 'ai_fix',
         context_data: {
@@ -926,10 +919,28 @@ export function TaskDetailPanel({
         },
       };
 
-      const response = await chatService.send(payload);
+      const { text: response, finishReason } = await chatService.send(payload);
       if (activeTaskIdRef.current !== taskId) return; // task switched mid-request: discard the stale AI response
       const raw = response || '';
+
+      // Truncation / malformed-JSON guard. If the model hit the output cap (finish_reason
+      // "max_tokens"), the JSON file-list is cut off and unparseable; committing the raw truncated
+      // blob would overwrite the real file with garbage. Same risk if the response clearly meant to
+      // be the {"files":[...]} contract but failed to parse. Refuse it instead of falling through to
+      // the whole-file commit path, and clear any committable state so the commit button stays off.
+      const looksLikeJsonContract = /^\s*\{/.test(raw) && raw.includes('"files"');
+      const truncated = finishReason === 'max_tokens';
       const fileList = parseAiFileList(raw);
+      if (truncated || (looksLikeJsonContract && !fileList)) {
+        setAiSuggestedContent('');
+        toast.error(
+          truncated
+            ? 'The AI response was cut off (too long). Nothing was committed — retry, or ask for fewer/smaller files.'
+            : 'The AI response was incomplete or malformed. Nothing was committed — please retry.',
+        );
+        return;
+      }
+
       let finalResult: string;
       if (fileList) {
         // New JSON file-list format: keep the raw JSON so the effect populates aiSuggestedFiles.
@@ -1106,12 +1117,15 @@ export function TaskDetailPanel({
           const targetPath = patchItem.filename.trim();
           if (!targetPath) continue;
 
-          // 404 on every ref candidate means the file doesn't exist in the repo yet: the AI is
-          // creating it. Apply the patch against empty content — the commit endpoint (Git Data
-          // API) creates brand-new paths without needing a sha.
+          // Fetch the base content ONLY from the resolved commit branch — never fall back to other
+          // branches, or we'd apply the patch to a different branch's content and silently revert
+          // edits. A 404 here means the file doesn't exist yet (the AI is creating it): apply the
+          // patch against empty content; the commit endpoint creates brand-new paths without a sha.
+          // Any non-404 error (e.g. transient GitHub failure surfaced as 400) aborts the push
+          // rather than risk corrupting the file.
           let currentContent = '';
           try {
-            const { result } = await getContentsWithRefFallback(targetPath, commitBranch);
+            const result = await githubService.getContents(repoFullName, targetPath, commitBranch);
             const fileData = Array.isArray(result) ? result.find((item) => item.type === 'file') : result;
             if (!fileData || fileData.type !== 'file') {
               throw new Error(`Could not fetch the base file to apply the diff: ${targetPath}`);

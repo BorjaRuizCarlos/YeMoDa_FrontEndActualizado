@@ -325,7 +325,7 @@ export function CodeReviewPanel({ projectId, repoFullName }: CodeReviewPanelProp
         },
       };
 
-      const response = await chatService.send(payload);
+      const { text: response } = await chatService.send(payload);
       if (response.trim()) {
         try {
           await tasksService.createAiReviewResult({

@@ -478,6 +478,8 @@ export interface ChatResponsePayload {
   message?: string;
   response?: string;
   content?: string;
+  /** Anthropic stop_reason passed through by the backend; "max_tokens" => truncated output. */
+  finish_reason?: string | null;
 }
 
 export interface ChatModelsResponse {
