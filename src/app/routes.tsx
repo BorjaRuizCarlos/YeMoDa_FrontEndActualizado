@@ -74,6 +74,15 @@ export const router = createBrowserRouter([
     path: '/auth/github/callback',
     element: withSuspense(GitHubAuthCallback),
   },
+  // Documentación pública: se lee sin sesión (Fase 1 del plan Education).
+  {
+    path: '/education',
+    element: withSuspense(Education),
+  },
+  {
+    path: '/education/:slug',
+    element: withSuspense(Education),
+  },
   {
     path: '/',
     element: <AppLayout />,
@@ -86,7 +95,6 @@ export const router = createBrowserRouter([
       { path: 'settings', element: withSuspense(Settings) },
       { path: 'reports', element: withSuspense(Reports) },
       { path: 'alerts', element: withSuspense(Alerts) },
-      { path: 'education', element: withSuspense(Education) },
       { path: 'github', element: withSuspense(GitHub) },
       { path: 'azure-ret', element: withSuspense(AzureRet) },
       { path: 'plans', element: withSuspense(Plans) },
